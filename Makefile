@@ -13,23 +13,35 @@ DOCKER_ENVIRONMENT = $(shell \
 # a programmer to kill a docker-run command by Ctrl+C.
 DOCKER_RUN = docker run --rm $(shell [ -t 0 ] && echo -it)
 
+###############################################################################
+# Basic rules
+###############################################################################
 
 .PHONY: test
-test: test/rust
-
-.PHONY: test/rust
-test/rust:
-	cargo test
+test: test/rust test/secrets
 
 check:
 	@bash ./scripts/check_unagi_password.sh --logtostderr
 	@echo 'Successfully passed precondition check.' >&2
 
 ###############################################################################
+# Test rules
+###############################################################################
+
+.PHONY: test/rust
+test/rust:
+	cargo test
+
+.PHONY: test/secrets
+test/secrets: secrets
+
+###############################################################################
 # Rules for secrets
 ###############################################################################
 
-secrets/%: FORCE
+secrets: secrets/service_account.json FORCE
+
+secrets/%: configs/%.encrypted FORCE
 	$(MAKE) secrets/$*@$(DOCKER_ENVIRONMENT)
 secrets/%@host: docker/tools FORCE
 	$(DOCKER_RUN) -v $(CURDIR):/work -w /work \
@@ -37,7 +49,7 @@ secrets/%@host: docker/tools FORCE
 secrets/%@docker:
 	./bin/decrypt < configs/$*.encrypted > secrets/$*
 
-configs/%.encrypted: FORCE
+configs/%.encrypted@: FORCE
 	$(MAKE) configs/$*.encrypted@$(DOCKER_ENVIRONMENT)
 configs/%.encrypted@host: docker/tools FORCE
 	$(DOCKER_RUN) -v $(CURDIR):/work -w /work \
