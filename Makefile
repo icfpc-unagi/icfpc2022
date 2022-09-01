@@ -20,9 +20,15 @@ DOCKER_RUN = docker run --rm $(shell [ -t 0 ] && echo -it)
 .PHONY: test
 test: test/rust test/secrets
 
+.PHONY:
 check:
 	@bash ./scripts/check_unagi_password.sh --logtostderr
 	@echo 'Successfully passed precondition check.' >&2
+
+.PHONY:
+rebase:
+	git fetch
+	git rebase origin/main
 
 ###############################################################################
 # Test rules
