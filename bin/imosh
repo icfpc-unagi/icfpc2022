@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # imosh is a utility library for BASH.
 #
 # For more details, see https://github.com/imos/imosh
