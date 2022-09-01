@@ -1,3 +1,19 @@
+# DOCKER_ENVIRONMENT is set to "docker" if it may be inside a Docker container.
+# Otherwise, it is set to "host".  If Docker is not installed, it presumes it
+# is running inside a container (containerd does not prepare a /.dockerenv).
+DOCKER_ENVIRONMENT = $(shell \
+	if [ -f /.dockerenv ] || ! which docker >/dev/null 2>/dev/null; then \
+		echo docker; \
+	else \
+		echo host; \
+	fi)
+# DOCKER_RUN is a command to trigger "docker run".  It may have extra
+# command-line arguments.
+# NOTE: -it option is added when Makefile is called from a tty.  It enables
+# a programmer to kill a docker-run command by Ctrl+C.
+DOCKER_RUN = docker run --rm $(shell [ -t 0 ] && echo -it)
+
+
 .PHONY: test
 test: test/rust
 
@@ -8,3 +24,37 @@ test/rust:
 check:
 	@bash ./scripts/check_unagi_password.sh --logtostderr
 	@echo 'Successfully passed precondition check.' >&2
+
+###############################################################################
+# Rules for secrets
+###############################################################################
+
+secrets/%: FORCE
+	$(MAKE) secrets/$*@$(DOCKER_ENVIRONMENT)
+secrets/%@host: docker/tools FORCE
+	$(DOCKER_RUN) -v $(CURDIR):/work -w /work \
+		 icfpc-unagi/tools make secrets/$*@docker
+secrets/%@docker:
+	./bin/decrypt < configs/$*.encrypted > secrets/$*
+
+configs/%.encrypted: FORCE
+	$(MAKE) configs/$*.encrypted@$(DOCKER_ENVIRONMENT)
+configs/%.encrypted@host: docker/tools FORCE
+	$(DOCKER_RUN) -v $(CURDIR):/work -w /work \
+		icfpc-unagi/tools make configs/$*.encrypted@docker
+configs/%.encrypted@docker:
+	./bin/encrypt < secrets/$* > configs/$*.encrypted
+
+###############################################################################
+# Docker rules
+###############################################################################
+
+docker/%:
+	cd docker && make $*
+
+###############################################################################
+# Generic rules
+###############################################################################
+
+.PHONY: FORCE
+FORCE:
