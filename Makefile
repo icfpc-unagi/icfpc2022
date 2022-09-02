@@ -44,8 +44,7 @@ test/rust:
 test/secrets: secrets
 
 .PHONY: test/go
-test/go:
-	docker/server
+test/go: docker/server
 
 ###############################################################################
 # Rules for secrets
