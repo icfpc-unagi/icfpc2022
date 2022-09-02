@@ -9,3 +9,7 @@ run:
 .PHONY: format
 format:
 	go fmt ./...
+
+.PHONY: push
+push:
+	cd .. && make push/server
