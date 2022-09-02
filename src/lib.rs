@@ -44,15 +44,15 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     for i in 0..h {
         for j in 0..w {
             for k in 0..4 {
-                out[i][j][k] = buf[(i * w + j) * 4 + k];
+                out[h - i - 1][j][k] = buf[(i * w + j) * 4 + k];
             }
         }
     }
     out
 }
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct BlockId(Vec<u32>);
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct BlockId(pub Vec<u32>);
 
 impl std::fmt::Display for BlockId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -62,6 +62,15 @@ impl std::fmt::Display for BlockId {
             f.write_fmt(format_args!(".{}", x))?;
         }
         Ok(())
+    }
+}
+
+impl BlockId {
+    pub fn cut(&self) -> [BlockId; 2] {
+        [
+            BlockId(self.0.iter().cloned().chain([0]).collect()),
+            BlockId(self.0.iter().cloned().chain([1]).collect()),
+        ]
     }
 }
 
@@ -80,8 +89,8 @@ type Color = [u8; 4];
 
 #[derive(Debug)]
 pub enum Move {
-    LineCut(BlockId, char, u32), // orientation, offset (x or y)
-    PointCut(BlockId, u32, u32), // offset (x and y)
+    LineCut(BlockId, char, usize),   // orientation, offset (x or y)
+    PointCut(BlockId, usize, usize), // offset (x and y)
     Color(BlockId, Color),
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
