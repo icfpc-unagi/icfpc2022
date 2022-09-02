@@ -1,5 +1,7 @@
 use std::fs::File;
 
+pub mod color;
+
 pub trait SetMinMax {
     fn setmin(&mut self, v: Self) -> bool;
     fn setmax(&mut self, v: Self) -> bool;
