@@ -51,7 +51,7 @@ test/go: docker/server
 # Rules for secrets
 ###############################################################################
 
-secrets: secrets/service_account.json FORCE
+secrets: secrets/service_account.json secrets/login.json FORCE
 
 secrets/%: configs/%.encrypted FORCE
 	$(MAKE) secrets/$*@$(DOCKER_ENVIRONMENT)
