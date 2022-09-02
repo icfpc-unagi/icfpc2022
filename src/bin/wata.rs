@@ -147,7 +147,7 @@ fn main() {
             let block = blocks.pop().unwrap();
             println!("{}", Move::Color(block.clone(), color));
             if y < h {
-                println!("{}", Move::LineCut(block.clone(), 'y', y));
+                println!("{}", Move::LineCut(block.clone(), 'y', y as i32));
                 blocks.extend(block.cut());
             } else {
                 blocks.push(block);
@@ -162,7 +162,7 @@ fn main() {
         }
         if ux < w {
             let block = blocks.pop().unwrap();
-            println!("{}", Move::LineCut(block.clone(), 'x', ux));
+            println!("{}", Move::LineCut(block.clone(), 'x', ux as i32));
             blocks.push(block.cut()[1].clone());
         }
     }

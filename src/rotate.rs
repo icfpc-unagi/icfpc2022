@@ -13,7 +13,7 @@ pub fn flip_png(mut png: Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
     png
 }
 
-const width: usize = 400;
+const width: i32 = 400;
 
 pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();

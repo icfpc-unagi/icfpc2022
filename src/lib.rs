@@ -4,6 +4,7 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead},
+    panic,
     str::FromStr,
 };
 
@@ -82,6 +83,14 @@ impl BlockId {
             BlockId(self.0.iter().cloned().chain([1]).collect()),
         ]
     }
+    pub fn cut4(&self) -> [BlockId; 4] {
+        [
+            BlockId(self.0.iter().cloned().chain([0]).collect()),
+            BlockId(self.0.iter().cloned().chain([1]).collect()),
+            BlockId(self.0.iter().cloned().chain([2]).collect()),
+            BlockId(self.0.iter().cloned().chain([3]).collect()),
+        ]
+    }
 }
 
 impl FromStr for BlockId {
@@ -105,8 +114,8 @@ pub type Color = [u8; 4];
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Move {
-    LineCut(BlockId, char, usize),   // orientation, offset (x or y)
-    PointCut(BlockId, usize, usize), // offset (x and y)
+    LineCut(BlockId, char, i32), // orientation, offset (x or y)
+    PointCut(BlockId, i32, i32), // offset (x and y)
     Color(BlockId, Color),
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
@@ -248,7 +257,7 @@ pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
 pub struct Canvas {
     pub bitmap: [[Color; 400]; 400],
     pub blocks: HashMap<BlockId, Block>,
-    pub counter: usize,
+    pub counter: u32,
 }
 
 impl Default for Canvas {
@@ -265,8 +274,42 @@ impl Canvas {
     // returns cost
     pub fn apply(&mut self, mov: &Move) -> f64 {
         let block_area = match mov {
-            Move::LineCut(b, ori, x) => todo!(),
-            Move::PointCut(b, x, y) => todo!(),
+            Move::LineCut(b, o, x) => {
+                let block = self.blocks.remove(&b).unwrap();
+                // NOTE: offset is absolute coordinate
+                let [bid0, bid1] = b.cut();
+                let block0;
+                let block1;
+                match o {
+                    'x' | 'X' => {
+                        block0 = Block(block.0, Point(*x, block.1 .1));
+                        block1 = Block(Point(*x, block.0 .1), block.1);
+                    }
+                    'y' | 'Y' => {
+                        block0 = Block(block.0, Point(block.1 .0, *x));
+                        block1 = Block(Point(block.0 .0, *x), block.1);
+                    }
+                    _ => panic!("bad orientation: {}", o),
+                }
+                assert!(self.blocks.insert(bid0, block0).is_none());
+                assert!(self.blocks.insert(bid1, block1).is_none());
+                block.area()
+            }
+            Move::PointCut(b, x, y) => {
+                let block = self.blocks.remove(&b).unwrap();
+                // NOTE: offset is absolute coordinate
+                let bids = b.cut4();
+                let blocks = [
+                    Block(block.0, Point(*x, *y)),
+                    Block(Point(*x, block.0 .1), Point(block.1 .0, *y)),
+                    Block(Point(*x, *y), block.1),
+                    Block(Point(block.0 .0, *y), Point(*x, block.1 .1)),
+                ];
+                for (bid, block) in bids.into_iter().zip(blocks) {
+                    assert!(self.blocks.insert(bid, block).is_none());
+                }
+                block.area()
+            }
             Move::Color(b, c) => {
                 let block = &self.blocks[&b];
                 for y in block.1 .1..block.0 .1 {
@@ -276,8 +319,18 @@ impl Canvas {
                 }
                 block.area()
             }
-            Move::Swap(b1, b2) => todo!(),
-            Move::Merge(b1, b2) => todo!(),
+            Move::Swap(b0, b1) => todo!(),
+            Move::Merge(b0, b1) => {
+                let block0 = self.blocks.remove(&b0).unwrap();
+                let block1 = self.blocks.remove(&b1).unwrap();
+                // TODO: validate compatibility
+                self.counter += 1;
+                let bid = BlockId(vec![self.counter]);
+                let block = Block(block0.0.min(block1.0), block0.1.max(block1.1));
+                assert!(self.blocks.insert(bid, block).is_none());
+                // cost the larger area; not the union of both
+                block0.area().max(block1.area())
+            }
         };
         (mov.base_cost() * (400.0 * 400.0) / block_area as f64).round()
     }
