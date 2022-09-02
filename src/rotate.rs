@@ -19,6 +19,7 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
 
     let mut flipped_program = vec![];
+    let mut n = 0;
     for mv in program {
         let flipped_mv;
         match mv {
@@ -72,7 +73,7 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
                 )
             }
             Move::Merge(block_id1, block_id2) => {
-                let n = 0; // interpreter.get_global_counter()
+                n += 1;
                 block_id_map.insert(BlockId(vec![n]), BlockId(vec![n]));
 
                 flipped_mv = Move::Merge(
@@ -104,6 +105,7 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
 
     let mut flipped_program = vec![];
+    let mut n = 0;
     for mv in program {
         let flipped_mv;
         match mv {
@@ -159,7 +161,7 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
                 )
             }
             Move::Merge(block_id1, block_id2) => {
-                let n = 0; // interpreter.get_global_counter()
+                n += 1;
                 block_id_map.insert(BlockId(vec![n]), BlockId(vec![n]));
 
                 flipped_mv = Move::Merge(
