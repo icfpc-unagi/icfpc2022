@@ -3,9 +3,7 @@ use super::{BlockId, Move};
 const width: i32 = 400;
 
 fn push(block_id: &BlockId, x: u32) -> BlockId {
-    let mut block_id = block_id.clone();
-    block_id.0.push(x);
-    block_id
+    block_id.extended([x])
 }
 
 pub fn flip_png(mut png: Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {

@@ -301,4 +301,10 @@ mod tests {
             "merge [1] [2]"
         );
     }
+
+    #[test]
+    fn block_id() {
+        assert_eq!("1.2.3".parse(), Ok(BlockId(vec![1, 2, 3])));
+        assert_eq!(BlockId(vec![1]).extended([2]), BlockId(vec![1, 2]));
+    }
 }
