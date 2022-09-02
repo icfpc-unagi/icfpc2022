@@ -58,7 +58,7 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
                 );
                 block_id_map.insert(
                     block_id_push(block_id.clone(), 3),
-                    block_id_push(block_id.clone(), 3),
+                    block_id_push(block_id.clone(), 2),
                 );
 
                 flipped_mv = Move::PointCut(block_id, width - *offset_x, *offset_y);
