@@ -186,7 +186,7 @@ pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
 pub struct Canvas {
     pub bitmap: [[Color; 400]; 400],
     pub blocks: HashMap<BlockId, Block>,
-    pub counter: usize,
+    pub counter: u32,
 }
 
 impl Default for Canvas {
@@ -248,8 +248,18 @@ impl Canvas {
                 }
                 block.area()
             }
-            Move::Swap(b1, b2) => todo!(),
-            Move::Merge(b1, b2) => todo!(),
+            Move::Swap(b0, b1) => todo!(),
+            Move::Merge(b0, b1) => {
+                let block0 = self.blocks.remove(&b0).unwrap();
+                let block1 = self.blocks.remove(&b1).unwrap();
+                // TODO: validate compatibility
+                self.counter += 1;
+                let bid = BlockId(vec![self.counter]);
+                let block = Block(block0.0.min(block1.0), block0.1.max(block1.1));
+                assert!(self.blocks.insert(bid, block).is_none());
+                // cost the larger area; not the union of both
+                block0.area().max(block1.area())
+            }
         };
         (mov.base_cost() * (400.0 * 400.0) / block_area as f64).round()
     }
