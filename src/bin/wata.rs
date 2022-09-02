@@ -1,4 +1,5 @@
 use icfpc2022::*;
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use std::collections::BinaryHeap;
 
@@ -47,14 +48,20 @@ impl Median {
 }
 
 const INF: f64 = 1e10;
+pub static MAX_WIDTH: Lazy<usize> = Lazy::new(|| {
+    std::env::var("MAX_WIDTH")
+        .unwrap_or("40".to_owned())
+        .parse()
+        .unwrap()
+});
 
-fn solve(png: &Vec<Vec<[u8; 4]>>) -> Program {
+fn solve(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
     let h = png.len();
     let w = png[0].len();
     let mut cand_x = vec![];
     for lx in 0..w {
         for ux in lx + 1..=w {
-            if ux == 0 || ux - lx <= 60 || ux == w {
+            if ux - lx <= 100 && (ux == 0 || ux - lx <= *MAX_WIDTH || ux == w) {
                 cand_x.push((lx, ux));
             }
         }
@@ -158,7 +165,7 @@ fn solve(png: &Vec<Vec<[u8; 4]>>) -> Program {
             let block = blocks.pop().unwrap();
             out.push(Move::Color(block.clone(), color));
             if y < h {
-                out.push(Move::LineCut(block.clone(), 'y', y));
+                out.push(Move::LineCut(block.clone(), 'y', y as i32));
                 blocks.extend(block.cut());
             } else {
                 blocks.push(block);
@@ -173,18 +180,31 @@ fn solve(png: &Vec<Vec<[u8; 4]>>) -> Program {
         }
         if ux < w {
             let block = blocks.pop().unwrap();
-            out.push(Move::LineCut(block.clone(), 'x', ux));
+            out.push(Move::LineCut(block.clone(), 'x', ux as i32));
             blocks.push(block.cut()[1].clone());
         }
     }
-    out
+    (dp_x[w].0, out)
 }
 
 fn main() {
     let input = std::env::args().nth(1).unwrap();
-    let png = read_png(&input);
-    let out = solve(&png);
-    for p in out {
+    let mut png = read_png(&input);
+    let mut best = (INF, vec![]);
+    for _ in 0..4 {
+        for _ in 0..2 {
+            let out = solve(&png);
+            if best.0.setmin(out.0) {
+                eprintln!("{}", best.0);
+                best.1 = out.1;
+            }
+            best.1 = rotate::rotate_program(&best.1);
+            png = rotate::rotate_png(&png);
+        }
+        best.1 = rotate::flip_program(&best.1);
+        png = rotate::flip_png(png);
+    }
+    for p in best.1 {
         println!("{}", p);
     }
 }
