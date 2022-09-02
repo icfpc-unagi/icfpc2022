@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::pixel_distance;
+
 pub fn best_color(
     png: &Vec<Vec<[u8; 4]>>,
     lx: usize,
@@ -79,30 +81,36 @@ pub fn best_color2(
     ry: usize,
 ) -> ([u8; 4], f64) {
     let mut points = Vec::with_capacity((ry - ly) * (rx - lx));
+    let mut u8_points = Vec::with_capacity((ry - ly) * (rx - lx));
     for y in ly..ry {
         for x in lx..rx {
-            let p = &png[y][x];
+            let p = png[y][x];
+            u8_points.push(p);
             points.push([p[0] as f64, p[1] as f64, p[2] as f64, p[3] as f64]);
         }
     }
+    let u8_points = u8_points;
 
     let color = geometric_median_4d(&points);
-    let color = color.map(|v| v as u8);
+    let color = color.map(|v| v.floor().clamp(0.0, 254.0) as u8);
 
-    // copy-paste...
-    let mut cost = 0.0;
-    for y in ly..ry {
-        for x in lx..rx {
-            let mut t = 0.0;
-            for c in 0..4 {
-                let d = (color[c] as f64) - (png[y][x][c] as f64);
-                t += d * d
-            }
-            cost += t.sqrt();
+    let mut best = 1e99;
+    let mut best_color = [0; 4];
+    // local search
+    for flags in 0..(1<<4) {
+        let color = [
+            color[0] + ((flags >> 0) & 1),
+            color[1] + ((flags >> 1) & 1),
+            color[2] + ((flags >> 2) & 1),
+            color[3] + ((flags >> 3) & 1),
+        ];
+        let cost = u8_points.iter().map(|p| pixel_distance(p, &color)).sum::<f64>();
+        if cost < best {
+            best = cost;
+            best_color = color;
         }
     }
-
-    return (color, cost);
+    return (best_color, best);
 }
 
 fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
@@ -117,6 +125,7 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
         x[i] /= n as f64;
     }
     // TODO: fix eps
+    // 誤差0.5程度におさえられるくらいに調整したい
     for iter in 0..20 {
         let eps = if iter < 10 { 1.0 } else { 0.1 };
         // let dists = points
@@ -141,7 +150,7 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
                 grad[i] += w * diff[i];
             }
         }
-        dbg!(w_sum);
+        // dbg!(w_sum);
         for i in 0..4 {
             // x[i] /= w_sum;
             x[i] += grad[i] / w_sum;
@@ -168,5 +177,17 @@ mod tests {
         let median = geometric_median_4d(&points);
         // dbg!(median);
         assert_eq!(median.map(|v| v.round()), c);
+    }
+
+    #[test]
+    fn test_best_color2() {
+        let a = [0, 10, 20, 30];
+        let b = [40, 30, 20, 10];
+        let c = [30, 20, 70, 70];
+        let points = vec![a, b, c];
+        let png = vec![points.clone()];
+        let (point, cost) = best_color2(&png, 0, points.len(), 0, 1);
+        dbg!(point, cost);
+        // assert!(false);
     }
 }
