@@ -76,6 +76,10 @@ push/%: docker/%
 	docker tag icfpc-unagi/$* "$(DOCKER_REGISTRY)/$*"
 	docker push "$(DOCKER_REGISTRY)/$*"
 
+.PHONY: run/server
+run/server: docker/server
+	$(DOCKER_RUN) -p 8080:8080 icfpc-unagi/server
+
 ###############################################################################
 # Generic rules
 ###############################################################################
