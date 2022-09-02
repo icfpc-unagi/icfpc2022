@@ -277,7 +277,7 @@ pub fn pixel_distance(a: &Color, b: &Color) -> f64 {
 
 pub fn similarity(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> f64 {
     let pixel_pairs = a.iter().zip(b).flat_map(|(a, b)| a.iter().zip(b));
-    pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum::<f64>() * 0.05
+    pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum::<f64>() * 0.005
 }
 
 #[cfg(test)]
