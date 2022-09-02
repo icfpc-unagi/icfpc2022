@@ -3,6 +3,7 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead},
+    panic,
     str::FromStr,
 };
 
@@ -104,8 +105,8 @@ pub type Color = [u8; 4];
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Move {
-    LineCut(BlockId, char, usize),   // orientation, offset (x or y)
-    PointCut(BlockId, usize, usize), // offset (x and y)
+    LineCut(BlockId, char, i32), // orientation, offset (x or y)
+    PointCut(BlockId, i32, i32), // offset (x and y)
     Color(BlockId, Color),
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
@@ -194,8 +195,33 @@ impl Canvas {
     // returns cost
     pub fn apply(&mut self, mov: &Move) -> f64 {
         let block_area = match mov {
-            Move::LineCut(b, ori, x) => todo!(),
-            Move::PointCut(b, x, y) => todo!(),
+            Move::LineCut(b, o, x) => {
+                let block = self.blocks.remove(&b).unwrap();
+                // NOTE: offset is absolute coordinate
+                match o {
+                    'x' | 'X' => {
+                        let block1 = Block(block.0, Point(*x, block.1 .1));
+                        let block2 = Block(Point(*x, block.0 .1), block.1);
+                        let [bid1, bid2] = b.cut();
+                        assert!(self.blocks.insert(bid1, block1).is_none());
+                        assert!(self.blocks.insert(bid2, block2).is_none());
+                    }
+                    'y' | 'Y' => {
+                        let block1 = Block(block.0, Point(block.1 .0, *x));
+                        let block2 = Block(Point(block.0 .0, *x), block.1);
+                        let [bid1, bid2] = b.cut();
+                        assert!(self.blocks.insert(bid1, block1).is_none());
+                        assert!(self.blocks.insert(bid2, block2).is_none());
+                    }
+                    _ => panic!("bad orientation: {}", o),
+                }
+                block.area()
+            }
+            Move::PointCut(b, x, y) => {
+                let block = &self.blocks[&b];
+
+                block.area()
+            }
             Move::Color(b, c) => {
                 let block = &self.blocks[&b];
                 for y in block.1 .1..block.0 .1 {
