@@ -1,13 +1,13 @@
-use std::mem::uninitialized;
 use std::{
     collections::HashMap,
     fmt,
     fs::File,
     io::{self, BufRead},
-    mem::swap,
     panic,
     str::FromStr,
 };
+
+use itertools::Itertools;
 
 pub mod color;
 pub mod rotate;
@@ -79,18 +79,18 @@ impl std::fmt::Display for BlockId {
 }
 
 impl BlockId {
+    pub fn extended<I: IntoIterator<Item = u32>>(&self, intoiter: I) -> BlockId {
+        BlockId(self.0.iter().cloned().chain(intoiter).collect())
+    }
     pub fn cut(&self) -> [BlockId; 2] {
-        [
-            BlockId(self.0.iter().cloned().chain([0]).collect()),
-            BlockId(self.0.iter().cloned().chain([1]).collect()),
-        ]
+        [self.extended([0]), self.extended([1])]
     }
     pub fn cut4(&self) -> [BlockId; 4] {
         [
-            BlockId(self.0.iter().cloned().chain([0]).collect()),
-            BlockId(self.0.iter().cloned().chain([1]).collect()),
-            BlockId(self.0.iter().cloned().chain([2]).collect()),
-            BlockId(self.0.iter().cloned().chain([3]).collect()),
+            self.extended([0]),
+            self.extended([1]),
+            self.extended([2]),
+            self.extended([3]),
         ]
     }
 }
@@ -110,7 +110,6 @@ impl Block {
     pub fn size(&self) -> Point {
         Point(self.1 .0 - self.0 .0, self.1 .1 - self.0 .1)
     }
-
     pub fn area(&self) -> i32 {
         let size = self.size();
         size.0 * size.1
@@ -367,6 +366,20 @@ impl Canvas {
         }
         cost
     }
+}
+
+pub fn pixel_distance(a: &Color, b: &Color) -> f64 {
+    (a.into_iter()
+        .zip(b)
+        .map(|(&a, &b)| a as i32 - b as i32)
+        .map(|x| x * x)
+        .sum::<i32>() as f64)
+        .sqrt()
+}
+
+pub fn similarity(a: &[[Color; 400]; 400], b: &[[Color; 400]; 400]) -> f64 {
+    let pixel_pairs = a.iter().zip(b).flat_map(|(a, b)| a.iter().zip(b));
+    pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum()
 }
 
 #[cfg(test)]
