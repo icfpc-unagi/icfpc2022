@@ -13,11 +13,12 @@ pub fn flip_png(mut png: Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
     png
 }
 
+const width: usize = 400;
+
 pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
 
     let mut flipped_program = vec![];
-    // TODO: let mut interpreter = Interpreter::new();
     for mv in program {
         let flipped_mv;
         match mv {
@@ -31,8 +32,6 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
 
                     flipped_mv = Move::LineCut(block_id, *orientation, *offset);
                 } else {
-                    let width = 0; // TODO: interpreter.get_block(block_id)
-
                     let block_id = block_id_map.get(block_id).unwrap().clone();
                     let block_id0 = block_id_push(block_id.clone(), 0);
                     let block_id1 = block_id_push(block_id.clone(), 1);
@@ -44,8 +43,6 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
             }
             Move::PointCut(block_id, offset_x, offset_y) => {
                 let block_id = block_id_map.get(block_id).unwrap().clone();
-                let width = 0; // TODO: interpreter.get_block(block_id)
-
                 block_id_map.insert(
                     block_id_push(block_id.clone(), 0),
                     block_id_push(block_id.clone(), 1),
@@ -86,7 +83,6 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
         }
 
         flipped_program.push(flipped_mv);
-        // TODO: interpreter.apply(mv)
     }
 
     return flipped_program;
@@ -108,7 +104,6 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
 
     let mut flipped_program = vec![];
-    // TODO: let mut interpreter = Interpreter::new();
     for mv in program {
         let flipped_mv;
         match mv {
@@ -122,8 +117,6 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
 
                     flipped_mv = Move::LineCut(block_id, 'x', *offset);
                 } else {
-                    let width = 0; // TODO: interpreter.get_block(block_id)
-
                     let block_id = block_id_map.get(block_id).unwrap().clone();
                     let block_id0 = block_id_push(block_id.clone(), 0);
                     let block_id1 = block_id_push(block_id.clone(), 1);
@@ -135,7 +128,6 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
             }
             Move::PointCut(block_id, offset_x, offset_y) => {
                 let block_id = block_id_map.get(block_id).unwrap().clone();
-                let width = 0; // TODO: interpreter.get_block(block_id)
 
                 // TODO: 結構自信ないよｗｗ
                 block_id_map.insert(
@@ -178,7 +170,6 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
         }
 
         flipped_program.push(flipped_mv);
-        // TODO: interpreter.apply(mv)
     }
 
     return flipped_program;
