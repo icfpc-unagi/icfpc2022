@@ -2,6 +2,7 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead},
+    ops::{Add, Sub},
     panic,
     str::FromStr,
 };
@@ -61,8 +62,35 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     out
 }
 
+pub fn write_png(path: &str, bitmap: Vec<Vec<Color>>) -> Result<(), png::EncodingError> {
+    let mut encoder = png::Encoder::new(
+        io::BufWriter::new(File::create(path)?),
+        bitmap[0].len() as u32,
+        bitmap.len() as u32,
+    );
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header()?;
+    let data = Vec::from_iter(bitmap.iter().rev().flatten().flatten().cloned());
+    writer.write_image_data(&data)
+}
+
 #[derive(Clone, Copy, Default, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Point(pub i32, pub i32);
+
+impl Add<Point> for Point {
+    type Output = Point;
+    fn add(self, rhs: Point) -> Self::Output {
+        Self(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
+impl Sub<Point> for Point {
+    type Output = Point;
+    fn sub(self, rhs: Point) -> Self::Output {
+        Self(self.0 - rhs.0, self.1 - rhs.1)
+    }
+}
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone)]
 pub struct BlockId(pub Vec<u32>);

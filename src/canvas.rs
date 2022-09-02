@@ -57,8 +57,8 @@ impl Canvas {
             }
             Move::Color(b, c) => {
                 let block = &self.blocks[&b];
-                for y in block.1 .1..block.0 .1 {
-                    for x in block.1 .0..block.0 .0 {
+                for y in block.0 .1..block.1 .1 {
+                    for x in block.0 .0..block.1 .0 {
                         self.bitmap[y as usize][x as usize] = *c;
                     }
                 }
@@ -104,5 +104,24 @@ impl Canvas {
             cost += self.apply(&mov);
         }
         cost
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn test() {
+        let png = read_png("problems/1.png");
+        let mut canvas = Canvas::new(400, 400);
+        let isl = read_isl(File::open("submissions/270.isl").unwrap()).unwrap();
+        for mov in &isl {
+            println!("{}", mov);
+        }
+        let cost = canvas.apply_all(isl);
+        assert_eq!(cost, 5.0);
+        let sim = similarity(&png, &canvas.bitmap);
+        assert_eq!(sim.round(), 226532.0);
     }
 }
