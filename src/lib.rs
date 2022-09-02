@@ -11,6 +11,7 @@ use std::{
 
 pub mod color;
 pub mod rotate;
+pub mod wata;
 
 pub trait SetMinMax {
     fn setmin(&mut self, v: Self) -> bool;
