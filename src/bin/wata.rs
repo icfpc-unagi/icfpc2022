@@ -1,9 +1,6 @@
 use icfpc2022::*;
 use rayon::prelude::*;
-use std::{
-    collections::BinaryHeap,
-    sync::{Arc, Mutex},
-};
+use std::collections::BinaryHeap;
 
 #[derive(Clone, Debug)]
 pub struct Median {
@@ -51,15 +48,13 @@ impl Median {
 
 const INF: f64 = 1e10;
 
-fn main() {
-    let input = std::env::args().nth(1).unwrap();
-    let png = read_png(&input);
+fn solve(png: &Vec<Vec<[u8; 4]>>) -> Program {
     let h = png.len();
     let w = png[0].len();
     let mut cand_x = vec![];
     for lx in 0..w {
         for ux in lx + 1..=w {
-            if ux - lx <= 40 {
+            if ux == 0 || ux - lx <= 60 || ux == w {
                 cand_x.push((lx, ux));
             }
         }
@@ -91,7 +86,9 @@ fn main() {
                     }
                     let mut cost2 = (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
                     if y + 1 != h {
-                        cost2 += (8.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                        cost2 += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                        let dy = (h - y - 1).max(y + 1 - ly);
+                        cost2 += (1.0 * (w * h) as f64 / ((w - lx) * dy) as f64).round();
                     }
                     let cost = dp[ly].0 + cost1 as f64 * 0.005 * 0.5 + cost2;
                     if dp[y + 1].0.setmin(cost) {
@@ -138,16 +135,30 @@ fn main() {
     }
     xs.push(0);
     xs.reverse();
+
+    let mut out = vec![];
     let mut id = 0;
     let mut blocks = vec![BlockId(vec![0])];
+    if let Ok(hiding) = std::env::var("HIDING") {
+        // 潜伏(14+2000*hiding)
+        let hiding = hiding.parse::<usize>().unwrap();
+        out.push(Move::LineCut(BlockId(vec![0]), 'y', 1));
+        for _ in 0..hiding {
+            out.push(Move::Color(BlockId(vec![0, 0]), [0, 0, 0, 0]));
+        }
+        out.push(Move::Merge(BlockId(vec![0, 0]), BlockId(vec![0, 1])));
+        id = 1;
+        blocks = vec![BlockId(vec![1])];
+    }
+
     for i in 0..xs.len() - 1 {
         let lx = xs[i];
         let ux = xs[i + 1];
         for &(y, color) in &dp_y[lx][ux].1 {
             let block = blocks.pop().unwrap();
-            println!("{}", Move::Color(block.clone(), color));
+            out.push(Move::Color(block.clone(), color));
             if y < h {
-                println!("{}", Move::LineCut(block.clone(), 'y', y));
+                out.push(Move::LineCut(block.clone(), 'y', y));
                 blocks.extend(block.cut());
             } else {
                 blocks.push(block);
@@ -156,14 +167,24 @@ fn main() {
         while blocks.len() > 1 {
             let b1 = blocks.pop().unwrap();
             let b2 = blocks.pop().unwrap();
-            println!("{}", Move::Merge(b1, b2));
+            out.push(Move::Merge(b1, b2));
             id += 1;
             blocks.push(BlockId(vec![id]));
         }
         if ux < w {
             let block = blocks.pop().unwrap();
-            println!("{}", Move::LineCut(block.clone(), 'x', ux));
+            out.push(Move::LineCut(block.clone(), 'x', ux));
             blocks.push(block.cut()[1].clone());
         }
+    }
+    out
+}
+
+fn main() {
+    let input = std::env::args().nth(1).unwrap();
+    let png = read_png(&input);
+    let out = solve(&png);
+    for p in out {
+        println!("{}", p);
     }
 }
