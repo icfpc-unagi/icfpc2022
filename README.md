@@ -21,3 +21,13 @@ make docker/tools
 docker run --rm -v $(pwd):/work -w /work icfpc-unagi/tools \
     ./bin/collect_all --logtostderr
 ```
+
+# 問題の回収方法
+
+```
+# (Optional) Dockerイメージを作り直します
+make docker/tools
+# Docker内で problems コマンドを実行します
+docker run --rm -v $(pwd):/work -w /work icfpc-unagi/tools \
+    ./bin/problems --logtostderr
+```

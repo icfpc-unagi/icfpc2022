@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+source "$(dirname "${BASH_SOURCE}")"/imosh || exit 1
+eval "${IMOSH_INIT}"
+
+FILE="$(
+    cd "$(dirname "${BASH_SOURCE}")/.."; pwd
+)/problems"
+
+LOG INFO "Generating an API token..."
+export API_TOKEN="$($(dirname "${BASH_SOURCE}")/generate_api_token)"
+if [ "${API_TOKEN}" == '' ]; then
+    LOG FATAL "Failed to generate an API token."
+fi
+
+LOG INFO "API key: ${API_TOKEN}"
+
+response="$(
+    curl -s -X GET -H "Authorization: Bearer ${API_TOKEN}" \
+        "https://robovinci.xyz/api/problems"
+)"
+
+FAILED=()
+
+for problem in $(echo "${response}" | jq -r '.problems[] | @base64'); do
+    problem="$(echo "${problem}" | base64 --decode)"
+    LOG INFO "${problem}"
+    id="$(echo "${problem}" | jq -r .id)"
+    LOG INFO "Collecting problem ${id}..."
+    if [ -e "${FILE}/${id}.png" -a -e "${FILE}/${id}.json" ]; then
+        LOG INFO "Problem ${id} is already downloaded."
+        continue
+    fi
+    url="$(echo "${problem}" | jq -r .target_link)"
+    LOG INFO "Downloading from '${url}'..."
+    if curl -s -o "${FILE}/${id}.png" "${url}"; then
+        echo "${problem}" > "${FILE}/${id}.json"
+        LOG INFO "Problem ${id} is ready."
+    else
+        LOG ERROR "Problem ${id} is failed."
+        FAILED=("${FAILED[@]}" "${id}")
+    fi
+done
+
+if [ "${#FAILED[*]}" -eq 0 ]; then
+    LOG INFO "Successfully collected all submissions."
+else
+    LOG FATAL "Failed to all submissions."
+fi

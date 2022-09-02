@@ -29,6 +29,7 @@ check:
 
 .PHONY:
 rebase:
+	-@rm -rf target
 	git fetch
 	git rebase origin/main
 

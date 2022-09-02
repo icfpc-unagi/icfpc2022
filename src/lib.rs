@@ -91,18 +91,36 @@ impl FromStr for BlockId {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
-pub struct Block(pub Point, pub (i32, i32));
+#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Eq, Ord, Default)]
+pub struct Block(pub Point, pub Point);
+
+impl Block {
+    pub fn area(&self) -> i32 {
+        (self.1 .0 - self.0 .0) * (self.1 .1 - self.0 .1)
+    }
+}
 
 pub type Color = [u8; 4];
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Move {
     LineCut(BlockId, char, usize),   // orientation, offset (x or y)
     PointCut(BlockId, usize, usize), // offset (x and y)
     Color(BlockId, Color),
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
+}
+
+impl Move {
+    pub fn base_cost(&self) -> f64 {
+        match self {
+            Move::LineCut(_, _, _) => 7.0,
+            Move::PointCut(_, _, _) => 10.0,
+            Move::Color(_, _) => 5.0,
+            Move::Swap(_, _) => 3.0,
+            Move::Merge(_, _) => 1.0,
+        }
+    }
 }
 
 impl fmt::Display for Move {
@@ -174,20 +192,29 @@ impl Default for Canvas {
 
 impl Canvas {
     // returns cost
-    pub fn apply(&mut self, mov: Move) -> i32 {
-        match mov {
-            Move::LineCut(_, _, _) => todo!(),
-            Move::PointCut(_, _, _) => todo!(),
-            Move::Color(_, _) => todo!(),
-            Move::Swap(_, _) => todo!(),
-            Move::Merge(_, _) => todo!(),
-        }
+    pub fn apply(&mut self, mov: &Move) -> f64 {
+        let block_area = match mov {
+            Move::LineCut(b, ori, x) => todo!(),
+            Move::PointCut(b, x, y) => todo!(),
+            Move::Color(b, c) => {
+                let block = &self.blocks[&b];
+                for y in block.1 .1..block.0 .1 {
+                    for x in block.1 .0..block.0 .0 {
+                        self.bitmap[y as usize][x as usize] = *c;
+                    }
+                }
+                block.area()
+            }
+            Move::Swap(b1, b2) => todo!(),
+            Move::Merge(b1, b2) => todo!(),
+        };
+        (mov.base_cost() * (400.0 * 400.0) / block_area as f64).round()
     }
 
-    pub fn apply_all<Iter: Iterator<Item = Move>>(&mut self, iter: Iter) -> i32 {
-        let mut cost = 0i32;
+    pub fn apply_all<Iter: Iterator<Item = Move>>(&mut self, iter: Iter) -> f64 {
+        let mut cost = 0.0;
         for mov in iter {
-            cost += self.apply(mov);
+            cost += self.apply(&mov);
         }
         cost
     }
