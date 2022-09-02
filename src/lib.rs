@@ -359,7 +359,7 @@ impl Canvas {
         (mov.base_cost() * (400.0 * 400.0) / block_area as f64).round()
     }
 
-    pub fn apply_all<Iter: Iterator<Item = Move>>(&mut self, iter: Iter) -> f64 {
+    pub fn apply_all<I: IntoIterator<Item = Move>>(&mut self, iter: I) -> f64 {
         let mut cost = 0.0;
         for mov in iter {
             cost += self.apply(&mov);
