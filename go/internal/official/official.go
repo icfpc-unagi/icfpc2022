@@ -42,15 +42,15 @@ type ScoreboardUser struct {
 }
 
 type ScoreboardResponse struct {
-	IsFrozen      bool   `json:"is_frozen"`
-	LastUpdatedAt string `json:"last_updated_at"`
+	IsFrozen      bool             `json:"is_frozen"`
+	LastUpdatedAt string           `json:"last_updated_at"`
 	Users         []ScoreboardUser `json:"users"`
 }
 
 func Scoreboard() (*ScoreboardResponse, error) {
 	req, _ := http.NewRequest(
 		"GET", "https://robovinci.xyz/api/results/scoreboard", nil)
-	req.Header.Set("Authorization", "Bearer " + APIKey())
+	req.Header.Set("Authorization", "Bearer "+APIKey())
 
 	client := new(http.Client)
 	resp, err := client.Do(req)

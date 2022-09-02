@@ -15,7 +15,7 @@ func handleTemplate(w http.ResponseWriter, r *http.Request) {
 
 func Template(w http.ResponseWriter, body []byte) {
 	fmt.Fprint(w,
-		`<html>
+		`<html lang="ja">
 <header>
 	<meta charset="UTF-8">
 	<meta charset="utf-8">

@@ -27,21 +27,40 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	problems := []int{}
-	seenProblems := map[int]struct{}{}
+	problemCosts := map[int][]int{}
 	for _, user := range scoreboard.Users {
 		for _, result := range user.Results {
-			if _, ok := seenProblems[result.ProblemID]; !ok {
+			if _, ok := problemCosts[result.ProblemID]; !ok {
 				problems = append(problems, result.ProblemID)
-				seenProblems[result.ProblemID] = struct{}{}
+				problemCosts[result.ProblemID] = nil
+			}
+			if result.SubmissionCount > 0 {
+				problemCosts[result.ProblemID] = append(
+					problemCosts[result.ProblemID], result.MinCost)
 			}
 		}
 	}
 	sort.Ints(problems)
-
-	fmt.Fprint(buf, `<div style="overflow-x:scroll;width:100%;">`)
-	fmt.Fprint(buf, `<table style="font-size:50%;"><tr><td>Team</td>`)
+	problemRanks := map[int]map[int]int{}
 	for _, problem := range problems {
-		fmt.Fprintf(buf, "<td>P%d</td>", problem)
+		problemRanks[problem] = map[int]int{}
+		sort.Ints(problemCosts[problem])
+		for index, cost := range problemCosts[problem] {
+			if _, ok := problemRanks[problem][cost]; !ok {
+				problemRanks[problem][cost] = index + 1
+			}
+		}
+	}
+
+	fmt.Fprint(buf,
+		`凡例: <span style="color:red;font-weight:bold">1位</span>`+
+			` <span style="color:#880;font-weight:bold">5位以内</span>`+
+			` <span style="font-weight:bold">10位以内</span>`+
+			` <span>その他</span><br><br>`)
+	fmt.Fprint(buf, `<div style="overflow-x:scroll;width:100%;">`)
+	fmt.Fprint(buf, `<table style="font-size:50%;"><tr><th>Team</th>`)
+	for _, problem := range problems {
+		fmt.Fprintf(buf, "<th>問%d</th>", problem)
 	}
 	fmt.Fprintf(buf, "</tr>")
 
@@ -56,8 +75,22 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, problem := range problems {
 			if result, ok := results[problem]; ok {
-				fmt.Fprintf(buf, "<td>%d<br>%s</td>",
-					result.MinCost, ToElapsedTime(result.LastSubmittedAt))
+				rank := problemRanks[problem][result.MinCost]
+				costStr := "&gt;1e6"
+				if result.MinCost < 1000000 {
+					costStr = fmt.Sprintf("%d", result.MinCost)
+				}
+				style := ""
+				if rank == 1 {
+					style = "color:red; font-weight: bold;"
+				} else if rank < 5 {
+					style = "color: #880; font-weight: bold;"
+				} else if rank < 10 {
+					style = "font-weight: bold;"
+				}
+				fmt.Fprintf(buf,
+					`<td style="text-align:right;%s">%s<br>%s</td>`,
+					style, costStr, ToElapsedTime(result.LastSubmittedAt))
 			} else {
 				fmt.Fprintf(buf, "<td>-</td>")
 			}
