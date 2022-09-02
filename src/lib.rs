@@ -48,7 +48,19 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     out
 }
 
-type BlockId = String; // TODO: struct?
+#[derive(Debug)]
+struct BlockId(Vec<u32>);
+
+impl std::fmt::Display for BlockId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut it = self.0.iter();
+        f.write_fmt(format_args!("{}", it.next().unwrap()))?;
+        for x in it {
+            f.write_fmt(format_args!(".{}", x))?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug)]
 enum Move {
@@ -73,29 +85,29 @@ impl ToString for Move {
 
 #[cfg(test)]
 mod tests {
-    use crate::Move;
+    use crate::*;
 
     #[test]
     fn move_to_string() {
         assert_eq!(
-            Move::LineCut("1".into(), 'x', 2).to_string(),
+            Move::LineCut(BlockId(vec![1]), 'x', 2).to_string(),
             "cut [1] [x] [2]"
         );
         assert_eq!(
-            Move::PointCut("1".into(), 2, 3).to_string(),
+            Move::PointCut(BlockId(vec![1]), 2, 3).to_string(),
             "cut [1] [2,3]"
         );
         // TODO: Color
         // assert_eq!(
-        //     Move::Color("1".into(), 2).to_string(),
+        //     Move::Color(BlockId(vec![1]), 2).to_string(),
         //     "color [1] [2,3,4,5]"
         // );
         assert_eq!(
-            Move::Swap("1".into(), "2".into()).to_string(),
+            Move::Swap(BlockId(vec![1]), BlockId(vec![2])).to_string(),
             "swap [1] [2]"
         );
         assert_eq!(
-            Move::Merge("1".into(), "2".into()).to_string(),
+            Move::Merge(BlockId(vec![1]), BlockId(vec![2])).to_string(),
             "merge [1] [2]"
         );
     }
