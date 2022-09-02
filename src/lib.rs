@@ -82,6 +82,14 @@ impl BlockId {
             BlockId(self.0.iter().cloned().chain([1]).collect()),
         ]
     }
+    pub fn cut4(&self) -> [BlockId; 4] {
+        [
+            BlockId(self.0.iter().cloned().chain([0]).collect()),
+            BlockId(self.0.iter().cloned().chain([1]).collect()),
+            BlockId(self.0.iter().cloned().chain([2]).collect()),
+            BlockId(self.0.iter().cloned().chain([3]).collect()),
+        ]
+    }
 }
 
 impl FromStr for BlockId {
@@ -198,28 +206,37 @@ impl Canvas {
             Move::LineCut(b, o, x) => {
                 let block = self.blocks.remove(&b).unwrap();
                 // NOTE: offset is absolute coordinate
+                let [bid0, bid1] = b.cut();
+                let block0;
+                let block1;
                 match o {
                     'x' | 'X' => {
-                        let block1 = Block(block.0, Point(*x, block.1 .1));
-                        let block2 = Block(Point(*x, block.0 .1), block.1);
-                        let [bid1, bid2] = b.cut();
-                        assert!(self.blocks.insert(bid1, block1).is_none());
-                        assert!(self.blocks.insert(bid2, block2).is_none());
+                        block0 = Block(block.0, Point(*x, block.1 .1));
+                        block1 = Block(Point(*x, block.0 .1), block.1);
                     }
                     'y' | 'Y' => {
-                        let block1 = Block(block.0, Point(block.1 .0, *x));
-                        let block2 = Block(Point(block.0 .0, *x), block.1);
-                        let [bid1, bid2] = b.cut();
-                        assert!(self.blocks.insert(bid1, block1).is_none());
-                        assert!(self.blocks.insert(bid2, block2).is_none());
+                        block0 = Block(block.0, Point(block.1 .0, *x));
+                        block1 = Block(Point(block.0 .0, *x), block.1);
                     }
                     _ => panic!("bad orientation: {}", o),
                 }
+                assert!(self.blocks.insert(bid0, block0).is_none());
+                assert!(self.blocks.insert(bid1, block1).is_none());
                 block.area()
             }
             Move::PointCut(b, x, y) => {
-                let block = &self.blocks[&b];
-
+                let block = self.blocks.remove(&b).unwrap();
+                // NOTE: offset is absolute coordinate
+                let bids = b.cut4();
+                let blocks = [
+                    Block(block.0, Point(*x, *y)),
+                    Block(Point(*x, block.0 .1), Point(block.1 .0, *y)),
+                    Block(Point(*x, *y), block.1),
+                    Block(Point(block.0 .0, *y), Point(*x, block.1 .1)),
+                ];
+                for (bid, block) in bids.into_iter().zip(blocks) {
+                    assert!(self.blocks.insert(bid, block).is_none());
+                }
                 block.area()
             }
             Move::Color(b, c) => {
