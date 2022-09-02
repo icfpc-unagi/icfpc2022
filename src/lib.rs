@@ -78,6 +78,12 @@ impl std::fmt::Display for BlockId {
     }
 }
 
+impl FromIterator<u32> for BlockId {
+    fn from_iter<T: IntoIterator<Item = u32>>(iter: T) -> Self {
+        Self(Vec::from_iter(iter))
+    }
+}
+
 impl BlockId {
     pub fn extended<I: IntoIterator<Item = u32>>(&self, intoiter: I) -> BlockId {
         BlockId(self.0.iter().cloned().chain(intoiter).collect())
@@ -271,7 +277,7 @@ pub fn pixel_distance(a: &Color, b: &Color) -> f64 {
 
 pub fn similarity(a: &[[Color; 400]; 400], b: &[[Color; 400]; 400]) -> f64 {
     let pixel_pairs = a.iter().zip(b).flat_map(|(a, b)| a.iter().zip(b));
-    pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum()
+    pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum::<f64>() * 0.05
 }
 
 #[cfg(test)]
@@ -306,5 +312,9 @@ mod tests {
     fn block_id() {
         assert_eq!("1.2.3".parse(), Ok(BlockId(vec![1, 2, 3])));
         assert_eq!(BlockId(vec![1]).extended([2]), BlockId(vec![1, 2]));
+        assert_eq!(
+            BlockId(vec![1]).cut(),
+            [BlockId(vec![1, 0]), BlockId(vec![1, 1])]
+        );
     }
 }
