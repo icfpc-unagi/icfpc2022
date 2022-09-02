@@ -3,24 +3,18 @@ use std::{collections::HashMap, panic};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Canvas {
-    pub bitmap: [[Color; 400]; 400],
+    pub bitmap: Vec<Vec<Color>>,
     pub blocks: HashMap<BlockId, Block>,
     pub counter: u32,
 }
 
-impl Default for Canvas {
-    fn default() -> Self {
-        Self {
-            bitmap: [[[0u8; 4]; 400]; 400],
-            blocks: HashMap::from([(BlockId(vec![0]), Block(Point(0, 0), Point(400, 400)))]),
-            counter: 0,
-        }
-    }
-}
-
 impl Canvas {
-    pub fn new() -> Self {
-        Canvas::default()
+    pub fn new(w: i32, h: i32) -> Self {
+        Self {
+            bitmap: vec![vec![Color::default(); w as usize]; h as usize],
+            blocks: HashMap::from([(BlockId(vec![0]), Block(Point(0, 0), Point(w, h)))]),
+            counter: Default::default(),
+        }
     }
     // returns cost
     pub fn apply(&mut self, mov: &Move) -> f64 {
@@ -100,7 +94,8 @@ impl Canvas {
                 block0.area().max(block1.area())
             }
         };
-        (mov.base_cost() * (400.0 * 400.0) / block_area as f64).round()
+        (mov.base_cost() * (self.bitmap.len() * self.bitmap[0].len()) as f64 / block_area as f64)
+            .round()
     }
 
     pub fn apply_all<I: IntoIterator<Item = Move>>(&mut self, iter: I) -> f64 {
