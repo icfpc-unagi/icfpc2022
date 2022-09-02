@@ -271,13 +271,16 @@ impl Default for Canvas {
     fn default() -> Self {
         Self {
             bitmap: [[[0u8; 4]; 400]; 400],
-            blocks: Default::default(),
-            counter: Default::default(),
+            blocks: HashMap::from([(BlockId(vec![0]), Block(Point(0, 0), Point(400, 400)))]),
+            counter: 0,
         }
     }
 }
 
 impl Canvas {
+    pub fn new() -> Self {
+        Canvas::default()
+    }
     // returns cost
     pub fn apply(&mut self, mov: &Move) -> f64 {
         let block_area = match mov {
