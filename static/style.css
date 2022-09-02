@@ -252,3 +252,15 @@ article h5 {
 article ul {
 	padding-inline-start: calc(min(40px, 4vw));
 }
+
+article tbody > tr:nth-child(even) {
+    background-color: #eee;
+}
+
+article table {
+    border-collapse: collapse;
+}
+
+article table td {
+    padding: 2px 5px;
+}

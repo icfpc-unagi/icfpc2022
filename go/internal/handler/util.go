@@ -17,5 +17,5 @@ func ParseTimestamp(t string) int64 {
 
 func ToElapsedTime(t string) string {
 	e := ParseTimestamp(t)
-	return fmt.Sprintf("%02d:%02d", e / 3600, e / 60 % 60)
+	return fmt.Sprintf("%02d:%02d", e/3600, e/60%60)
 }
