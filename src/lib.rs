@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fmt, fs::File};
+use std::{
+    collections::HashMap,
+    fmt,
+    fs::File,
+    io::{self, BufRead},
+    str::FromStr,
+};
 
 pub mod color;
 pub mod rotate;
@@ -51,8 +57,11 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     out
 }
 
+#[derive(Clone, Copy, Default, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
+pub struct Point(pub i32, pub i32);
+
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct BlockId(Vec<u32>);
+pub struct BlockId(pub Vec<u32>);
 
 impl std::fmt::Display for BlockId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -65,18 +74,25 @@ impl std::fmt::Display for BlockId {
     }
 }
 
-#[derive(Debug)]
-struct Block {
-    // TODO
+impl FromStr for BlockId {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(BlockId(s.split(".").map(|x| x.parse().unwrap()).collect()))
+    }
 }
+
+#[derive(Debug)]
+struct Block(Point, (i32, i32));
+
+type Color = [u8; 4];
 
 #[derive(Debug)]
 struct Canvas {
     blocks: HashMap<BlockId, Block>,
     bitmap: [[Color; 400]; 400],
+    counter: usize,
 }
-
-type Color = [u8; 4];
 
 #[derive(Debug)]
 pub enum Move {
@@ -86,9 +102,6 @@ pub enum Move {
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
 }
-
-// Instruction Set
-pub type Program = Vec<Move>;
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -111,6 +124,33 @@ impl fmt::Display for Move {
             }
         }
     }
+}
+
+impl FromStr for Move {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+// Instruction Set
+pub type Program = Vec<Move>;
+
+pub fn read_isl<R: io::Read>(r: R) -> io::Result<Program> {
+    let r = io::BufReader::new(r);
+    let mut program = Program::new();
+    for line in r.lines() {
+        program.push(line?.parse().unwrap());
+    }
+    Ok(program)
+}
+
+pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
+    for mov in program {
+        w.write_fmt(format_args!("{}\n", mov))?
+    }
+    Ok(())
 }
 
 #[cfg(test)]
