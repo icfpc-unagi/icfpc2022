@@ -1,5 +1,5 @@
 use icfpc2022::read_png;
-use std::collections::HashMap;
+//use std::collections::HashMap;
 
 struct Global {
     max_color: usize,
