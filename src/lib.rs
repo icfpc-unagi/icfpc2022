@@ -83,20 +83,20 @@ impl FromStr for BlockId {
 }
 
 #[derive(Debug)]
-struct Block(Point, (i32, i32));
+pub struct Block(pub Point, pub (i32, i32));
 
-type Color = [u8; 4];
+pub type Color = [u8; 4];
 
 #[derive(Debug)]
-struct Canvas {
-    blocks: HashMap<BlockId, Block>,
-    bitmap: [[Color; 400]; 400],
-    counter: usize,
+pub struct Canvas {
+    pub blocks: HashMap<BlockId, Block>,
+    pub bitmap: [[Color; 400]; 400],
+    pub counter: usize,
 }
 
 #[derive(Debug)]
 pub enum Move {
-    LineCut(BlockId, char, u32), // orientation, offset (x or y)
+    LineCut(BlockId, char, u32), // orientation ('X' or 'Y'), offset (x or y)
     PointCut(BlockId, u32, u32), // offset (x and y)
     Color(BlockId, Color),
     Swap(BlockId, BlockId),
