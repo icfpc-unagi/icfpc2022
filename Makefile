@@ -13,6 +13,8 @@ DOCKER_ENVIRONMENT = $(shell \
 # a programmer to kill a docker-run command by Ctrl+C.
 DOCKER_RUN = docker run --rm $(shell [ -t 0 ] && echo -it)
 
+DOCKER_REGISTRY = asia-docker.pkg.dev/icfpc-primary/asia
+
 ###############################################################################
 # Basic rules
 ###############################################################################
@@ -67,8 +69,12 @@ configs/%.encrypted@docker:
 # Docker rules
 ###############################################################################
 
-docker/%:
+docker/%: FORCE
 	cd docker && make $*
+
+push/%: docker/%
+	docker tag icfpc-unagi/$* "$(DOCKER_REGISTRY)/$*"
+	docker push "$(DOCKER_REGISTRY)/$*"
 
 ###############################################################################
 # Generic rules
