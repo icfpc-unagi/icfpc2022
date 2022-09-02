@@ -1,6 +1,7 @@
 use std::fs::File;
 
 pub mod color;
+pub mod rotate;
 
 pub trait SetMinMax {
     fn setmin(&mut self, v: Self) -> bool;
