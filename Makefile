@@ -20,7 +20,7 @@ DOCKER_REGISTRY = asia-docker.pkg.dev/icfpc-primary/asia
 ###############################################################################
 
 .PHONY: test
-test: test/rust test/secrets
+test: test/rust test/go test/secrets
 
 .PHONY:
 check:
@@ -42,6 +42,9 @@ test/rust:
 
 .PHONY: test/secrets
 test/secrets: secrets
+
+.PHONY: test/go
+test/go: docker/server
 
 ###############################################################################
 # Rules for secrets
@@ -75,6 +78,10 @@ docker/%: FORCE
 push/%: docker/%
 	docker tag icfpc-unagi/$* "$(DOCKER_REGISTRY)/$*"
 	docker push "$(DOCKER_REGISTRY)/$*"
+
+.PHONY: run/server
+run/server: docker/server
+	$(DOCKER_RUN) -p 8080:8080 icfpc-unagi/server
 
 ###############################################################################
 # Generic rules
