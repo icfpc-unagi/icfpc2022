@@ -115,7 +115,7 @@ pub type Color = [u8; 4];
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Move {
     LineCut(BlockId, char, i32), // orientation, offset (x or y)
-    (BlockId, i32, i32), // offset (x and y)
+    PointCut(BlockId, i32, i32), // offset (x and y)
     Color(BlockId, Color),
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
@@ -125,7 +125,7 @@ impl Move {
     pub fn base_cost(&self) -> f64 {
         match self {
             Move::LineCut(_, _, _) => 7.0,
-            Move::(_, _, _) => 10.0,
+            Move::PointCut(_, _, _) => 10.0,
             Move::Color(_, _) => 5.0,
             Move::Swap(_, _) => 3.0,
             Move::Merge(_, _) => 1.0,
@@ -139,7 +139,7 @@ impl fmt::Display for Move {
             Move::LineCut(block, ori, offset) => {
                 f.write_fmt(format_args!("cut [{}] [{}] [{}]", block, ori, offset))
             }
-            Move::(block, x, y) => {
+            Move::PointCut(block, x, y) => {
                 f.write_fmt(format_args!("cut [{}] [{},{}]", block, x, y))
             }
             Move::Color(block, c) => f.write_fmt(format_args!(
@@ -213,7 +213,7 @@ impl FromStr for Move {
                 if args.len() == 2 {
                     let p = parse_numbers::<i32>(args[1]);
                     assert_eq!(p.len(), 2);
-                    mv = Move::(args[0].parse().unwrap(), p[0], p[1]);
+                    mv = Move::PointCut(args[0].parse().unwrap(), p[0], p[1]);
                 } else if args.len() == 3 {
                     assert_eq!(args[1].len(), 1);
                     mv = Move::LineCut(
@@ -295,7 +295,7 @@ impl Canvas {
                 assert!(self.blocks.insert(bid1, block1).is_none());
                 block.area()
             }
-            Move::(b, x, y) => {
+            Move::PointCut(b, x, y) => {
                 let block = self.blocks.remove(&b).unwrap();
                 // NOTE: offset is absolute coordinate
                 let bids = b.cut4();
@@ -355,7 +355,7 @@ mod tests {
             "cut [1] [x] [2]"
         );
         assert_eq!(
-            Move::(BlockId(vec![1]), 2, 3).to_string(),
+            Move::PointCut(BlockId(vec![1]), 2, 3).to_string(),
             "cut [1] [2,3]"
         );
         assert_eq!(
