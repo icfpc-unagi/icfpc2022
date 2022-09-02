@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fmt, fs::File};
+use std::{
+    collections::HashMap,
+    fmt,
+    fs::File,
+    io::{self, BufRead},
+    str::FromStr,
+};
 
 pub mod color;
 pub mod rotate;
@@ -51,7 +57,10 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     out
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Copy, Default, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
+pub struct Point(pub i32, pub i32);
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone)]
 pub struct BlockId(pub Vec<u32>);
 
 impl std::fmt::Display for BlockId {
@@ -74,20 +83,20 @@ impl BlockId {
     }
 }
 
-#[derive(Debug)]
-struct Block {
-    // TODO
+impl FromStr for BlockId {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(BlockId(s.split(".").map(|x| x.parse().unwrap()).collect()))
+    }
 }
 
-#[derive(Debug)]
-struct Canvas {
-    blocks: HashMap<BlockId, Block>,
-    bitmap: [[Color; 400]; 400],
-}
+#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
+pub struct Block(pub Point, pub (i32, i32));
 
-type Color = [u8; 4];
+pub type Color = [u8; 4];
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Move {
     LineCut(BlockId, char, usize),   // orientation, offset (x or y)
     PointCut(BlockId, usize, usize), // offset (x and y)
@@ -95,9 +104,6 @@ pub enum Move {
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
 }
-
-// Instruction Set
-pub type Program = Vec<Move>;
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -119,6 +125,71 @@ impl fmt::Display for Move {
                 f.write_fmt(format_args!("merge [{}] [{}]", block1, block2))
             }
         }
+    }
+}
+
+impl FromStr for Move {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+// Instruction Set
+pub type Program = Vec<Move>;
+
+pub fn read_isl<R: io::Read>(r: R) -> io::Result<Program> {
+    let r = io::BufReader::new(r);
+    let mut program = Program::new();
+    for line in r.lines() {
+        program.push(line?.parse().unwrap());
+    }
+    Ok(program)
+}
+
+pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
+    for mov in program {
+        w.write_fmt(format_args!("{}\n", mov))?
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Canvas {
+    pub bitmap: [[Color; 400]; 400],
+    pub blocks: HashMap<BlockId, Block>,
+    pub counter: usize,
+}
+
+impl Default for Canvas {
+    fn default() -> Self {
+        Self {
+            bitmap: [[[0u8; 4]; 400]; 400],
+            blocks: Default::default(),
+            counter: Default::default(),
+        }
+    }
+}
+
+impl Canvas {
+    // returns cost
+    pub fn apply(&mut self, mov: Move) -> i32 {
+        match mov {
+            Move::LineCut(_, _, _) => todo!(),
+            Move::PointCut(_, _, _) => todo!(),
+            Move::Color(_, _) => todo!(),
+            Move::Swap(_, _) => todo!(),
+            Move::Merge(_, _) => todo!(),
+        }
+    }
+
+    pub fn apply_all<Iter: Iterator<Item = Move>>(&mut self, iter: Iter) -> i32 {
+        let mut cost = 0i32;
+        for mov in iter {
+            cost += self.apply(mov);
+        }
+        cost
     }
 }
 
