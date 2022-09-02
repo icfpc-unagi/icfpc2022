@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+source "$(dirname "${BASH_SOURCE}")"/imosh || exit 1
+eval "${IMOSH_INIT}"
+
+LOG INFO "Generating an API token..."
+export API_TOKEN="$($(dirname "${BASH_SOURCE}")/generate_api_token)"
+if [ "${API_TOKEN}" == '' ]; then
+    LOG FATAL "Failed to generate an API token."
+fi
+
+LOG INFO "API key: ${API_TOKEN}"
+
+response="$(
+    curl -s -X GET -H "Authorization: Bearer ${API_TOKEN}" \
+        "https://robovinci.xyz/api/submissions"
+)"
+
+FAILED=()
+
+for id in $(echo "${response}" | jq '.submissions[].id'); do
+    LOG INFO "Collecting submission ${id}..."
+    if "$(dirname "${BASH_SOURCE}")/collect_one" --submission="${id}"; then
+        LOG INFO "Submission ${id} is ready."
+    else
+        LOG ERROR "Submission ${id} is failed."
+        FAILED=("${FAILED[@]}" "${id}")
+    fi
+done
+
+if [ "${#FAILED[*]}" -eq 0 ]; then
+    LOG INFO "Successfully collected all submissions."
+else
+    LOG FATAL "Failed to all submissions."
+fi
