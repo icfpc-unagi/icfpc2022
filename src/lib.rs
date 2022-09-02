@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{collections::HashMap, fmt, fs::File};
 
 pub mod color;
 pub mod rotate;
@@ -66,22 +66,49 @@ impl std::fmt::Display for BlockId {
 }
 
 #[derive(Debug)]
+struct Block {
+    // TODO
+}
+
+#[derive(Debug)]
+struct Canvas {
+    blocks: HashMap<BlockId, Block>,
+    bitmap: [[Color; 400]; 400],
+}
+
+type Color = [u8; 4];
+
+#[derive(Debug)]
 pub enum Move {
     LineCut(BlockId, char, u32), // orientation, offset (x or y)
     PointCut(BlockId, u32, u32), // offset (x and y)
-    Color(BlockId, u32),         // TODO: color type?
+    Color(BlockId, Color),
     Swap(BlockId, BlockId),
     Merge(BlockId, BlockId),
 }
 
-impl ToString for Move {
-    fn to_string(&self) -> String {
+// Instruction Set
+pub type Program = Vec<Move>;
+
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Move::LineCut(block, ori, offset) => format!("cut [{}] [{}] [{}]", block, ori, offset),
-            Move::PointCut(block, x, y) => format!("cut [{}] [{},{}]", block, x, y),
-            Move::Color(block, color) => format!("color [{}] [{}]", block, color), // TODO
-            Move::Swap(block1, block2) => format!("swap [{}] [{}]", block1, block2),
-            Move::Merge(block1, block2) => format!("merge [{}] [{}]", block1, block2),
+            Move::LineCut(block, ori, offset) => {
+                f.write_fmt(format_args!("cut [{}] [{}] [{}]", block, ori, offset))
+            }
+            Move::PointCut(block, x, y) => {
+                f.write_fmt(format_args!("cut [{}] [{},{}]", block, x, y))
+            }
+            Move::Color(block, c) => f.write_fmt(format_args!(
+                "color [{}] [{},{},{},{}]",
+                block, c[0], c[1], c[2], c[3]
+            )),
+            Move::Swap(block1, block2) => {
+                f.write_fmt(format_args!("swap [{}] [{}]", block1, block2))
+            }
+            Move::Merge(block1, block2) => {
+                f.write_fmt(format_args!("merge [{}] [{}]", block1, block2))
+            }
         }
     }
 }
@@ -100,11 +127,10 @@ mod tests {
             Move::PointCut(BlockId(vec![1]), 2, 3).to_string(),
             "cut [1] [2,3]"
         );
-        // TODO: Color
-        // assert_eq!(
-        //     Move::Color(BlockId(vec![1]), 2).to_string(),
-        //     "color [1] [2,3,4,5]"
-        // );
+        assert_eq!(
+            Move::Color(BlockId(vec![1]), [2, 3, 4, 5]).to_string(),
+            "color [1] [2,3,4,5]"
+        );
         assert_eq!(
             Move::Swap(BlockId(vec![1]), BlockId(vec![2])).to_string(),
             "swap [1] [2]"
