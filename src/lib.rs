@@ -1,3 +1,4 @@
+use std::mem::uninitialized;
 use std::{
     collections::HashMap,
     fmt,
@@ -155,11 +156,81 @@ impl fmt::Display for Move {
     }
 }
 
+fn remove_spaces_inside_brackets(s: &str) -> String {
+    let mut chars = vec![];
+    let mut lev: i32 = 0;
+    for c in s.chars() {
+        if c == '[' {
+            lev += 1;
+        }
+        if c == ']' {
+            lev -= 1;
+        }
+        if c.is_whitespace() && lev > 0 {
+            continue;
+        }
+        chars.push(c);
+    }
+    return chars.into_iter().collect();
+}
+
+fn unwrap_brackets(s: &str) -> &str {
+    assert!(s.len() >= 2);
+    assert_eq!(s.chars().nth(0).unwrap(), '[');
+    assert_eq!(s.chars().last().unwrap(), ']');
+    //assert_eq!(s[0 as usize], '[');
+    //assert_eq!(s[s.len() - 1], ']');
+    &s[1..s.len() - 1]
+}
+
+fn parse_numbers<T: FromStr>(s: &str) -> Vec<T>
+where
+    <T as FromStr>::Err: std::fmt::Debug,
+{
+    s.split(',').map(|t| t.parse().unwrap()).collect()
+}
+
+fn parse_color(s: &str) -> Color {
+    let v = parse_numbers(s);
+    assert_eq!(v.len(), 4);
+    return [v[0], v[1], v[2], v[3]];
+}
+
 impl FromStr for Move {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let s = remove_spaces_inside_brackets(s);
+        let tokens: Vec<_> = s.split(" ").collect();
+        assert!(tokens.len() >= 1);
+
+        let op = tokens[0];
+        let args: Vec<_> = tokens[1..].iter().map(|s| unwrap_brackets(s)).collect();
+
+        let mv;
+        match &*op {
+            "cut" => {
+                if args.len() == 2 {
+                    let p = parse_numbers::<i32>(args[1]);
+                    assert_eq!(p.len(), 2);
+                    mv = Move::PointCut(args[0].parse().unwrap(), p[0], p[1]);
+                } else if args.len() == 3 {
+                    assert_eq!(args[1].len(), 1);
+                    mv = Move::LineCut(
+                        args[0].parse().unwrap(),
+                        args[1].chars().nth(0).unwrap(),
+                        args[2].parse().unwrap(),
+                    );
+                } else {
+                    panic!();
+                }
+            }
+            "color" => mv = Move::Color(args[0].parse().unwrap(), parse_color(args[1])),
+            _ => {
+                panic!("Unknown instruction: {:?}", &tokens)
+            }
+        }
+        return Ok(mv);
     }
 }
 
