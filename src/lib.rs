@@ -47,3 +47,13 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     }
     out
 }
+
+type BlockId = String; // TODO: struct?
+
+enum Move {
+    LineCut(BlockId, char, u32), // orientation, offset (x or y)
+    PointCut(BlockId, u32, u32), // offset (x and y)
+    Color(BlockId, u32),         // TODO: color type?
+    Swap(BlockId, BlockId),
+    Merge(BlockId, BlockId),
+}
