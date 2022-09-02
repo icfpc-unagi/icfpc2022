@@ -5,6 +5,9 @@ fn main() {
     //let png = icfpc2022::read_png(&input);
 
     // let program = vec![icfpc2022::Move::Color(icfpc::BlockId(vec![0]))];
-    let isl = icfpc2022::read_isl(std::io::stdin()).unwrap();
-    dbg!(&isl);
+    let program = icfpc2022::read_isl(std::io::stdin()).unwrap();
+    dbg!(&program);
+
+    let program2 = icfpc2022::rotate::rotate_program(&program);
+    dbg!(&program2);
 }

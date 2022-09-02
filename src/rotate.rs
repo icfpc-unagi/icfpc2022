@@ -17,6 +17,7 @@ const width: i32 = 400;
 
 pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
+    block_id_map.insert(BlockId(vec![0]), BlockId(vec![0]));
 
     let mut flipped_program = vec![];
     let mut n = 0;
@@ -103,6 +104,7 @@ pub fn rotate_png(png: &Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
 
 pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
+    block_id_map.insert(BlockId(vec![0]), BlockId(vec![0]));
 
     let mut flipped_program = vec![];
     let mut n = 0;
