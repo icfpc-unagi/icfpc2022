@@ -19,6 +19,9 @@ impl Canvas {
             counter: Default::default(),
         }
     }
+    pub fn new400() -> Self {
+        Self::new(400, 400)
+    }
     // returns cost
     pub fn apply(&mut self, mov: &Move) -> f64 {
         let block_area = match mov {
@@ -113,18 +116,32 @@ impl Canvas {
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use serde::*;
+    use serde_json;
+
+    #[derive(Serialize, Deserialize)]
+    struct Submission {
+        id: u32,
+        problem_id: u32,
+        status: String,
+        score: u32,
+    }
 
     #[test]
-    fn test() {
-        let png = read_png("problems/1.png");
-        let mut canvas = Canvas::new(400, 400);
-        let isl = read_isl(File::open("submissions/270.isl").unwrap()).unwrap();
-        for mov in &isl {
-            println!("{}", mov);
+    fn test_1677() {
+        for id in [270, 1677, 2796] {
+            let sub: Submission =
+                serde_json::from_reader(File::open(format!("submissions/{}.json", id)).unwrap())
+                    .unwrap();
+            assert_eq!(sub.status, "SUCCEEDED");
+            let isl = read_isl(File::open(format!("submissions/{}.isl", id)).unwrap()).unwrap();
+            let png = read_png(&format!("problems/{}.png", sub.problem_id));
+            let mut canvas = Canvas::new400();
+            let cost = canvas.apply_all(isl);
+            let sim = similarity(&png, &canvas.bitmap);
+            assert_eq!(cost as u32 + sim as u32, sub.score);
+            // write_png(&format!("submissions/{}_target.png", id), png).unwrap();
+            // write_png(&format!("submissions/{}_painted.png", id), canvas.bitmap).unwrap();
         }
-        let cost = canvas.apply_all(isl);
-        assert_eq!(cost, 5.0);
-        let sim = similarity(&png, &canvas.bitmap);
-        assert_eq!(sim.round(), 226532.0);
     }
 }
