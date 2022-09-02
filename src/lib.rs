@@ -82,19 +82,12 @@ impl FromStr for BlockId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Block(pub Point, pub (i32, i32));
 
 pub type Color = [u8; 4];
 
-#[derive(Debug)]
-pub struct Canvas {
-    pub blocks: HashMap<BlockId, Block>,
-    pub bitmap: [[Color; 400]; 400],
-    pub counter: usize,
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Move {
     LineCut(BlockId, char, u32), // orientation ('X' or 'Y'), offset (x or y)
     PointCut(BlockId, u32, u32), // offset (x and y)
@@ -151,6 +144,44 @@ pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
         w.write_fmt(format_args!("{}\n", mov))?
     }
     Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Canvas {
+    pub bitmap: [[Color; 400]; 400],
+    pub blocks: HashMap<BlockId, Block>,
+    pub counter: usize,
+}
+
+impl Default for Canvas {
+    fn default() -> Self {
+        Self {
+            bitmap: [[[0u8; 4]; 400]; 400],
+            blocks: Default::default(),
+            counter: Default::default(),
+        }
+    }
+}
+
+impl Canvas {
+    // returns cost
+    pub fn apply(&mut self, mov: Move) -> i32 {
+        match mov {
+            Move::LineCut(_, _, _) => todo!(),
+            Move::PointCut(_, _, _) => todo!(),
+            Move::Color(_, _) => todo!(),
+            Move::Swap(_, _) => todo!(),
+            Move::Merge(_, _) => todo!(),
+        }
+    }
+
+    pub fn apply_all<Iter: Iterator<Item = Move>>(&mut self, iter: Iter) -> i32 {
+        let mut cost = 0i32;
+        for mov in iter {
+            cost += self.apply(mov);
+        }
+        cost
+    }
 }
 
 #[cfg(test)]
