@@ -226,6 +226,7 @@ impl FromStr for Move {
                 }
             }
             "color" => mv = Move::Color(args[0].parse().unwrap(), parse_color(args[1])),
+            "merge" => mv = Move::Merge(args[0].parse().unwrap(), args[1].parse().unwrap()),
             _ => {
                 panic!("Unknown instruction: {:?}", &tokens)
             }
