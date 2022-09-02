@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+source "$(dirname "${BASH_SOURCE}")"/imosh || exit 1
+DEFINE_int submission 0 'Submission ID'
+eval "${IMOSH_INIT}"
+
+if [ "${FLAGS_submission}" == 0 ]; then
+    LOG FATAL "--submission must be specified."
+fi
+
+FILE="$(
+    cd "$(dirname "${BASH_SOURCE}")/.."; pwd
+)/submissions/${FLAGS_submission}"
+
+if [ -f "${FILE}.json" -a -f "${FILE}.isl" ]; then
+    LOG INFO "Submission ${FLAGS_submission} is already downloaded."
+    exit
+fi
+
+LOG INFO "Generating an API token..."
+export API_TOKEN="$($(dirname "${BASH_SOURCE}")/generate_api_token)"
+if [ "${API_TOKEN}" == '' ]; then
+    LOG FATAL "Failed to generate an API token."
+fi
+
+LOG INFO "API key: ${API_TOKEN}"
+
+response="$(
+    curl -s -X GET -H "Authorization: Bearer ${API_TOKEN}" \
+        "https://robovinci.xyz/api/submissions/${FLAGS_submission}"
+)"
+
+if [ "$(echo "${response}" | jq -r .status)" != "SUCCEEDED" ]; then
+    LOG FATAL "Status must be SUCCEEDED, but: ${response}"
+fi
+
+curl -s -o "${FILE}.isl" "$(echo "${response}" | jq -r .file_url)"
+echo "${response}" > "${FILE}.json"
