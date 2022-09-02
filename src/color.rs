@@ -78,7 +78,7 @@ pub fn best_color2(
     ly: usize,
     ry: usize,
 ) -> ([u8; 4], f64) {
-    let mut points = Vec::with_capacity((ry-ly) * (rx-lx));
+    let mut points = Vec::with_capacity((ry - ly) * (rx - lx));
     for y in ly..ry {
         for x in lx..rx {
             let p = &png[y][x];
@@ -105,7 +105,6 @@ pub fn best_color2(
     return (color, cost);
 }
 
-
 fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     let n = points.len();
     let mut x = [0.0; 4];
@@ -117,8 +116,12 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     for i in 0..4 {
         x[i] /= n as f64;
     }
-    for eps in [1e2, 1.0, 0.1, 1e-3] {  // TODO
-        let dists = points.iter().map(|p| (0..4).map(|i| (p[i] - x[i]).powi(2)).sum::<f64>().sqrt()).collect::<Vec<_>>();
+    for eps in [1e2, 1.0, 0.1, 1e-3] {
+        // TODO
+        let dists = points
+            .iter()
+            .map(|p| (0..4).map(|i| (p[i] - x[i]).powi(2)).sum::<f64>().sqrt())
+            .collect::<Vec<_>>();
         let dist = dists.iter().sum::<f64>();
         // dbg!(&dists, dist);
 
@@ -138,7 +141,6 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     }
     x
 }
-
 
 #[cfg(test)]
 mod tests {
