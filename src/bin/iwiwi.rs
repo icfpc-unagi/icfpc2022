@@ -10,4 +10,7 @@ fn main() {
 
     let program2 = icfpc2022::rotate::rotate_program(&program);
     dbg!(&program2);
+
+    let program2 = icfpc2022::rotate::flip_program(&program);
+    dbg!(&program2);
 }
