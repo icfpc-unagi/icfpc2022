@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+source "$(dirname "${BASH_SOURCE}")"/imosh || exit 1
+DEFINE_int problem 0 'Problem ID'
+DEFINE_string file '' 'Path to ISL file.'
+eval "${IMOSH_INIT}"
+
+if [ "$FLAGS_problem" == 0 ]; then
+    LOG FATAL "--problem must be specified."
+fi
+if [ "$FLAGS_file" == '' ]; then
+    LOG FATAL "--file must be specified."
+fi
+
+LOG INFO "Generating an API token..."
+API_TOKEN="$($(dirname "${BASH_SOURCE}")/generate_api_token)"
+if [ "${API_TOKEN}" == '' ]; then
+    LOG FATAL "Failed to generate an API token."
+fi
+
+LOG INFO "API key: ${API_TOKEN}"
+
+response="$(
+    curl -s -X POST -H "Authorization: Bearer ${API_TOKEN}" \
+        -F "file=@${FLAGS_file}" \
+        "https://robovinci.xyz/api/submissions/${FLAGS_problem}/create"
+)"
+message="$(
+    echo "${response}" | jq -r .message
+)"
+
+if [ "${message}" == 'submission created successfully' ]; then
+    LOG INFO "Succssfully submitted."
+    exit 0
+else
+    LOG ERROR "Failed to submit: ${response}"
+    exit 1
+fi

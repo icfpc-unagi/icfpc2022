@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+source "$(dirname "${BASH_SOURCE}")"/imosh || exit 1
+eval "${IMOSH_INIT}"
+
+export PATH="$(dirname "${BASH_SOURCE}"):${PATH}"
+
+creds="$(decrypt < "$(dirname "${BASH_SOURCE}")/../configs/login.json.encrypted")"
+if [ "${creds}" == '' ]; then
+    LOG FATAL "Failed to decode credentials."
+fi
+
+curl -s -H "Content-Type: application/json" -d "${creds}" \
+    https://robovinci.xyz/api/users/login | jq -r .token
