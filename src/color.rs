@@ -97,14 +97,17 @@ pub fn best_color2(
     let mut best = 1e99;
     let mut best_color = [0; 4];
     // local search
-    for flags in 0..(1<<4) {
+    for flags in 0..(1 << 4) {
         let color = [
             color[0] + ((flags >> 0) & 1),
             color[1] + ((flags >> 1) & 1),
             color[2] + ((flags >> 2) & 1),
             color[3] + ((flags >> 3) & 1),
         ];
-        let cost = u8_points.iter().map(|p| pixel_distance(p, &color)).sum::<f64>();
+        let cost = u8_points
+            .iter()
+            .map(|p| pixel_distance(p, &color))
+            .sum::<f64>();
         if cost < best {
             best = cost;
             best_color = color;
@@ -164,14 +167,39 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
+    fn point_sub(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+        [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]]
+    }
+
+    fn point_inner(a: [f64; 4], b: [f64; 4]) -> f64 {
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
+    }
+
+    fn point_cos(a: [f64; 4], b: [f64; 4]) -> f64 {
+        point_inner(a, b) / (point_inner(a, a) * point_inner(b, b)).sqrt()
+    }
+
     #[test]
     fn test_geometric_median_4d() {
         let a = [0.0, 10.0, 20.0, 30.0];
         let b = [40.0, 30.0, 20.0, 10.0];
         let c = [30.0, 20.0, 70.0, 70.0];
-        // let points = vec![a, b, c];
-        // let median = geometric_median_4d(&points);
-        // dbg!(median);
+        let points = vec![a, b, c];
+        let median = geometric_median_4d(&points);
+        let diffs = points
+            .iter()
+            .copied()
+            .map(|p| point_sub(p, median))
+            .collect::<Vec<_>>();
+        dbg!(median);
+        for (i, j) in [(0, 1), (0, 2), (1, 2)] {
+            let x = diffs[i];
+            let y = diffs[j];
+            // assert angle is about 120 deg
+            let c = point_cos(x, y);
+            dbg!(c);
+            assert!((c + 0.5).abs() < 0.01)
+        }
 
         let points = vec![c, c, a, b, c, a, c];
         let median = geometric_median_4d(&points);
@@ -188,6 +216,11 @@ mod tests {
         let png = vec![points.clone()];
         let (point, cost) = best_color2(&png, 0, points.len(), 0, 1);
         dbg!(point, cost);
-        // assert!(false);
+        // 今の出力を答えにしただけなので違ったら直して
+        assert_eq!(point, [19, 19, 30, 31]);
+
+        let png = vec![vec![b, a, b, a], vec![a, a, a, c]];
+        let (point, cost) = best_color2(&png, 0, 4, 0, 2);
+        assert_eq!(point, a); // mode
     }
 }
