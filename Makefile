@@ -20,7 +20,7 @@ DOCKER_REGISTRY = asia-docker.pkg.dev/icfpc-primary/asia
 ###############################################################################
 
 .PHONY: test
-test: test/rust test/secrets
+test: test/rust test/go test/secrets
 
 .PHONY:
 check:
@@ -42,6 +42,10 @@ test/rust:
 
 .PHONY: test/secrets
 test/secrets: secrets
+
+.PHONY: test/go
+test/go:
+	docker/server
 
 ###############################################################################
 # Rules for secrets
