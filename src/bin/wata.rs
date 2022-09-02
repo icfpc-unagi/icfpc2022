@@ -1,4 +1,12 @@
 use icfpc2022::*;
+use once_cell::sync::Lazy;
+
+pub static FLIP_ROTATE: Lazy<i32> = Lazy::new(|| {
+    std::env::var("FLIP_ROTATE")
+        .unwrap_or("0".to_owned())
+        .parse()
+        .unwrap()
+});
 
 fn main() {
     let input = std::env::args().nth(1).unwrap();
@@ -11,12 +19,19 @@ fn main() {
                 eprintln!("{}", best.0);
                 best.1 = out.1;
             }
-            // best.1 = rotate::rotate_program(&best.1);
+            if *FLIP_ROTATE == 0 {
+                break;
+            }
+            best.1 = rotate::rotate_program(&best.1);
             png = rotate::rotate_png(&png);
         }
-        // best.1 = rotate::flip_program(&best.1);
+        if *FLIP_ROTATE == 0 {
+            break;
+        }
+        best.1 = rotate::flip_program(&best.1);
         png = rotate::flip_png(png);
     }
+    eprintln!("{}", best.0);
     for p in best.1 {
         println!("{}", p);
     }

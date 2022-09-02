@@ -9,10 +9,13 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new(w: i32, h: i32) -> Self {
+    pub fn new(w: usize, h: usize) -> Self {
         Self {
-            bitmap: vec![vec![Color::default(); w as usize]; h as usize],
-            blocks: HashMap::from([(BlockId(vec![0]), Block(Point(0, 0), Point(w, h)))]),
+            bitmap: vec![vec![Color::default(); w]; h],
+            blocks: HashMap::from([(
+                BlockId(vec![0]),
+                Block(Point(0, 0), Point(w as i32, h as i32)),
+            )]),
             counter: Default::default(),
         }
     }

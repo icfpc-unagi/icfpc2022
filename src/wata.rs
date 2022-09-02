@@ -104,14 +104,23 @@ pub fn solve(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
                     }
                 }
             }
+            let mut cost = 0.0;
             let mut out = vec![];
             let mut y = h;
             while y > 0 {
-                out.push((y, dp[y].2));
+                let (color, diff) = color::mode_color(png, lx, ux, dp[y].1, y);
+                cost += diff * 0.005;
+                cost += (5.0 * (w * h) as f64 / ((w - lx) * (h - dp[y].1)) as f64).round();
+                if y != h {
+                    cost += (7.0 * (w * h) as f64 / ((w - lx) * (h - dp[y].1)) as f64).round();
+                    let dy = (h - y).max(y - dp[y].1);
+                    cost += (1.0 * (w * h) as f64 / ((w - lx) * dy) as f64).round();
+                }
+                out.push((y, color));
                 y = dp[y].1;
             }
             out.reverse();
-            (lx, ux, (dp[h].0, out))
+            (lx, ux, (cost, out))
         })
         .collect_into_vec(&mut tmp);
     bar.finish();
