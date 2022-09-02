@@ -52,7 +52,7 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
 }
 
 #[derive(Debug)]
-struct BlockId(Vec<u32>);
+pub struct BlockId(Vec<u32>);
 
 impl std::fmt::Display for BlockId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -66,7 +66,7 @@ impl std::fmt::Display for BlockId {
 }
 
 #[derive(Debug)]
-enum Move {
+pub enum Move {
     LineCut(BlockId, char, u32), // orientation, offset (x or y)
     PointCut(BlockId, u32, u32), // offset (x and y)
     Color(BlockId, u32),         // TODO: color type?
