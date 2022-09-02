@@ -7,7 +7,7 @@ fn push(block_id: &BlockId, x: u32) -> BlockId {
     block_id.0.push(x);
     block_id
 }
-//
+
 // pub fn flip_png(mut png: Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
 //     // 左右反転
 //     for row in png.iter_mut() {
@@ -25,17 +25,15 @@ fn push(block_id: &BlockId, x: u32) -> BlockId {
 //     for mv in program {
 //         let flipped_mv;
 //         match mv {
-//             Move::LineCut(block_id, orientation, offset) => {
+//             Move::LineCut(bid_old, orientation, offset) => {
 //                 if *orientation == 'y' || *orientation == 'Y' {
-//                     let block_id = block_id_map.get(block_id).unwrap().clone();
-//                     let block_id0 = push(block_id.clone(), 0);
-//                     let block_id1 = push(block_id.clone(), 1);
-//                     block_id_map.insert(block_id0.clone(), block_id0.clone());
-//                     block_id_map.insert(block_id1.clone(), block_id1.clone());
+//                     let bid_new = block_id_map.get(bid_old).unwrap().clone();
+//                     block_id_map.insert(push(bid_old, 0), push(&bid_new, 0));
+//                     block_id_map.insert(push(bid_old, 1), push(&bid_new, 1));
 //
 //                     flipped_mv = Move::LineCut(block_id, *orientation, *offset);
 //                 } else {
-//                     let block_id = block_id_map.get(block_id).unwrap().clone();
+//                     let block_id = block_id_map.get(bid_old).unwrap().clone();
 //                     let block_id0 = push(block_id.clone(), 0);
 //                     let block_id1 = push(block_id.clone(), 1);
 //                     block_id_map.insert(block_id0.clone(), block_id1.clone());
@@ -131,7 +129,7 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
                 // flipped_mv = Move::PointCut(block_id, *offset_y, width - *offset_x);
             }
             Move::Color(block_id, color) => {
-                dbg!(&block_id);
+                // dbg!(&block_id);
                 flipped_mv = Move::Color(block_id_map.get(block_id).unwrap().clone(), color.clone())
             }
             Move::Swap(block_id1, block_id2) => {
