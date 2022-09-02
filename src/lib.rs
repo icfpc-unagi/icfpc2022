@@ -51,7 +51,7 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     out
 }
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BlockId(Vec<u32>);
 
 impl std::fmt::Display for BlockId {
