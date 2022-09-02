@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"net/http"
+	"os"
 
+	"github.com/icfpc-unagi/icfpc2022/go/internal/auth"
 	"github.com/icfpc-unagi/icfpc2022/go/pkg/db"
 )
 
@@ -29,7 +31,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 	glog.Info("Initializing...")
-	http.HandleFunc("/d/sql", handler)
+	if os.Getenv("UNAGI_PASSWORD") == "" {
+		glog.Fatal("UNAGI_PASSWORD must be set.")
+	}
+	http.HandleFunc("/d/sql", auth.BasicAuth(handler))
 	glog.Infof("Starting server on %s...", *port)
 	if err := http.ListenAndServe(*port, nil); err != nil {
 		glog.Fatal(err.Error())

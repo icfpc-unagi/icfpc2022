@@ -25,5 +25,6 @@ ENV SQL_ADDRESS 34.84.167.72
 ENV SQL_USER root
 ENV SQL_DATABASE database
 ENV SQL_PASSWORD $UNAGI_PASSWORD
+ENV UNAGI_PASSWORD $UNAGI_PASSWORD
 COPY --from=tini /tini /tini
 ENTRYPOINT /tini -- /usr/local/bin/server --logtostderr
