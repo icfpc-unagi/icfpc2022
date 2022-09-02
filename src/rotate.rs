@@ -44,6 +44,7 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
                 }
             }
             Move::PointCut(block_id, offset_x, offset_y) => {
+                unimplemented!();
                 let block_id = block_id_map.get(block_id).unwrap().clone();
                 block_id_map.insert(
                     block_id_push(block_id.clone(), 0),
@@ -95,7 +96,7 @@ pub fn rotate_png(png: &Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
 
     for y in 0..png.len() {
         for x in 0..png[y].len() {
-            out[png[0].len() - x][y] = png[y][x];
+            out[png[0].len() - x - 1][y] = png[y][x];
         }
     }
 
@@ -110,6 +111,10 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
     let mut n = 0;
     for mv in program {
         let flipped_mv;
+        println!("\n\n\n");
+        dbg!(&block_id_map);
+        dbg!(&mv);
+
         match mv {
             Move::LineCut(block_id, orientation, offset) => {
                 if *orientation == 'y' || *orientation == 'Y' {
@@ -131,6 +136,7 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
                 }
             }
             Move::PointCut(block_id, offset_x, offset_y) => {
+                unimplemented!();
                 let block_id = block_id_map.get(block_id).unwrap().clone();
 
                 // TODO: 結構自信ないよｗｗ
@@ -154,6 +160,7 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
                 flipped_mv = Move::PointCut(block_id, *offset_y, width - *offset_x);
             }
             Move::Color(block_id, color) => {
+                dbg!(&block_id);
                 flipped_mv = Move::Color(block_id_map.get(block_id).unwrap().clone(), color.clone())
             }
             Move::Swap(block_id1, block_id2) => {
@@ -165,6 +172,7 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
             Move::Merge(block_id1, block_id2) => {
                 n += 1;
                 block_id_map.insert(BlockId(vec![n]), BlockId(vec![n]));
+                // dbg!(&block_id1, block_id2);
 
                 flipped_mv = Move::Merge(
                     block_id_map.get(block_id1).unwrap().clone(),
