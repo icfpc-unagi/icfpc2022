@@ -4,6 +4,7 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead},
+    mem::swap,
     panic,
     str::FromStr,
 };
@@ -105,8 +106,13 @@ impl FromStr for BlockId {
 pub struct Block(pub Point, pub Point);
 
 impl Block {
+    pub fn size(&self) -> Point {
+        Point(self.1 .0 - self.0 .0, self.1 .1 - self.0 .1)
+    }
+
     pub fn area(&self) -> i32 {
-        (self.1 .0 - self.0 .0) * (self.1 .1 - self.0 .1)
+        let size = self.size();
+        size.0 * size.1
     }
 }
 
@@ -320,7 +326,24 @@ impl Canvas {
                 }
                 block.area()
             }
-            Move::Swap(b0, b1) => todo!(),
+            Move::Swap(b0, b1) => {
+                let block0 = &self.blocks[&b0];
+                let block1 = &self.blocks[&b1];
+                let size = block0.size();
+                assert_eq!(size, block1.size());
+                for y in 0..size.1 {
+                    for x in 0..size.0 {
+                        let y0 = (block0.0 .1 + y) as usize;
+                        let x0 = (block0.0 .0 + x) as usize;
+                        let y1 = (block1.0 .1 + y) as usize;
+                        let x1 = (block1.0 .0 + x) as usize;
+                        let tmp = self.bitmap[y0][x0];
+                        self.bitmap[y0][x0] = self.bitmap[y1][x1];
+                        self.bitmap[y1][x1] = tmp;
+                    }
+                }
+                block0.area()
+            }
             Move::Merge(b0, b1) => {
                 let block0 = self.blocks.remove(&b0).unwrap();
                 let block1 = self.blocks.remove(&b1).unwrap();
