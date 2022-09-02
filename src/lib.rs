@@ -211,7 +211,7 @@ impl FromStr for Move {
         match &*op {
             "cut" => {
                 if args.len() == 2 {
-                    let p = parse_numbers::<usize>(args[1]);
+                    let p = parse_numbers::<i32>(args[1]);
                     assert_eq!(p.len(), 2);
                     mv = Move::PointCut(args[0].parse().unwrap(), p[0], p[1]);
                 } else if args.len() == 3 {
