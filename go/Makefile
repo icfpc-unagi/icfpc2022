@@ -13,3 +13,6 @@ format:
 .PHONY: push
 push:
 	cd .. && make push/server
+	gcloud --project=icfpc-primary run deploy server \
+		--region=asia-northeast1 \
+		--image=asia-docker.pkg.dev/icfpc-primary/asia/server
