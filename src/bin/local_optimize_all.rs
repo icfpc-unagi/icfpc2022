@@ -8,7 +8,7 @@ fn main() -> anyhow::Result<()> {
         best_submissions
             .entry(submission.problem_id)
             .and_modify(|s| {
-                if s.score > submission.score {
+                if s.cost > submission.cost {
                     *s = submission.clone()
                 }
             })
@@ -16,7 +16,23 @@ fn main() -> anyhow::Result<()> {
     }
 
     for (problem_id, submission) in best_submissions.iter() {
-        println!("{} {:?}", problem_id, submission)
+        // if *problem_id == 1 {
+        //     continue;
+        // }
+
+        let (submission, program, image) =
+            icfpc2022::local_optimization::read_submission(submission.id)?;
+        let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10);
+
+        println!(
+            "Problem {:3}: {:7} -> {:7}",
+            problem_id, submission.cost, score
+        );
+
+        icfpc2022::write_isl(
+            std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score))?,
+            program,
+        )?;
     }
 
     anyhow::Ok(())

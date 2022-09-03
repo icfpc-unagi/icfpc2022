@@ -1,23 +1,14 @@
 use icfpc2022;
 use icfpc2022::Canvas;
 
-fn main() {
-    let submission_id = std::env::args().nth(1).unwrap();
+fn main() -> anyhow::Result<()> {
+    let submission_id: u32 = std::env::args().nth(1).unwrap().parse()?;
+    let (submission, program, image) =
+        icfpc2022::local_optimization::read_submission(submission_id)?;
 
-    let sub: icfpc2022::Submission = serde_json::from_reader(
-        std::fs::File::open(format!("submissions/{}.json", submission_id)).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(sub.status, "SUCCEEDED");
-    let mut program = icfpc2022::read_isl(
-        std::fs::File::open(format!("submissions/{}.isl", submission_id)).unwrap(),
-    )
-    .unwrap();
-    let png = icfpc2022::read_png(&format!("problems/{}.png", sub.problem_id));
-
-    let (program, score) = icfpc2022::local_optimization::optimize(program, &png, 10);
+    let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10);
     icfpc2022::write_isl(
-        std::fs::File::create(format!("out/opt_{}_{:06.0}", sub.problem_id, score)).unwrap(),
+        std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score)).unwrap(),
         program,
     )
     .unwrap();
@@ -95,4 +86,6 @@ fn main() {
     //
     // let mut canvas = icfpc2022::Canvas::default();
     // canvas.apply_all(program2.into_iter());
+
+    Ok(())
 }

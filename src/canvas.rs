@@ -233,7 +233,7 @@ mod tests {
             let mut canvas = Canvas::new400();
             let cost = canvas.apply_all(isl);
             let sim = similarity(&png, &canvas.bitmap);
-            assert_eq!(cost as u32 + sim as u32, sub.score);
+            assert_eq!(cost as u32 + sim as u32, sub.cost);
             // write_png(&format!("submissions/{}_target.png", id), png).unwrap();
             // write_png(&format!("submissions/{}_painted.png", id), canvas.bitmap).unwrap();
         }

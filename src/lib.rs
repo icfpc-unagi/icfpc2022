@@ -317,7 +317,7 @@ pub struct Submission {
     pub id: u32,
     pub problem_id: u32,
     pub status: String,
-    pub score: u32,
+    pub cost: u32,
 }
 
 #[cfg(test)]

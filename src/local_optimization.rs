@@ -1,4 +1,4 @@
-use super::{Color, Program};
+use super::{Color, Program, Submission};
 use crate::{Canvas, Move};
 
 const WIDTH: i32 = 400;
@@ -23,7 +23,7 @@ pub fn optimize_step(
                         Canvas::new400().apply_all_and_score(new_program.clone(), image)
                     {
                         if new_score < original_score {
-                            println!("Improve: {} -> {}", original_score, new_score);
+                            eprintln!("Improve: {} -> {}", original_score, new_score);
                             return Some((new_program, new_score));
                         }
                     }
@@ -68,10 +68,27 @@ pub fn optimize(
 
             diff_step = 1;
         } else {
-            println!("Step: {} -> {}", diff_step, diff_step + 1);
+            eprintln!("Step: {} -> {}", diff_step, diff_step + 1);
             diff_step += 1;
         }
     }
 
     result
+}
+
+pub fn read_submission(
+    submission_id: u32,
+) -> anyhow::Result<(Submission, Program, Vec<Vec<Color>>)> {
+    let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
+        "submissions/{}.json",
+        submission_id
+    ))?)?;
+    assert_eq!(sub.status, "SUCCEEDED");
+    let program = crate::read_isl(std::fs::File::open(format!(
+        "submissions/{}.isl",
+        submission_id
+    ))?)?;
+    let png = crate::read_png(&format!("problems/{}.png", sub.problem_id));
+
+    Ok((sub, program, png))
 }
