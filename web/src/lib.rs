@@ -78,7 +78,8 @@ const INIT_CANVAS: [Option<&'static [u8]>; 30] = [
 
 #[wasm_bindgen]
 pub struct Ret {
-    pub score: i64,
+    #[wasm_bindgen(getter_with_clone)]
+    pub score: String,
     #[wasm_bindgen(getter_with_clone)]
     pub error: String,
     #[wasm_bindgen(getter_with_clone)]
@@ -110,7 +111,7 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
     let problem_id = problem_id.parse::<usize>().unwrap() - 1;
     if problem_id >= PNG.len() {
         return Ret {
-            score: 0,
+            score: String::new(),
             error: "Illegal problem ID".to_owned(),
             svg: String::new()
         };
@@ -129,7 +130,8 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
             }
         }
     }
-    let mut score = 0;
+    let mut cost = 0;
+    let mut similarity = 0;
     let mut error = String::new();
     let mut doc = svg::Document::new().set("id", "vis").set("viewBox", (-5, -5, w * 4 + 10 + 50, h * 2 + 10)).set("width", w * 4 + 10 + 50).set("height", h * 2 + 10);
     if !show_diff {
@@ -146,13 +148,13 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
             };
             match canvas.apply_all_safe(program[0..t as usize].iter().cloned()) {
                 Ok(s) => {
-                    score += s.round() as i64
+                    cost = s.round() as i64
                 },
                 Err(e) => {
                     error = e.to_string();
                 }
             }
-            score += similarity(&png, &canvas.bitmap).round() as i64;
+            similarity = icfpc2022::similarity(&png, &canvas.bitmap).round() as i64;
             doc = doc.add(Image::new().set("x", 0).set("y", 0).set("width", w * 2).set("height", h * 2).set("xlink:href", format!("data:image/png;base64,{}",base64(&canvas.bitmap))));
             if show_blocks {
                 for (id, block) in canvas.blocks.iter() {
@@ -176,7 +178,7 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
         }
     }
     Ret {
-        score,
+        score: format!("{} (コスト: {}, 類似度: {})", cost + similarity, cost, similarity),
         error,
         svg: doc.to_string()
     }

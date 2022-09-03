@@ -372,7 +372,7 @@ pub fn solve3(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
         xys.push((0, 0));
         xys.reverse();
     }
-    dbg!(&xys);
+    // dbg!(&xys);
     let mut dp1 = vec![];
     let bar = indicatif::ProgressBar::new(xys.len() as u64 - 1);
     (0..xys.len() - 1)
@@ -402,7 +402,7 @@ pub fn solve3(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         tmp.push((dp_x[ly][uy][x].1, dp_x[ly][uy][x].2));
                         x = dp_x[ly][uy][x].1;
                     }
-                    (dp_x[ly][uy][x].0, tmp)
+                    (dp_x[ly][uy][lx].0, tmp)
                 }
             };
             bar.inc(1);
