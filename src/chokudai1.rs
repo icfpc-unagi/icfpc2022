@@ -226,9 +226,9 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
                 for i in 0..le {
                     if i == p1 {
-                        blocks.push(v[p1].clone());
-                    } else if i == p2 {
                         blocks.push(v[p2].clone());
+                    } else if i == p2 {
+                        blocks.push(v[p1].clone());
                     } else {
                         blocks.push(v[i].clone());
                     }
@@ -285,9 +285,9 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
             for i in 0..le {
                 if i == p1 {
-                    blocks.push(v[p1].clone());
-                } else if i == p2 {
                     blocks.push(v[p2].clone());
+                } else if i == p2 {
+                    blocks.push(v[p1].clone());
                 } else {
                     blocks.push(v[i].clone());
                 }
