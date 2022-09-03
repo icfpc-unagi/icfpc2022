@@ -1,5 +1,4 @@
 use icfpc2022;
-use icfpc2022::Canvas;
 
 fn main() -> anyhow::Result<()> {
     let submission_id: u32 = std::env::args().nth(1).unwrap().parse()?;
