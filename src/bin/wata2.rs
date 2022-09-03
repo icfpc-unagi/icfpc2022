@@ -13,8 +13,8 @@ fn main() {
     let mut png = read_png(&input);
     let mut best = (wata::INF, vec![]);
     for _ in 0..2 {
-        for _ in 0..4 {
-            let out = wata::solve(&png);
+        for _ in 0..2 {
+            let out = wata::solve2(&png);
             if best.0.setmin(out.0) {
                 eprintln!("{}", best.0);
                 best.1 = out.1;
@@ -22,6 +22,8 @@ fn main() {
             if *FLIP_ROTATE == 0 {
                 break;
             }
+            best.1 = rotate::rotate_program(&best.1);
+            png = rotate::rotate_png(&png);
             best.1 = rotate::rotate_program(&best.1);
             png = rotate::rotate_png(&png);
         }
