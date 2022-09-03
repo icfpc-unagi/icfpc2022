@@ -4,14 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
 	"net/http"
 	"os"
+
+	"github.com/golang/glog"
 
 	_ "github.com/icfpc-unagi/icfpc2022/go/internal/api"
 	"github.com/icfpc-unagi/icfpc2022/go/internal/auth"
 	_ "github.com/icfpc-unagi/icfpc2022/go/internal/handler"
-	"github.com/icfpc-unagi/icfpc2022/go/internal/official"
 	"github.com/icfpc-unagi/icfpc2022/go/pkg/db"
 )
 
@@ -38,7 +38,6 @@ func main() {
 		glog.Fatal("UNAGI_PASSWORD must be set.")
 	}
 	http.HandleFunc("/d/sql", auth.BasicAuth(handler))
-	_ = official.APIKey()
 	glog.Infof("Starting server on %s...", *port)
 	if err := http.ListenAndServe(*port, nil); err != nil {
 		glog.Fatal(err.Error())
