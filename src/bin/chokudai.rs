@@ -16,8 +16,9 @@ fn main() {
             let mut canvas = icfpc2022::Canvas::new400();
             let score = canvas.apply_all_and_score(out.1.clone(), &png).unwrap();
 
+            eprintln!("score: {}", score);
             if best.0.setmin(score) {
-                eprintln!("{}", best.0);
+                eprintln!("bestscore!: {}", best.0);
                 best.1 = out.1;
             }
             best.1 = rotate::rotate_program(&best.1);
@@ -28,6 +29,7 @@ fn main() {
     }
     eprintln!("{}", best.0);
     let mut canvas = Canvas::new(png.len(), png[0].len());
+    eprintln!("best cost = {}", best.0);
     eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
     eprintln!("diff cost = {}", similarity(&png, &canvas.bitmap));
     for p in best.1 {
