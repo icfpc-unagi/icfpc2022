@@ -8,6 +8,19 @@ pub struct Canvas {
     pub counter: u32,
 }
 
+fn check_valid_block(b: &Block) -> anyhow::Result<()> {
+    if b.area() == 0 {
+        anyhow::bail!("New block: area zero: {:?}", &b);
+    }
+    if b.0 .0 >= b.1 .0 {
+        anyhow::bail!("New block: x0 > x1: {:?}", &b);
+    }
+    if b.0 .1 >= b.1 .1 {
+        anyhow::bail!("New block: y0 > y1: {:?}", &b);
+    }
+    anyhow::Ok(())
+}
+
 fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
     if b0.0 .0 > b1.0 .0 || b0.0 .1 > b1.0 .1 {
         return check_merge_compatibility(b1, b0);
@@ -97,12 +110,8 @@ impl Canvas {
                     }
                     _ => panic!("bad orientation: {}", o),
                 }
-                if block0.area() == 0 {
-                    anyhow::bail!("Area of block {} is zero", bid0);
-                }
-                if block1.area() == 0 {
-                    anyhow::bail!("Area of block {} is zero", bid1);
-                }
+                check_valid_block(&block0)?;
+                check_valid_block(&block1)?;
                 assert!(self.blocks.insert(bid0, block0).is_none());
                 assert!(self.blocks.insert(bid1, block1).is_none());
                 block.area()
