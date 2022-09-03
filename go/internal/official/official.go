@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
-	"github.com/pkg/errors"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"sync"
+
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
 )
 
 var apiKey string
@@ -63,6 +64,67 @@ func Scoreboard() (*ScoreboardResponse, error) {
 
 	decoder := json.NewDecoder(resp.Body)
 	result := ScoreboardResponse{}
+	if err := decoder.Decode(&result); err != nil {
+		return nil, errors.Errorf("failed to parse a response: %+v", err)
+	}
+	return &result, nil
+}
+
+type SubmissionsEntry struct {
+	ID          int    `json:"id"`
+	ProblemID   int    `json:"problem_id"`
+	Score       int64  `json:"score"`
+	Status      string `json:"status"`
+	SubmittedAt string `json:"submitted_at"`
+}
+
+type SubmissionsResponse struct {
+	Submissions []SubmissionsEntry `json:"submissions"`
+}
+
+func Submissions() (*SubmissionsResponse, error) {
+	req, _ := http.NewRequest(
+		"GET", "https://robovinci.xyz/api/submissions", nil)
+	req.Header.Set("Authorization", "Bearer "+APIKey())
+
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Errorf("failed to fetch the scoreboard: %+v", err)
+	}
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	result := SubmissionsResponse{}
+	if err := decoder.Decode(&result); err != nil {
+		return nil, errors.Errorf("failed to parse a response: %+v", err)
+	}
+	return &result, nil
+}
+
+type SubmissionResponse struct {
+	ID          int    `json:"id"`
+	ProblemID   int    `json:"problem_id"`
+	Score       int64  `json:"score"`
+	Status      string `json:"status"`
+	SubmittedAt string `json:"submitted_at"`
+	FileURL     string `json:"file_url"`
+}
+
+func Submission(submissionID int) (*SubmissionResponse, error) {
+	req, _ := http.NewRequest(
+		"GET", fmt.Sprintf("https://robovinci.xyz/api/submissions/%d", submissionID), nil)
+	req.Header.Set("Authorization", "Bearer "+APIKey())
+
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Errorf("failed to fetch the scoreboard: %+v", err)
+	}
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	result := SubmissionResponse{}
 	if err := decoder.Decode(&result); err != nil {
 		return nil, errors.Errorf("failed to parse a response: %+v", err)
 	}
