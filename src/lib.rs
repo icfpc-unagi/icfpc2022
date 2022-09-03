@@ -219,7 +219,7 @@ impl Move {
         }
     }
 
-    fn may_change_bitmap(&self) -> bool {
+    pub fn may_change_bitmap(&self) -> bool {
         matches!(self, Move::Color(_, _) | Move::Swap(_, _))
     }
 }
