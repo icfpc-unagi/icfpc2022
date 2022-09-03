@@ -336,3 +336,8 @@ article .alert-success {
 	box-sizing: border-box;
 	margin: 1ex 0;
 }
+
+article #vis {
+	width: 100%;
+	height: calc((var(--main-right) - var(--main-left)) / 2);
+}
