@@ -129,8 +129,14 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     }
     // TODO: fix eps
     // 誤差0.5程度におさえられるくらいに調整したい
-    for iter in 0..20 {
-        let eps = if iter < 10 { 1.0 } else { 0.1 };
+    for iter in 0..100 {
+        let eps = if iter < 10 {
+            1.0
+        } else if iter < 20 {
+            0.1
+        } else {
+            0.01
+        };
         // let dists = points
         //     .iter()
         //     .map(|p| (0..4).map(|i| (p[i] - x[i]).powi(2)).sum::<f64>().sqrt())
@@ -179,6 +185,10 @@ mod tests {
         point_inner(a, b) / (point_inner(a, a) * point_inner(b, b)).sqrt()
     }
 
+    fn point_from_u8(a: [u8; 4]) -> [f64; 4] {
+        [a[0] as f64, a[1] as f64, a[2] as f64, a[3] as f64]
+    }
+
     #[test]
     fn test_geometric_median_4d() {
         let a = [0.0, 10.0, 20.0, 30.0];
@@ -205,6 +215,22 @@ mod tests {
         let median = geometric_median_4d(&points);
         // dbg!(median);
         assert_eq!(median.map(|v| v.round()), c);
+
+        let mut points = vec![];
+        for r in 10..20 {
+            for g in 30..35 {
+                for b in 40..43 {
+                    points.push(point_from_u8([r, g, b, 255]));
+                }
+            }
+        }
+        for _ in 0..140 {
+            points.push(point_from_u8([0, 0, 0, 0]));
+        }
+        let median = geometric_median_4d(&points);
+        // 収束してなさそう・・・。
+        dbg!(median);
+        // assert!(false);
     }
 
     #[test]
