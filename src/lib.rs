@@ -332,7 +332,11 @@ pub fn read_isl<R: io::Read>(r: R) -> io::Result<Program> {
     let r = io::BufReader::new(r);
     let mut program = Program::new();
     for line in r.lines() {
-        program.push(line?.parse().unwrap());
+        let line = line?;
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+        program.push(line.parse().unwrap());
     }
     Ok(program)
 }
