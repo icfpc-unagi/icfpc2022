@@ -180,7 +180,6 @@ dependencies = [
  "getrandom",
  "indicatif",
  "itertools",
- "js-sys",
  "once_cell",
  "png",
  "rand",
