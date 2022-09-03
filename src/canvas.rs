@@ -21,7 +21,7 @@ fn check_valid_block(b: &Block) -> anyhow::Result<()> {
     anyhow::Ok(())
 }
 
-fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
+pub fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
     if b0.0 .0 == b1.0 .0 {
         // x座標一致、y座標方向のマージ
 

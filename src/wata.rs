@@ -204,6 +204,10 @@ pub static HEAVY: Lazy<usize> = Lazy::new(|| {
 });
 
 pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
+    solve3(png, &Canvas::new(png[0].len(), png.len()))
+}
+
+pub fn solve3(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
     let h = png.len();
     let w = png[0].len();
     let mut cand_x = vec![];
@@ -407,21 +411,9 @@ pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
         .collect_into_vec(&mut dp1);
     bar.finish();
 
-    let mut out = vec![];
-    let mut id = 0;
-    let mut blocks = vec![BlockId(vec![0])];
-    if let Ok(hiding) = std::env::var("HIDING") {
-        // 潜伏(8+2000*hiding)
-        let hiding = hiding.parse::<usize>().unwrap();
-        out.push(Move::LineCut(BlockId(vec![0]), 'y', 1));
-        for _ in 0..hiding {
-            out.push(Move::Color(BlockId(vec![0, 0]), [0, 0, 0, 0]));
-        }
-        out.push(Move::Merge(BlockId(vec![0, 0]), BlockId(vec![0, 1])));
-        id = 1;
-        blocks = vec![BlockId(vec![1])];
-    }
-
+    let (mut id, mut out) = all_merge(&init_canvas);
+    dbg!(id, &out);
+    let mut blocks = vec![BlockId(vec![id])];
     let mut score = dp_xy[tx][ty].0;
     for i in 0..xys.len() - 1 {
         let (lx, ly) = xys[i];
@@ -476,7 +468,7 @@ pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
             }
         }
     }
-    let mut canvas = Canvas::new(w, h);
+    let mut canvas = init_canvas.clone();
     let mut cost = canvas.apply_all(out.clone());
     cost += similarity(png, &canvas.bitmap);
     eprintln!("expected = {}", score);
@@ -563,4 +555,34 @@ pub fn heavy_dp_y(
         y = dp[y].1;
     }
     (dp[y0].0, out)
+}
+
+pub fn all_merge(canvas: &Canvas) -> (u32, Vec<Move>) {
+    let mut id = canvas.blocks.keys().map(|b| b.0[0]).max().unwrap();
+    let mut out = vec![];
+    let mut bs = canvas
+        .blocks
+        .iter()
+        .map(|(id, block)| (block.clone(), id.clone()))
+        .collect::<Vec<_>>();
+    bs.sort();
+    let mut stack: Vec<(Block, BlockId)> = vec![];
+    for b in bs {
+        stack.push(b);
+        while stack.len() >= 2
+            && canvas::check_merge_compatibility(
+                &stack[stack.len() - 2].0,
+                &stack[stack.len() - 1].0,
+            )
+            .is_ok()
+        {
+            let b2 = stack.pop().unwrap();
+            let b1 = stack.pop().unwrap();
+            out.push(Move::Merge(b1.1, b2.1));
+            id += 1;
+            stack.push((Block(b1.0 .0, b2.0 .1), BlockId(vec![id])));
+        }
+    }
+    assert_eq!(stack.len(), 1);
+    (id, out)
 }
