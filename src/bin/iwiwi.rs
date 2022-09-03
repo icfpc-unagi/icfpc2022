@@ -1,4 +1,5 @@
 use icfpc2022;
+use icfpc2022::Canvas;
 
 fn main() {
     let submission_id = std::env::args().nth(1).unwrap();
@@ -14,11 +15,51 @@ fn main() {
     .unwrap();
     let png = icfpc2022::read_png(&format!("problems/{}.png", sub.problem_id));
 
-    while let Some(improved_program) =
-        icfpc2022::local_optimization::optimize_step(program.clone(), &png)
-    {
-        program = improved_program;
-    }
+    let (program, score) = icfpc2022::local_optimization::optimize(program, &png, 10);
+    icfpc2022::write_isl(
+        std::fs::File::create(format!("out/opt_{}_{:06.0}", sub.problem_id, score)).unwrap(),
+        program,
+    )
+    .unwrap();
+
+    // let mut step = 1;
+    // loop {
+    //     let result =
+    //         icfpc2022::local_optimization::optimize_step(program.clone(), &png, &[-step, step]);
+    //
+    //     if let Some((improved_program, improved_score)) = result {
+    //         program = improved_program.clone();
+    //         icfpc2022::write_isl(
+    //             std::fs::File::create(format!(
+    //                 "out/opt_{}_{:06.0}",
+    //                 sub.problem_id, improved_score
+    //             ))
+    //             .unwrap(),
+    //             improved_program,
+    //         )
+    //         .unwrap();
+    //
+    //         step = 1;
+    //     } else {
+    //         println!("Step: {} -> {}", step, step + 1);
+    //         step += 1;
+    //     }
+    // }
+    //
+    // while let Some((improved_program, improved_score)) =
+    //     icfpc2022::local_optimization::optimize_step(program.clone(), &png, &[-2, 2])
+    // {
+    //     program = improved_program.clone();
+    //     icfpc2022::write_isl(
+    //         std::fs::File::create(format!(
+    //             "out/opt_{}_{:06.0}",
+    //             sub.problem_id, improved_score
+    //         ))
+    //         .unwrap(),
+    //         improved_program,
+    //     )
+    //     .unwrap();
+    // }
 
     // assert_eq!()
 

@@ -312,7 +312,7 @@ pub fn similarity(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> f64 {
     (pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum::<f64>() * 0.005).round()
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Submission {
     pub id: u32,
     pub problem_id: u32,
