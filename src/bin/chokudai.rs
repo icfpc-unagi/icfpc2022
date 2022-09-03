@@ -1,6 +1,5 @@
 use icfpc2022::chokudai1::solve_swap;
 use icfpc2022::read_png;
-use icfpc2022::{BlockId, Move};
 //use std::collections::HashMap;
 
 fn main() {
