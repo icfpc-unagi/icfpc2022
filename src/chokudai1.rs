@@ -222,13 +222,13 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
                     v.push(block);
                 }
 
-                moves2.push(Move::Swap(v[le - 1 - p2].clone(), v[le - 1 - p1].clone()));
+                moves2.push(Move::Swap(v[p2].clone(), v[p1].clone()));
 
                 for i in 0..le {
-                    if i == le - 1 - p1 {
-                        blocks.push(v[le - 1 - p2].clone());
-                    } else if i == le - 1 - p2 {
-                        blocks.push(v[le - 1 - p1].clone());
+                    if i == p1 {
+                        blocks.push(v[p2].clone());
+                    } else if i == p2 {
+                        blocks.push(v[p1].clone());
                     } else {
                         blocks.push(v[i].clone());
                     }
@@ -281,13 +281,13 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
                 v.push(block);
             }
 
-            moves2.push(Move::Swap(v[le - 1 - p1].clone(), v[le - 1 - p2].clone()));
+            moves2.push(Move::Swap(v[p2].clone(), v[p1].clone()));
 
             for i in 0..le {
-                if i == le - 1 - p1 {
-                    blocks.push(v[le - 1 - p2].clone());
-                } else if i == le - 1 - p2 {
-                    blocks.push(v[le - 1 - p1].clone());
+                if i == p1 {
+                    blocks.push(v[p2].clone());
+                } else if i == p2 {
+                    blocks.push(v[p1].clone());
                 } else {
                     blocks.push(v[i].clone());
                 }
