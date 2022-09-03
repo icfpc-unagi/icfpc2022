@@ -8,6 +8,7 @@ use std::{
 };
 
 pub mod canvas;
+pub mod chokudai1;
 pub mod color;
 pub mod rotate;
 pub mod wata;
