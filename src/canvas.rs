@@ -228,4 +228,29 @@ mod tests {
             // write_png(&format!("submissions/{}_painted.png", id), canvas.bitmap).unwrap();
         }
     }
+
+    #[test]
+    fn test_error_line_cut() {
+        let mut canvas = Canvas::new400();
+        assert!(canvas
+            .apply_safe(&Move::LineCut(BlockId(vec![0]), 'x', 0,))
+            .is_err());
+    }
+
+    #[test]
+    fn test_error_merge() {
+        let mut canvas = Canvas::new400();
+        assert!(canvas
+            .apply_safe(&Move::LineCut(BlockId(vec![0]), 'x', 10,))
+            .is_ok());
+        assert!(canvas
+            .apply_safe(&Move::LineCut(BlockId(vec![0, 0]), 'y', 20,))
+            .is_ok());
+        assert!(canvas
+            .apply_safe(&Move::LineCut(BlockId(vec![0, 1]), 'y', 21,))
+            .is_ok());
+        assert!(canvas
+            .apply_safe(&Move::Merge(BlockId(vec![0, 0, 0]), BlockId(vec![0, 1, 0])))
+            .is_err());
+    }
 }
