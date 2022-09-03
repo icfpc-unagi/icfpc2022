@@ -196,6 +196,13 @@ pub fn solve(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
     (dp_x[w].0, out)
 }
 
+pub static HEAVY: Lazy<usize> = Lazy::new(|| {
+    std::env::var("HEAVY")
+        .unwrap_or("0".to_owned())
+        .parse()
+        .unwrap()
+});
+
 pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
     let h = png.len();
     let w = png[0].len();
@@ -362,6 +369,43 @@ pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
         xys.reverse();
     }
     dbg!(&xys);
+    let mut dp1 = vec![];
+    let bar = indicatif::ProgressBar::new(xys.len() as u64 - 1);
+    (0..xys.len() - 1)
+        .into_par_iter()
+        .map(|i| {
+            let (lx, ly) = xys[i];
+            let (ux, uy) = xys[i + 1];
+            let ret = if ly == uy {
+                if uy - ly < *HEAVY {
+                    heavy_dp_y(png, lx, ux, ly)
+                } else {
+                    let mut tmp = vec![];
+                    let mut y = ly;
+                    while y < h {
+                        tmp.push((dp_y[lx][ux][y].1, dp_y[lx][ux][y].2));
+                        y = dp_y[lx][ux][y].1;
+                    }
+                    (dp_y[lx][ux][ly].0, tmp)
+                }
+            } else {
+                if ux - lx < *HEAVY {
+                    heavy_dp_x(png, ly, uy, lx)
+                } else {
+                    let mut tmp = vec![];
+                    let mut x = lx;
+                    while x < w {
+                        tmp.push((dp_x[ly][uy][x].1, dp_x[ly][uy][x].2));
+                        x = dp_x[ly][uy][x].1;
+                    }
+                    (dp_x[ly][uy][x].0, tmp)
+                }
+            };
+            bar.inc(1);
+            ret
+        })
+        .collect_into_vec(&mut dp1);
+    bar.finish();
 
     let mut out = vec![];
     let mut id = 0;
@@ -378,16 +422,15 @@ pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
         blocks = vec![BlockId(vec![1])];
     }
 
+    let mut score = dp_xy[tx][ty].0;
     for i in 0..xys.len() - 1 {
         let (lx, ly) = xys[i];
         let (ux, uy) = xys[i + 1];
         if ly == uy {
-            let mut y = ly;
-            while y < h {
-                let color = dp_y[lx][ux][y].2;
+            score += dp1[i].0 - dp_y[lx][ux][ly].0;
+            for &(y, color) in &dp1[i].1 {
                 let block = blocks.pop().unwrap();
                 out.push(Move::Color(block.clone(), color));
-                y = dp_y[lx][ux][y].1;
                 if y < h {
                     out.push(Move::LineCut(block.clone(), 'y', y as i32));
                     blocks.extend(block.cut());
@@ -408,12 +451,10 @@ pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
                 blocks.push(block.cut()[1].clone());
             }
         } else {
-            let mut x = lx;
-            while x < w {
-                let color = dp_x[ly][uy][x].2;
+            score += dp1[i].0 - dp_x[ly][uy][lx].0;
+            for &(x, color) in &dp1[i].1 {
                 let block = blocks.pop().unwrap();
                 out.push(Move::Color(block.clone(), color));
-                x = dp_x[ly][uy][x].1;
                 if x < w {
                     out.push(Move::LineCut(block.clone(), 'x', x as i32));
                     blocks.extend(block.cut());
@@ -438,6 +479,88 @@ pub fn solve2(png: &Vec<Vec<[u8; 4]>>) -> (f64, Program) {
     let mut canvas = Canvas::new(w, h);
     let mut cost = canvas.apply_all(out.clone());
     cost += similarity(png, &canvas.bitmap);
+    eprintln!("expected = {}", score);
     eprintln!("actual = {}", cost);
     (cost, out)
+}
+
+pub fn heavy_dp_x(
+    png: &Vec<Vec<[u8; 4]>>,
+    ly: usize,
+    uy: usize,
+    x0: usize,
+) -> (f64, Vec<(usize, [u8; 4])>) {
+    let h = png.len();
+    let w = png[0].len();
+    let mut dp = vec![(INF, !0, [0; 4]); w + 1];
+    dp[w].0 = 0.0;
+    for ux in (x0 + 1..=w).rev() {
+        let mut tmp = vec![];
+        (x0..ux)
+            .into_par_iter()
+            .map(|lx| color::best_color2(png, lx, ux, ly, uy))
+            .collect_into_vec(&mut tmp);
+        for lx in (x0..ux).rev() {
+            let (color, cost1) = tmp[lx - x0];
+            let mut cost2 = (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+            if ux != w {
+                cost2 += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                let dx = (ux - lx).max(w - ux);
+                cost2 += (1.0 * (w * h) as f64 / (dx * (h - ly)) as f64).round();
+            }
+            let cost = dp[ux].0 + cost1 as f64 * 0.005 + cost2;
+            if dp[lx].0.setmin(cost) {
+                dp[lx].1 = ux;
+                dp[lx].2 = color;
+            }
+        }
+    }
+    let mut out = vec![];
+    let mut x = x0;
+    while x < w {
+        out.push((dp[x].1, dp[x].2));
+        x = dp[x].1;
+    }
+    (dp[x0].0, out)
+}
+
+pub fn heavy_dp_y(
+    png: &Vec<Vec<[u8; 4]>>,
+    lx: usize,
+    ux: usize,
+    y0: usize,
+) -> (f64, Vec<(usize, [u8; 4])>) {
+    let h = png.len();
+    let w = png[0].len();
+    let mut dp = vec![(INF, !0, [0; 4]); h + 1];
+    dp[h].0 = 0.0;
+    for uy in (y0 + 1..=h).rev() {
+        let mut tmp = vec![];
+        (y0..uy)
+            .into_par_iter()
+            .map(|ly| color::best_color2(png, lx, ux, ly, uy))
+            .collect_into_vec(&mut tmp);
+
+        for ly in (y0..uy).rev() {
+            let (color, cost1) = tmp[ly - y0];
+            let mut cost2 = (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+            if uy != h {
+                cost2 += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                let dy = (uy - ly).max(h - uy);
+                cost2 += (1.0 * (w * h) as f64 / ((w - lx) * dy) as f64).round();
+            }
+            let cost = dp[uy].0 + cost1 as f64 * 0.005 + cost2;
+            if dp[ly].0.setmin(cost) {
+                dp[ly].1 = uy;
+                dp[ly].2 = color;
+            }
+        }
+    }
+    let mut out = vec![];
+    let mut y = y0;
+    while y < h {
+        out.push((dp[y].1, dp[y].2));
+        y = dp[y].1;
+    }
+    (dp[y0].0, out)
 }
