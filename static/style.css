@@ -274,3 +274,65 @@ article a[name] {
 	position: absolute;
 	top: calc(var(--nav-height) * -1);
 }
+
+article input[type=text] {
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	margin: 0 1ex;
+	padding: 1ex;
+}
+
+article pre {
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 1ex;
+	font-family: 'Courier New', Courier, monospace;
+}
+
+article textarea {
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	margin: 1ex 0;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 1ex;
+}
+
+article input[type=submit] {
+	border: 1px solid #36c;	
+	background: #fff;
+    color: #36c;
+    line-height: 200%;
+    font-size: 120%;
+    border-radius: 5px;
+    padding: 1ex 5ex;
+	margin: 1ex 2ex 1ex 0;
+}
+
+article input[type=submit].primary {
+    border: none;
+    background: #36c;
+	color: #fff;
+}
+
+article .alert-danger {
+	color: #721c24;
+	background: #f5c6cb;
+	border: 1px solid #f8d7da;
+	padding: 1.5ex;
+	border-radius: 5px;
+	box-sizing: border-box;
+	margin: 1ex 0;
+}
+
+article .alert-success {
+	color: #155724;
+	background: #d4edda;
+	border: 1px solid #c3e6cb;
+	padding: 1.5ex;
+	border-radius: 5px;
+	box-sizing: border-box;
+	margin: 1ex 0;
+}
