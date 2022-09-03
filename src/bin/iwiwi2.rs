@@ -1,4 +1,4 @@
-use icfpc2022::*;
+// use icfpc2022::*;
 
 fn main() -> anyhow::Result<()> {
     // let image = icfpc2022::read_png("problems/1.png");
@@ -14,5 +14,5 @@ fn main() -> anyhow::Result<()> {
     // let mut canvas = Canvas::new400();
     // write_apng_from_program(format!("tmp-animated.png"), &mut canvas, program, 5)?;
     // write_png(&format!("tmp.png"), canvas.bitmap)?;
-    // Ok(())
+    Ok(())
 }
