@@ -1,5 +1,4 @@
 use icfpc2022;
-use icfpc2022::canvas;
 use icfpc2022::chokudai1::solve_swap;
 use icfpc2022::read_png;
 use icfpc2022::*;
@@ -11,11 +10,11 @@ fn main() {
     let mut png = read_png(&input);
     let mut best = (99999999.9, vec![]);
 
-    for _ in 0..2 {
-        for _ in 0..4 {
-            let out = solve_swap(&mut png, 20.0, 10);
+    for _i1 in 0..2 {
+        for _i2 in 0..4 {
+            let out = solve_swap(&mut png, 10.0, 10);
             let mut canvas = icfpc2022::Canvas::new400();
-            let score = canvas.apply_all(out.1.clone());
+            let score = canvas.apply_all_and_score(out.1.clone(), &png).unwrap();
 
             if best.0.setmin(score) {
                 eprintln!("{}", best.0);

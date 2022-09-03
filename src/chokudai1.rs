@@ -224,7 +224,7 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
                 moves2.push(Move::Swap(v[p1].clone(), v[p2].clone()));
 
-                for i in 0..p2 + 1 {
+                for i in 0..le {
                     if i == p1 {
                         blocks.push(v[p2].clone());
                     } else if i == p2 {
@@ -283,7 +283,7 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
             moves2.push(Move::Swap(v[p1].clone(), v[p2].clone()));
 
-            for i in 0..p2 + 1 {
+            for i in 0..le {
                 if i == p1 {
                     blocks.push(v[p2].clone());
                 } else if i == p2 {
