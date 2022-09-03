@@ -3,8 +3,10 @@ package official
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"sync"
@@ -61,6 +63,39 @@ func Scoreboard() (*ScoreboardResponse, error) {
 
 	decoder := json.NewDecoder(resp.Body)
 	result := ScoreboardResponse{}
+	if err := decoder.Decode(&result); err != nil {
+		return nil, errors.Errorf("failed to parse a response: %+v", err)
+	}
+	return &result, nil
+}
+
+type SubmitResponse struct {
+	SubmissionID int    `json:"submission_id,omitempty"`
+	Message      string `json:"message,omitempty"`
+}
+
+func Submit(problemID int, isl []byte) (*SubmitResponse, error) {
+	body := &bytes.Buffer{}
+	mw := multipart.NewWriter(body)
+	fw, _ := mw.CreateFormFile("file", "submission.isl")
+	fw.Write(isl)
+	mw.Close()
+
+	req, _ := http.NewRequest(
+		"POST", fmt.Sprintf(
+			"https://robovinci.xyz/api/submissions/%d/create", problemID), body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+APIKey())
+
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Errorf("failed to submit: %+v", err)
+	}
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	result := SubmitResponse{}
 	if err := decoder.Decode(&result); err != nil {
 		return nil, errors.Errorf("failed to parse a response: %+v", err)
 	}

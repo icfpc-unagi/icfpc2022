@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	_ "github.com/icfpc-unagi/icfpc2022/go/internal/api"
 	"github.com/icfpc-unagi/icfpc2022/go/internal/auth"
 	_ "github.com/icfpc-unagi/icfpc2022/go/internal/handler"
 	"github.com/icfpc-unagi/icfpc2022/go/internal/official"
