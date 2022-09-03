@@ -25,11 +25,18 @@ console_error_panic_hook = { version = "*", optional = true }
 wasm-bindgen = { version = "*", features = ["serde-serialize"] }
 wee_alloc = { version = "*", optional = true }
 web-sys = { version = "*", features = [
-  'Document',
-  'Element',
-  'Window',
+  "CanvasRenderingContext2d",
+  "Document",
+  "Element",
+  "HtmlCanvasElement",
+  "ImageData",
+  "Window",
   "console",
 ] }
+js-sys = { version = "*" }
 
 [profile.release]
 debug = true
+
+[profile.release.'cfg(target_arch = "wasm32")']
+lto = true
