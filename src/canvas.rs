@@ -73,7 +73,7 @@ impl TryFrom<InitialJson> for Canvas {
     fn try_from(ini: InitialJson) -> anyhow::Result<Self> {
         let w = ini.width;
         let h = ini.height;
-        let mut bitmap = vec![vec![Color::default(); w]; h];
+        let mut bitmap = vec![vec![WHITE; w]; h];
         let mut blocks = HashMap::new();
         for (i, block) in ini.blocks.iter().enumerate() {
             let id = block.block_id.parse::<BlockId>().unwrap(); // TODO: use `?`
@@ -106,7 +106,7 @@ impl TryFrom<InitialJson> for Canvas {
 impl Canvas {
     pub fn new(w: usize, h: usize) -> Self {
         Self {
-            bitmap: vec![vec![Color::default(); w]; h],
+            bitmap: vec![vec![WHITE; w]; h],
             blocks: HashMap::from([(
                 BlockId(vec![0]),
                 Block(Point(0, 0), Point(w as i32, h as i32)),

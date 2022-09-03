@@ -52,7 +52,7 @@ macro_rules! mat {
     ($e:expr; $d:expr $(; $ds:expr)+) => { vec![mat![$e $(; $ds)*]; $d] };
 }
 
-pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
+pub fn read_png<P: AsRef<std::path::Path>>(path: P) -> Vec<Vec<[u8; 4]>> {
     let decoder = png::Decoder::new(File::open(path).unwrap());
     let mut reader = decoder.read_info().unwrap();
     let mut buf = vec![0; reader.output_buffer_size()];
@@ -70,7 +70,10 @@ pub fn read_png(path: &str) -> Vec<Vec<[u8; 4]>> {
     out
 }
 
-pub fn write_png(path: &str, bitmap: Vec<Vec<Color>>) -> Result<(), png::EncodingError> {
+pub fn write_png<P: AsRef<std::path::Path>>(
+    path: P,
+    bitmap: Vec<Vec<Color>>,
+) -> Result<(), png::EncodingError> {
     let mut encoder = png::Encoder::new(
         io::BufWriter::new(File::create(path)?),
         bitmap[0].len() as u32,
@@ -212,6 +215,7 @@ impl Block {
 }
 
 pub type Color = [u8; 4];
+const WHITE: Color = [255; 4];
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Move {
@@ -415,6 +419,16 @@ pub fn pixel_distance_bitmap(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> Vec<Ve
         .collect()
 }
 
+pub fn load_problem(problem_id: u32) -> (Canvas, Vec<Vec<Color>>) {
+    let target_png = read_png(format!("problems/{problem_id}.png"));
+    let canvas = if problem_id <= 25 {
+        Canvas::new(target_png[0].len(), target_png.len())
+    } else {
+        Canvas::from_initial_json(format!("problems/{problem_id}.initial.json"))
+    };
+    (canvas, target_png)
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Submission {
     pub id: u32,
@@ -459,5 +473,14 @@ mod tests {
             BlockId(vec![1]).cut(),
             [BlockId(vec![1, 0]), BlockId(vec![1, 1])]
         );
+    }
+
+    #[test]
+    fn test_load_problem() {
+        let (canvas, _) = load_problem(25);
+        assert_eq!(canvas.blocks.len(), 1);
+
+        let (canvas, _) = load_problem(26);
+        assert_eq!(canvas.blocks.len(), 100);
     }
 }

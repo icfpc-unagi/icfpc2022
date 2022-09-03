@@ -10,13 +10,14 @@ pub static FLIP_ROTATE: Lazy<i32> = Lazy::new(|| {
 
 fn main() {
     let problem_id = std::env::args().nth(1).unwrap();
-    let mut png = read_png(&format!("problems/{}.png", problem_id));
-    let init_canvas =
-        if std::path::Path::new(&format!("problems/{}.initial.json", problem_id)).exists() {
-            Canvas::from_initial_json(&format!("problems/{}.initial.json", problem_id))
-        } else {
-            Canvas::new(png[0].len(), png.len())
-        };
+    // let mut png = read_png(&format!("problems/{}.png", problem_id));
+    // let init_canvas =
+    //     if std::path::Path::new(&format!("problems/{}.initial.json", problem_id)).exists() {
+    //         Canvas::from_initial_json(&format!("problems/{}.initial.json", problem_id))
+    //     } else {
+    //         Canvas::new(png[0].len(), png.len())
+    //     };
+    let (init_canvas, mut png) = load_problem(problem_id.parse::<u32>().unwrap());
     let mut best = (wata::INF, vec![]);
     for _ in 0..2 {
         for _ in 0..2 {
