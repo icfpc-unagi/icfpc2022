@@ -186,62 +186,55 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
         xlist.reverse();
 
         for x in xlist {
-            if x[0] == 0 {
-                let block = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block.clone(), 'X', x[2] as i32));
-                blocks.extend(block.cut());
+            {
+                let mut p1 = 1;
+                let mut p2 = 0;
 
-                let block2 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block2.clone(), 'X', x[1] as i32));
-                blocks.extend(block2.cut());
-
-                let block3 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block3.clone(), 'X', (x[1] + x[2]) as i32));
-                blocks.extend(block3.cut());
-
-                let b4 = blocks.pop().unwrap();
-                let b3 = blocks.pop().unwrap();
-                let b2 = blocks.pop().unwrap();
-                let b1 = blocks.pop().unwrap();
-
-                moves2.push(Move::Swap(b3.clone(), b1.clone()));
-                blocks.push(b3);
-                blocks.push(b2);
-                blocks.push(b1);
-                blocks.push(b4);
-
-                for _ in 0..3 {
-                    let b1 = blocks.pop().unwrap();
-                    let b2 = blocks.pop().unwrap();
-                    moves2.push(Move::Merge(b1, b2));
-                    id += 1;
-                    blocks.push(BlockId(vec![id]));
+                if x[0] != 0 {
+                    let block = blocks.pop().unwrap();
+                    moves2.push(Move::LineCut(block.clone(), 'X', (x[0]) as i32));
+                    blocks.extend(block.cut());
                 }
-            } else {
-                let block = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block.clone(), 'X', x[0] as i32));
-                blocks.extend(block.cut());
+                {
+                    let block = blocks.pop().unwrap();
+                    moves2.push(Move::LineCut(block.clone(), 'X', (x[0] + x[2]) as i32));
+                    blocks.extend(block.cut());
+                }
+                if x[0] + x[2] != x[1] {
+                    let block = blocks.pop().unwrap();
+                    moves2.push(Move::LineCut(block.clone(), 'X', (x[1]) as i32));
+                    blocks.extend(block.cut());
+                    p1 += 1;
+                }
+                if x[1] + x[2] != 400 {
+                    let block = blocks.pop().unwrap();
+                    moves2.push(Move::LineCut(block.clone(), 'X', (x[1] + x[2]) as i32));
+                    blocks.extend(block.cut());
+                    p1 += 1;
+                    p2 += 1;
+                }
 
-                let block2 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block2.clone(), 'X', x[1] as i32));
-                blocks.extend(block2.cut());
+                let le = blocks.len();
 
-                let block3 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block3.clone(), 'X', (x[1] + x[2]) as i32));
-                blocks.extend(block3.cut());
+                let mut v: Vec<BlockId> = vec![];
+                for _ in 0..le {
+                    let block = blocks.pop().unwrap();
+                    v.push(block);
+                }
 
-                let b4 = blocks.pop().unwrap();
-                let b3 = blocks.pop().unwrap();
-                let b2 = blocks.pop().unwrap();
-                let b1 = blocks.pop().unwrap();
+                moves2.push(Move::Swap(v[p1].clone(), v[p2].clone()));
 
-                moves2.push(Move::Swap(b2.clone(), b3.clone()));
-                blocks.push(b1);
-                blocks.push(b3);
-                blocks.push(b2);
-                blocks.push(b4);
+                for i in 0..p2 + 1 {
+                    if i == p1 {
+                        blocks.push(v[p2].clone());
+                    } else if i == p2 {
+                        blocks.push(v[p1].clone());
+                    } else {
+                        blocks.push(v[i].clone());
+                    }
+                }
 
-                for _ in 0..3 {
+                while blocks.len() >= 2 {
                     let b1 = blocks.pop().unwrap();
                     let b2 = blocks.pop().unwrap();
                     moves2.push(Move::Merge(b1, b2));
@@ -254,68 +247,58 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
         ylist.reverse();
 
         for y in ylist {
-            if y[0] == 0 {
+            let mut p1 = 1;
+            let mut p2 = 0;
+            if y[0] != 0 {
                 let block = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block.clone(), 'Y', y[2] as i32));
+                moves2.push(Move::LineCut(block.clone(), 'Y', (y[0]) as i32));
                 blocks.extend(block.cut());
-
-                let block2 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block2.clone(), 'Y', y[1] as i32));
-                blocks.extend(block2.cut());
-
-                let block3 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block3.clone(), 'Y', (y[1] + y[2]) as i32));
-                blocks.extend(block3.cut());
-
-                let b4 = blocks.pop().unwrap();
-                let b3 = blocks.pop().unwrap();
-                let b2 = blocks.pop().unwrap();
-                let b1 = blocks.pop().unwrap();
-
-                moves2.push(Move::Swap(b3.clone(), b1.clone()));
-                blocks.push(b3);
-                blocks.push(b2);
-                blocks.push(b1);
-                blocks.push(b4);
-
-                for _ in 0..3 {
-                    let b1 = blocks.pop().unwrap();
-                    let b2 = blocks.pop().unwrap();
-                    moves2.push(Move::Merge(b1, b2));
-                    id += 1;
-                    blocks.push(BlockId(vec![id]));
-                }
-            } else {
+            }
+            {
                 let block = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block.clone(), 'Y', y[0] as i32));
+                moves2.push(Move::LineCut(block.clone(), 'Y', (y[0] + y[2]) as i32));
                 blocks.extend(block.cut());
+            }
+            if y[0] + y[2] != y[1] {
+                let block = blocks.pop().unwrap();
+                moves2.push(Move::LineCut(block.clone(), 'Y', (y[1]) as i32));
+                blocks.extend(block.cut());
+                p1 += 1;
+            }
+            if y[1] + y[2] != 400 {
+                let block = blocks.pop().unwrap();
+                moves2.push(Move::LineCut(block.clone(), 'Y', (y[1] + y[2]) as i32));
+                blocks.extend(block.cut());
+                p1 += 1;
+                p2 += 1;
+            }
 
-                let block2 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block2.clone(), 'Y', y[1] as i32));
-                blocks.extend(block2.cut());
+            let le = blocks.len();
 
-                let block3 = blocks.pop().unwrap();
-                moves2.push(Move::LineCut(block3.clone(), 'Y', (y[1] + y[2]) as i32));
-                blocks.extend(block3.cut());
+            let mut v: Vec<BlockId> = vec![];
+            for _ in 0..le {
+                let block = blocks.pop().unwrap();
+                v.push(block);
+            }
 
-                let b4 = blocks.pop().unwrap();
-                let b3 = blocks.pop().unwrap();
-                let b2 = blocks.pop().unwrap();
-                let b1 = blocks.pop().unwrap();
+            moves2.push(Move::Swap(v[p1].clone(), v[p2].clone()));
 
-                moves2.push(Move::Swap(b2.clone(), b3.clone()));
-                blocks.push(b1);
-                blocks.push(b3);
-                blocks.push(b2);
-                blocks.push(b4);
-
-                for _ in 0..3 {
-                    let b1 = blocks.pop().unwrap();
-                    let b2 = blocks.pop().unwrap();
-                    moves2.push(Move::Merge(b1, b2));
-                    id += 1;
-                    blocks.push(BlockId(vec![id]));
+            for i in 0..p2 + 1 {
+                if i == p1 {
+                    blocks.push(v[p2].clone());
+                } else if i == p2 {
+                    blocks.push(v[p1].clone());
+                } else {
+                    blocks.push(v[i].clone());
                 }
+            }
+
+            while blocks.len() >= 2 {
+                let b1 = blocks.pop().unwrap();
+                let b2 = blocks.pop().unwrap();
+                moves2.push(Move::Merge(b1, b2));
+                id += 1;
+                blocks.push(BlockId(vec![id]));
             }
         }
 

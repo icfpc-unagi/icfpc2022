@@ -1,13 +1,37 @@
+use icfpc2022;
+use icfpc2022::canvas;
 use icfpc2022::chokudai1::solve_swap;
 use icfpc2022::read_png;
+use icfpc2022::*;
 //use std::collections::HashMap;
 
 fn main() {
     let input = std::env::args().nth(1).unwrap();
+
     let mut png = read_png(&input);
-    let (score, ans) = solve_swap(&mut png, 3.0, 10);
-    for p in ans {
+    let mut best = (99999999.9, vec![]);
+
+    for _ in 0..2 {
+        for _ in 0..4 {
+            let out = solve_swap(&mut png, 20.0, 10);
+            let mut canvas = icfpc2022::Canvas::new400();
+            let score = canvas.apply_all(out.1.clone());
+
+            if best.0.setmin(score) {
+                eprintln!("{}", best.0);
+                best.1 = out.1;
+            }
+            best.1 = rotate::rotate_program(&best.1);
+            png = rotate::rotate_png(&png);
+        }
+        best.1 = rotate::flip_program(&best.1);
+        png = rotate::flip_png(png);
+    }
+    eprintln!("{}", best.0);
+    let mut canvas = Canvas::new(png.len(), png[0].len());
+    eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
+    eprintln!("diff cost = {}", similarity(&png, &canvas.bitmap));
+    for p in best.1 {
         println!("{}", p);
     }
-    eprintln!("{}", score);
 }
