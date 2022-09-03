@@ -22,8 +22,14 @@ impl Canvas {
     pub fn new400() -> Self {
         Self::new(400, 400)
     }
+
     // returns cost
     pub fn apply(&mut self, mov: &Move) -> f64 {
+        self.apply_safe(mov).unwrap()
+    }
+
+    // returns cost
+    pub fn apply_safe(&mut self, mov: &Move) -> anyhow::Result<f64> {
         let block_area = match mov {
             Move::LineCut(b, o, x) => {
                 let block = self.blocks.remove(&b).unwrap();
@@ -100,8 +106,12 @@ impl Canvas {
                 block0.area().max(block1.area())
             }
         };
-        (mov.base_cost() * (self.bitmap.len() * self.bitmap[0].len()) as f64 / block_area as f64)
-            .round()
+
+        anyhow::Ok(
+            (mov.base_cost() * (self.bitmap.len() * self.bitmap[0].len()) as f64
+                / block_area as f64)
+                .round(),
+        )
     }
 
     pub fn apply_all<I: IntoIterator<Item = Move>>(&mut self, iter: I) -> f64 {
