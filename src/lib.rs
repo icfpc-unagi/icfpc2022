@@ -75,8 +75,12 @@ pub fn write_png(path: &str, bitmap: Vec<Vec<Color>>) -> Result<(), png::Encodin
     encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
-    let data = Vec::from_iter(bitmap.iter().rev().flatten().flatten().cloned());
+    let data = flatten_png_data(&bitmap);
     writer.write_image_data(&data)
+}
+
+pub fn flatten_png_data(bitmap: &Vec<Vec<Color>>) -> Vec<u8> {
+    Vec::from_iter(bitmap.iter().rev().flatten().flatten().cloned())
 }
 
 #[derive(Clone, Copy, Default, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
