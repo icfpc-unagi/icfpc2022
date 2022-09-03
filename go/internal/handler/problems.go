@@ -73,7 +73,7 @@ ORDER BY problem_id
 }
 
 func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem) {
-	fmt.Fprintf(buf, `<h2 id="problem_%d">Problem %d: %s</h2>`,
+	fmt.Fprintf(buf, `<h2><a name="problem_%d"></a>Problem %d: %s</h2>`,
 		problem.ID, problem.ID, problem.Name)
 
 	resp := &api.EvaluateResponse{}
@@ -100,10 +100,13 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem)
 	<img src="data:image/png;base64,%s" style="width:100%%;"><br>
 	提出画像
 </td>
-<td width="30%%" style="text-align:center">
+<td width="30%%" style="text-align:center; isolation: isolate; position: relative">
+	<div style="width:100%%; position:relative"><img src="data:image/png;base64,%s" style="width:100%%"><img src="/problems/%d.png" style="width:100%%; position:absolute; top: 0; left: 0; mix-blend-mode: difference;"></div>
+	差分画像
+<br>
 </td>
 </tr></table>`,
-		resp.ProblemID, resp.Image)
+		resp.ProblemID, resp.Image, resp.Image, resp.ProblemID)
 	if record.SubmissionSolution != "" {
 		fmt.Fprintf(buf, `<ul><li>提出ID: %d</li>`, record.SubmissionID)
 		fmt.Fprintf(buf, `<li>スコア: %d (コスト: %d, 類似度: %d)</li>`,
