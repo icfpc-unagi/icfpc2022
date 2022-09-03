@@ -214,6 +214,19 @@ impl Canvas {
     }
 }
 
+// initial canvas
+impl From<Vec<Vec<Color>>> for Canvas {
+    fn from(bitmap: Vec<Vec<Color>>) -> Self {
+        let w = bitmap[0].len() as i32;
+        let h = bitmap.len() as i32;
+        Self {
+            bitmap,
+            blocks: HashMap::from([(BlockId(vec![0]), Block(Point(0, 0), Point(w, h)))]),
+            counter: Default::default(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
