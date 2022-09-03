@@ -84,6 +84,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem)
 			ISL:       record.SubmissionSolution,
 		})
 		if err != nil {
+			resp = &api.EvaluateResponse{}
 			resp.ProblemID = problem.ID
 			fmt.Fprintf(buf, "<pre>エラー: %s</pre>",
 				html.EscapeString(fmt.Sprintf("%+v", err)))
