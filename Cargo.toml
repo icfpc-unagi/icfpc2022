@@ -32,6 +32,8 @@ web-sys = { version = "*", features = [
   "Element",
   "HtmlCanvasElement",
   "ImageData",
+  "Node",
+  "NodeList",
   "Window",
   "console",
 ] }
