@@ -10,11 +10,11 @@ use std::{
 pub mod canvas;
 pub mod chokudai1;
 pub mod color;
+pub mod local_optimization;
 pub mod rotate;
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
 pub mod wata;
-pub mod local_optimization;
 
 pub use canvas::*;
 
@@ -310,6 +310,14 @@ pub fn pixel_distance(a: &Color, b: &Color) -> f64 {
 pub fn similarity(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> f64 {
     let pixel_pairs = a.iter().zip(b).flat_map(|(a, b)| a.iter().zip(b));
     (pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum::<f64>() * 0.005).round()
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Submission {
+    pub id: u32,
+    pub problem_id: u32,
+    pub status: String,
+    pub score: u32,
 }
 
 #[cfg(test)]

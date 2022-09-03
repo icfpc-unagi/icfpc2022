@@ -1,10 +1,30 @@
 use icfpc2022;
 
 fn main() {
-    let program = icfpc2022::read_isl(std::io::stdin()).unwrap();
+    let submission_id = std::env::args().nth(1).unwrap();
 
-    let mut canvas = icfpc2022::Canvas::new400();
-    canvas.apply_all(program.into_iter());
+    let sub: icfpc2022::Submission = serde_json::from_reader(
+        std::fs::File::open(format!("submissions/{}.json", submission_id)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(sub.status, "SUCCEEDED");
+    let mut program = icfpc2022::read_isl(
+        std::fs::File::open(format!("submissions/{}.isl", submission_id)).unwrap(),
+    )
+    .unwrap();
+    let png = icfpc2022::read_png(&format!("problems/{}.png", sub.problem_id));
+
+    while let Some(improved_program) =
+        icfpc2022::local_optimization::optimize_step(program.clone(), &png)
+    {
+        program = improved_program;
+    }
+
+    // assert_eq!()
+
+    // let program = icfpc2022::read_isl(std::io::stdin()).unwrap();
+    // let mut canvas = icfpc2022::Canvas::new400();
+    // canvas.apply_all(program.into_iter());
 
     // let program = vec![icfpc2022::Move::LineCut(
     //     icfpc2022::BlockId(vec![0]),

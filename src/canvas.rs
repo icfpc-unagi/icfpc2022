@@ -195,6 +195,16 @@ impl Canvas {
         }
         anyhow::Ok(cost)
     }
+
+    pub fn apply_all_and_score<I: IntoIterator<Item = Move>>(
+        &mut self,
+        iter: I,
+        answer: &Vec<Vec<Color>>,
+    ) -> anyhow::Result<f64> {
+        let cost = self.apply_all_safe(iter)?;
+        let sim = similarity(&answer, &self.bitmap);
+        anyhow::Ok(cost + sim)
+    }
 }
 
 #[cfg(test)]
@@ -202,14 +212,6 @@ mod tests {
     use crate::*;
     use serde::*;
     use serde_json;
-
-    #[derive(Serialize, Deserialize)]
-    struct Submission {
-        id: u32,
-        problem_id: u32,
-        status: String,
-        score: u32,
-    }
 
     #[test]
     fn test_1677() {
