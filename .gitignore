@@ -16,3 +16,4 @@
 /.cargo/
 /.vscode/
 /out/
+/web/target
