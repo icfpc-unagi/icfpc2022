@@ -206,7 +206,7 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
                     let block = blocks.pop().unwrap();
                     moves2.push(Move::LineCut(block.clone(), 'X', (x[1]) as i32));
                     blocks.extend(block.cut());
-                    p1 += 1;
+                    p2 += 1;
                 }
                 if x[1] + x[2] != 400 {
                     let block = blocks.pop().unwrap();
