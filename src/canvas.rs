@@ -210,7 +210,6 @@ impl Canvas {
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use serde::*;
     use serde_json;
 
     #[test]
