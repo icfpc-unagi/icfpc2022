@@ -13,6 +13,11 @@ fn main() -> anyhow::Result<()> {
     // // )
     // // .unwrap();
 
+    let mut canvas = icfpc2022::Canvas::new400();
+    let cost = canvas.apply_all(program.clone());
+    let sim = icfpc2022::similarity(&canvas.bitmap, &image);
+    dbg!(cost, sim);
+
     let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
     icfpc2022::write_isl(
         std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score)).unwrap(),

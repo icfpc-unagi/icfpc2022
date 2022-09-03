@@ -2,6 +2,8 @@ import json
 import glob
 import time
 import subprocess
+import fire
+
 
 
 def find_best_submissions():
@@ -29,7 +31,7 @@ def find_local_best_solution(problem_id):
     return path, get_score(path)
 
 
-def main():
+def main(force_submit_best=False):
     best_submissions = find_best_submissions()
 
     for problem_id, best_submission in sorted(best_submissions.items()):
@@ -41,9 +43,12 @@ def main():
             continue
         
         new_path, new_score = best_local_solution
-        if new_score >= best_submission_score:
-            print(f"Problem {problem_id:3d}: Local solution not better ({best_submission_score} <= {new_score})")
-            continue
+        if force_submit_best:
+            assert new_score <= best_submission_score
+        else:
+            if new_score >= best_submission_score:
+                print(f"Problem {problem_id:3d}: Local solution not better ({best_submission_score} <= {new_score})")
+                continue
 
         print(f"Problem {problem_id:3d}: Submitting! ({best_submission_score} > {new_score})")
 
@@ -55,4 +60,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import fire  # pip install fire
+    fire.Fire(main)

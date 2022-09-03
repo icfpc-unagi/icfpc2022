@@ -365,6 +365,42 @@ pub fn similarity(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> f64 {
     (pixel_pairs.map(|(a, b)| pixel_distance(a, b)).sum::<f64>() * 0.005).round()
 }
 
+// individual color difference
+pub fn color_diff_bitmap(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> Vec<Vec<Color>> {
+    a.iter()
+        .zip(b)
+        .map(|(a, b)| {
+            a.iter()
+                .zip(b)
+                .map(|(a, b)| {
+                    a.iter()
+                        .zip(b)
+                        .map(|(a, b)| a.abs_diff(*b))
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .unwrap()
+                })
+                .collect()
+        })
+        .collect()
+}
+
+// grayscale pixel_distance rounded, clamped
+pub fn pixel_distance_bitmap(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> Vec<Vec<Color>> {
+    a.iter()
+        .zip(b)
+        .map(|(a, b)| {
+            a.iter()
+                .zip(b)
+                .map(|(a, b)| {
+                    let d = pixel_distance(a, b).round().clamp(0.0, 255.0) as u8;
+                    [d; 4]
+                })
+                .collect()
+        })
+        .collect()
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Submission {
     pub id: u32,
