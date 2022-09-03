@@ -1,4 +1,5 @@
 fn main() -> anyhow::Result<()> {
+    #[rustfmt::skip]
     let done = [
         7771,
         11020,
@@ -85,7 +86,10 @@ fn main() -> anyhow::Result<()> {
         // #9
         12759,
     ];
-    let done = done.iter().copied().collect::<std::collections::BTreeSet<_>>();
+    let done = done
+        .iter()
+        .copied()
+        .collect::<std::collections::BTreeSet<_>>();
     let mut best_submissions = std::collections::BTreeMap::<u32, icfpc2022::Submission>::new();
     let mut true_best_scores = std::collections::BTreeMap::<u32, u32>::new();
 
@@ -98,11 +102,14 @@ fn main() -> anyhow::Result<()> {
             .or_insert(u32::MAX);
         *e = submission.cost.min(*e);
         let submission_id = submission.id;
-        if done.contains(&submission_id) || submission_id <= 7600 || (11020 <= submission_id && submission_id <= 11162) {
+        if done.contains(&submission_id)
+            || submission_id <= 7600
+            || (11020 <= submission_id && submission_id <= 11162)
+        {
             eprintln!("skipping {submission_id}");
             continue;
         }
-    
+
         best_submissions
             .entry(submission.problem_id)
             .and_modify(|s| {
@@ -130,7 +137,10 @@ fn main() -> anyhow::Result<()> {
         // }
 
         let true_best_score = true_best_scores[problem_id];
-        println!("Problem {:3}: submission_id={:6}, score={:7}, true_best={:7}", problem_id, submission.id, submission.cost, true_best_score);
+        println!(
+            "Problem {:3}: submission_id={:6}, score={:7}, true_best={:7}",
+            problem_id, submission.id, submission.cost, true_best_score
+        );
         let (submission, program, image) =
             icfpc2022::local_optimization::read_submission(submission.id)?;
 
@@ -139,7 +149,6 @@ fn main() -> anyhow::Result<()> {
         //let program = icfpc2022::local_optimization::optimize_color(program.clone(), &image);
         //let score = icfpc2022::Canvas::new400().apply_all_and_score(program.clone(), &image)?;
 
-        
         println!(
             "Problem {:3}: {:7} ({:7}) -> {:7}",
             problem_id, submission.cost, true_best_scores[problem_id], score
