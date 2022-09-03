@@ -31,15 +31,42 @@ for problem in $(echo "${response}" | jq -r '.problems[] | @base64'); do
         LOG INFO "Problem ${id} is already downloaded."
         continue
     fi
+
     url="$(echo "${problem}" | jq -r .target_link)"
     LOG INFO "Downloading from '${url}'..."
     if curl -s -o "${FILE}/${id}.png" "${url}"; then
-        echo "${problem}" > "${FILE}/${id}.json"
-        LOG INFO "Problem ${id} is ready."
+        LOG INFO "Target link for problem ${id} is downloaded."
     else
-        LOG ERROR "Problem ${id} is failed."
+        LOG ERROR "Target link for problem ${id} is failed."
         FAILED=("${FAILED[@]}" "${id}")
+        continue
     fi
+
+    url="$(echo "${problem}" | jq -r .canvas_link)"
+    if [ "${url}" != '' -a "${url}" != ' ' ]; then
+        LOG INFO "Downloading from '${url}'..."
+        if curl -s -o "${FILE}/${id}.initial.png" "${url}"; then
+            LOG INFO "Target link for problem ${id} is downloaded."
+        else
+            LOG ERROR "Target link for problem ${id} is failed."
+            FAILED=("${FAILED[@]}" "${id}")
+            continue
+        fi
+    fi
+
+    url="$(echo "${problem}" | jq -r .initial_config_link)"
+    if [ "${url}" != '' -a "${url}" != ' ' ]; then
+        LOG INFO "Downloading from '${url}'..."
+        if curl -s -o "${FILE}/${id}.initial.json" "${url}"; then
+            LOG INFO "Target link for problem ${id} is downloaded."
+        else
+            LOG ERROR "Target link for problem ${id} is failed."
+            FAILED=("${FAILED[@]}" "${id}")
+            continue
+        fi
+    fi
+
+    echo "${problem}" > "${FILE}/${id}.json"
 done
 
 if [ "${#FAILED[*]}" -eq 0 ]; then
