@@ -28,5 +28,6 @@ ENV SQL_PASSWORD $UNAGI_PASSWORD
 ENV UNAGI_PASSWORD $UNAGI_PASSWORD
 COPY --from=tini /tini /tini
 COPY ./static /work/static
+COPY ./problems /work/problems
 COPY ./secrets/login.json /work/secrets/login.json
 ENTRYPOINT /tini -- /usr/local/bin/server --logtostderr

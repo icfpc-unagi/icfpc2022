@@ -28,6 +28,7 @@ func Template(w http.ResponseWriter, body []byte) {
 <ul>
 <li><a href="/">Standings</a></li>
 <li><a href="/scoreboard">Scoreboard</a></li>
+<li><a href="/problems">Problems</a></li>
 </ul>
 </nav>
 <main>
