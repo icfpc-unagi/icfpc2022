@@ -209,6 +209,12 @@ impl Canvas {
                 block0.area()
             }
             Move::Merge(b0, b1) => {
+                if !self.blocks.contains_key(&b0) {
+                    anyhow::bail!("block {} does not exist", *b0,)
+                }
+                if !self.blocks.contains_key(&b1) {
+                    anyhow::bail!("block {} does not exist", *b1,)
+                }
                 let block0 = self.blocks.remove(&b0).unwrap();
                 let block1 = self.blocks.remove(&b1).unwrap();
 
