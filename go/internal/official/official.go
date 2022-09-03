@@ -106,6 +106,7 @@ type SubmissionResponse struct {
 	ID          int    `json:"id"`
 	ProblemID   int    `json:"problem_id"`
 	Score       int64  `json:"score"`
+	Cost        int64  `json:"cost"`
 	Status      string `json:"status"`
 	SubmittedAt string `json:"submitted_at"`
 	FileURL     string `json:"file_url"`
@@ -127,6 +128,10 @@ func Submission(submissionID int) (*SubmissionResponse, error) {
 	result := SubmissionResponse{}
 	if err := decoder.Decode(&result); err != nil {
 		return nil, errors.Errorf("failed to parse a response: %+v", err)
+	}
+	// Workaround for an unexpected specification change.
+	if result.Score == 0 && result.Cost > 0 {
+		result.Score = result.Cost
 	}
 	return &result, nil
 }
