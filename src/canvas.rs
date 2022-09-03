@@ -22,13 +22,9 @@ fn check_valid_block(b: &Block) -> anyhow::Result<()> {
 }
 
 fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
-    if b0.0 .0 > b1.0 .0 || b0.0 .1 > b1.0 .1 {
-        return check_merge_compatibility(b1, b0);
-    }
-    // b0のほうがb1より左(x座標小)か、下(y座標小)にある
-
     if b0.0 .0 == b1.0 .0 {
         // x座標一致、y座標方向のマージ
+
         if b0.1 .0 != b1.1 .0 {
             anyhow::bail!(
                 "Merge compatibility: x0 matches, but x1 differs: {:?} {:?}",
@@ -36,7 +32,8 @@ fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
                 b1
             );
         }
-        if b0.1 .1 != b1.0 .1 {
+
+        if !(b0.1 .1 == b1.0 .1 || b0.0 .1 == b1.1 .1) {
             anyhow::bail!(
                 "Merge compatibility: x0 and x1 match, but y1 and y0 differ: {:?} {:?}",
                 b0,
@@ -52,7 +49,7 @@ fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
                 b1
             );
         }
-        if b0.1 .0 != b1.0 .0 {
+        if !(b0.1 .0 == b1.0 .0 || b0.0 .0 == b1.1 .0) {
             anyhow::bail!(
                 "Merge compatibility: y0 and y1 match, but x1 and x0 differ: {:?} {:?}",
                 b0,

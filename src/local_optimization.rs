@@ -19,6 +19,7 @@ pub fn optimize_step(
                 if 0 < offset + *d && offset + *d < WIDTH {
                     let mut new_program = program.clone();
                     new_program[i] = Move::LineCut(bid.clone(), *ori, offset + d);
+
                     if let Ok(new_score) =
                         Canvas::new400().apply_all_and_score(new_program.clone(), image)
                     {
