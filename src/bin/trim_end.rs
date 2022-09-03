@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use icfpc2022::{read_isl, Canvas, write_isl, read_png};
+use icfpc2022::{read_isl, read_png, write_isl, Canvas};
 
 fn main1(problem_id: u32, id: &str) -> anyhow::Result<()> {
     let mut f = File::open(format!("submissions/{id}.isl"))?;
