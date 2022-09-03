@@ -62,9 +62,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build binaries
-        run: >
-          make secrets/service_account.json &&
-          make docker/builder &&
-          docker run --rm icfpc-unagi/builder
-              bash /work/scripts/deploy_binaries.sh
+        run: |
+          make secrets/service_account.json && \
+          make docker/builder && \
+          docker run --rm icfpc-unagi/builder \
+              bash /work/scripts/deploy_binaries.sh \
               "$(git rev-parse --short HEAD)"
