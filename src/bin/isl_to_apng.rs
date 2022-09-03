@@ -1,47 +1,18 @@
-use std::{fs::File, io};
+use std::fs::File;
 
-use icfpc2022::{flatten_png_data, read_isl, write_png, Canvas, Move};
+use icfpc2022::{read_isl, write_apng_from_program, write_png, Canvas};
 
-fn main1(id: &str) -> anyhow::Result<()> {
+fn main1(problem_id: u32, id: &str) -> anyhow::Result<()> {
     let mut f = File::open(format!("submissions/{id}.isl"))?;
+    let id = format!("{problem_id}-{id}");
     // let mut buf = vec![];
     // f.read_to_end(&mut buf)?;
     // let s = String::from_utf8(buf)?;
     // eprintln!("{}", s);
 
     let program = read_isl(&mut f)?;
-    let n_frames = 1 + program
-        .iter()
-        .filter(|m| matches!(m, Move::Color(_, _) | Move::Swap(_, _)))
-        .count(); // program.len() + 1;
-
-    let mut encoder = png::Encoder::new(
-        io::BufWriter::new(File::create(format!("tmp/{id}-animated.png"))?),
-        400,
-        400,
-    );
-    encoder.set_animated(n_frames as u32, 0)?;
-    encoder.set_frame_delay(5, n_frames as u16)?;
-    encoder.set_color(png::ColorType::Rgba);
-    encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = encoder.write_header()?;
-
     let mut canvas = Canvas::new400();
-
-    {
-        let bitmap = &canvas.bitmap;
-        let data = Vec::from_iter(bitmap.iter().rev().flatten().flatten().cloned());
-        writer.write_image_data(&data)?;
-    }
-
-    for m in program.iter() {
-        canvas.apply(m);
-        if matches!(m, Move::Color(_, _) | Move::Swap(_, _)) {
-            let data = flatten_png_data(&canvas.bitmap);
-            writer.write_image_data(&data)?;
-        }
-    }
-    // eprintln!("{:?}", program);
+    write_apng_from_program(format!("tmp/{id}-animated.png"), &mut canvas, program, 5)?;
     write_png(&format!("tmp/{id}.png"), canvas.bitmap)?;
     Ok(())
 }
@@ -71,7 +42,7 @@ fn main() -> anyhow::Result<()> {
     }
     for (&problem_id, (_, submission_id)) in best_submissions.iter() {
         println!("problem={problem_id}, submission={submission_id}");
-        main1(&submission_id);
+        main1(problem_id, &submission_id)?;
     }
     Ok(())
 }

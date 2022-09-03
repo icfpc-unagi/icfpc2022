@@ -79,8 +79,45 @@ pub fn write_png(path: &str, bitmap: Vec<Vec<Color>>) -> Result<(), png::Encodin
     writer.write_image_data(&data)
 }
 
-pub fn flatten_png_data(bitmap: &Vec<Vec<Color>>) -> Vec<u8> {
+fn flatten_png_data(bitmap: &Vec<Vec<Color>>) -> Vec<u8> {
     Vec::from_iter(bitmap.iter().rev().flatten().flatten().cloned())
+}
+
+pub fn write_apng_from_program<P>(
+    path: P,
+    canvas: &mut Canvas,
+    program: Program,
+    seconds_per_loop: u16,
+) -> Result<(), png::EncodingError>
+where
+    P: AsRef<std::path::Path>,
+{
+    let n_frames = 1 + program.iter().filter(|m| m.may_change_bitmap()).count(); // program.len() + 1;
+
+    let mut encoder = png::Encoder::new(
+        io::BufWriter::new(File::create(path)?),
+        canvas.bitmap[0].len() as u32,
+        canvas.bitmap.len() as u32,
+    );
+    encoder.set_animated(n_frames as u32, 0)?;
+    encoder.set_frame_delay(seconds_per_loop, n_frames as u16)?;
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header()?;
+
+    {
+        let data = flatten_png_data(&canvas.bitmap);
+        writer.write_image_data(&data)?;
+    }
+
+    for m in program.iter() {
+        canvas.apply(m);
+        if m.may_change_bitmap() {
+            let data = flatten_png_data(&canvas.bitmap);
+            writer.write_image_data(&data)?;
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Default, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
@@ -178,6 +215,10 @@ impl Move {
             Move::Swap(_, _) => 3.0,
             Move::Merge(_, _) => 1.0,
         }
+    }
+
+    fn may_change_bitmap(&self) -> bool {
+        matches!(self, Move::Color(_, _) | Move::Swap(_, _))
     }
 }
 
