@@ -1,5 +1,5 @@
 use crate::*;
-use crate::{read_png, wata::solve};
+use crate::{read_png, wata::*};
 use crate::{BlockId, Move};
 //use std::collections::HashMap;
 
@@ -145,7 +145,7 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
     eprintln!("xswap:{}, yswap:{}", xlist.len(), ylist.len());
 
-    let (out, moves) = solve(&png);
+    let (out, moves) = solve2(&png);
     let mut score = 0.0;
 
     let mut blocks = vec![BlockId(vec![0])];
