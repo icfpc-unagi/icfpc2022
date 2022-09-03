@@ -12,6 +12,16 @@ COPY ./go/pkg /work/pkg
 COPY ./go/internal /work/internal
 RUN go build -o /work/server ./cmd/server
 
+FROM rust:1.63 AS rust-builder
+RUN rustup target add x86_64-unknown-linux-musl
+RUN mkdir -p /work/.git /work/src
+WORKDIR /work
+COPY Cargo.lock /work/Cargo.lock
+COPY Cargo.toml /work/Cargo.toml
+RUN touch ./src/lib.rs && cargo vendor && cargo build --release && rm -rf ./src
+COPY src/ /work/src/
+RUN find /work/src -print -exec touch "{}" \; && cargo build --release --bins
+
 FROM golang AS tini
 RUN wget -O /tini \
         https://github.com/krallin/tini/releases/download/v0.18.0/tini \
@@ -19,6 +29,7 @@ RUN wget -O /tini \
 
 FROM golang
 ARG UNAGI_PASSWORD
+WORKDIR /work
 COPY --from=builder /work/server /usr/local/bin/server
 RUN [ "${UNAGI_PASSWORD}" != "" ]
 ENV SQL_ADDRESS 34.84.167.72
@@ -27,6 +38,8 @@ ENV SQL_DATABASE database
 ENV SQL_PASSWORD $UNAGI_PASSWORD
 ENV UNAGI_PASSWORD $UNAGI_PASSWORD
 COPY --from=tini /tini /tini
+COPY --from=rust-builder /work/target/release/evaluate /usr/local/bin/evaluate
 COPY ./static /work/static
+COPY ./problems /work/problems
 COPY ./secrets/login.json /work/secrets/login.json
 ENTRYPOINT /tini -- /usr/local/bin/server --logtostderr
