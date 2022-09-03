@@ -48,7 +48,7 @@ pub fn mode_color(
     for y in ly..ry {
         for x in lx..rx {
             let c = png[y][x];
-            if let Some(mut x) = bucket.get_mut(&c) {
+            if let Some(x) = bucket.get_mut(&c) {
                 *x += 1;
             } else {
                 bucket.insert(c, 1u32);
@@ -116,6 +116,7 @@ pub fn best_color2(
     return (best_color, best);
 }
 
+#[allow(unused)]
 fn dbg_point(p: [f64; 4]) {
     eprintln!("{:10.4} {:10.4} {:10.4} {:10.4} ", p[0], p[1], p[2], p[3])
 }
