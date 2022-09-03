@@ -187,13 +187,15 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
         for x in xlist {
             {
-                let mut p1 = 1;
-                let mut p2 = 0;
+                let mut p1 = 0;
+                let mut p2 = 1;
 
                 if x[0] != 0 {
                     let block = blocks.pop().unwrap();
                     moves2.push(Move::LineCut(block.clone(), 'X', (x[0]) as i32));
                     blocks.extend(block.cut());
+                    p1 += 1;
+                    p2 += 1;
                 }
                 {
                     let block = blocks.pop().unwrap();
@@ -210,8 +212,6 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
                     let block = blocks.pop().unwrap();
                     moves2.push(Move::LineCut(block.clone(), 'X', (x[1] + x[2]) as i32));
                     blocks.extend(block.cut());
-                    p1 += 1;
-                    p2 += 1;
                 }
 
                 let le = blocks.len();
@@ -247,12 +247,14 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
         ylist.reverse();
 
         for y in ylist {
-            let mut p1 = 1;
-            let mut p2 = 0;
+            let mut p1 = 0;
+            let mut p2 = 1;
             if y[0] != 0 {
                 let block = blocks.pop().unwrap();
                 moves2.push(Move::LineCut(block.clone(), 'Y', (y[0]) as i32));
                 blocks.extend(block.cut());
+                p1 += 1;
+                p2 += 1;
             }
             {
                 let block = blocks.pop().unwrap();
@@ -263,14 +265,12 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
                 let block = blocks.pop().unwrap();
                 moves2.push(Move::LineCut(block.clone(), 'Y', (y[1]) as i32));
                 blocks.extend(block.cut());
-                p1 += 1;
+                p2 += 1;
             }
             if y[1] + y[2] != 400 {
                 let block = blocks.pop().unwrap();
                 moves2.push(Move::LineCut(block.clone(), 'Y', (y[1] + y[2]) as i32));
                 blocks.extend(block.cut());
-                p1 += 1;
-                p2 += 1;
             }
 
             let le = blocks.len();
