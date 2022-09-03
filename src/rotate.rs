@@ -1,6 +1,6 @@
 use super::{BlockId, Move};
 
-const width: i32 = 400;
+const WIDTH: i32 = 400;
 
 fn push(block_id: &BlockId, x: u32) -> BlockId {
     block_id.extended([x])
@@ -33,10 +33,10 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
                     let bid_new = block_id_map.get(bid_old).unwrap().clone();
                     block_id_map.insert(push(bid_old, 0), push(&bid_new, 1));
                     block_id_map.insert(push(bid_old, 1), push(&bid_new, 0));
-                    flipped_mv = Move::LineCut(bid_new, *orientation, width - *offset);
+                    flipped_mv = Move::LineCut(bid_new, *orientation, WIDTH - *offset);
                 }
             }
-            Move::PointCut(block_id, offset_x, offset_y) => {
+            Move::PointCut(_, _, _) => {
                 unimplemented!();
                 // let block_id = block_id_map.get(block_id).unwrap().clone();
                 // block_id_map.insert(push(block_id.clone(), 0), push(block_id.clone(), 1));
@@ -107,10 +107,10 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
                     let bid_new = block_id_map.get(bid_old).unwrap().clone();
                     block_id_map.insert(push(bid_old, 0), push(&bid_new, 1));
                     block_id_map.insert(push(bid_old, 1), push(&bid_new, 0));
-                    flipped_mv = Move::LineCut(bid_new, 'y', width - *offset);
+                    flipped_mv = Move::LineCut(bid_new, 'y', WIDTH - *offset);
                 }
             }
-            Move::PointCut(block_id, offset_x, offset_y) => {
+            Move::PointCut(_, _, _) => {
                 unimplemented!();
                 // let block_id = block_id_map.get(block_id).unwrap().clone();
                 //
