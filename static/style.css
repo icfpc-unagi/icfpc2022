@@ -264,3 +264,7 @@ article table {
 article table td {
     padding: 2px 5px;
 }
+
+article textarea {
+	font-family: 'Courier New', Courier, monospace;
+}
