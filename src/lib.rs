@@ -17,6 +17,8 @@ pub mod wasm;
 pub mod wata;
 
 pub use canvas::*;
+#[cfg(target_arch = "wasm32")]
+pub use wasm::*;
 
 pub trait SetMinMax {
     fn setmin(&mut self, v: Self) -> bool;
@@ -289,7 +291,7 @@ impl FromStr for Move {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = remove_spaces_inside_brackets(s);
+        let s = remove_spaces_inside_brackets(s.trim());
         let tokens: Vec<_> = s.split(" ").collect();
         assert!(tokens.len() >= 1);
 
@@ -333,7 +335,8 @@ pub fn read_isl<R: io::Read>(r: R) -> io::Result<Program> {
     let mut program = Program::new();
     for line in r.lines() {
         let line = line?;
-        if line.trim_start().starts_with('#') {
+        let line = line.trim_start();
+        if line.is_empty() || line.starts_with('#') {
             continue;
         }
         program.push(line.parse().unwrap());
