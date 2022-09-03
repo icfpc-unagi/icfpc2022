@@ -10,11 +10,11 @@ use std::{
 pub mod canvas;
 pub mod chokudai1;
 pub mod color;
+pub mod local_optimization;
 pub mod rotate;
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
 pub mod wata;
-pub mod local_optimization;
 
 pub use canvas::*;
 
