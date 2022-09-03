@@ -225,6 +225,7 @@ article h2 {
 	font-size: 140%;
 	color: #359;
 	border-bottom: 1px solid #359;
+	position: relative;
 }
 
 article h3 {
@@ -267,4 +268,9 @@ article table td {
 
 article textarea {
 	font-family: 'Courier New', Courier, monospace;
+}
+
+article a[name] {
+	position: absolute;
+	top: calc(var(--nav-height) * -1);
 }
