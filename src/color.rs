@@ -116,6 +116,10 @@ pub fn best_color2(
     return (best_color, best);
 }
 
+fn dbg_point(p: [f64; 4]) {
+    eprintln!("{:10.4} {:10.4} {:10.4} {:10.4} ", p[0], p[1], p[2], p[3])
+}
+
 fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     let n = points.len();
     let mut x = [0.0; 4];
@@ -127,9 +131,15 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     for i in 0..4 {
         x[i] /= n as f64;
     }
+
+    // let mut momentum = [0.0; 5];
+    // let gamma = 0.9;
+
     // TODO: fix eps
     // 誤差0.5程度におさえられるくらいに調整したい
     for iter in 0..100 {
+        // dbg_point(x);
+        // let min_step_size = 10.0 * 0.01_f64.powf(iter as f64 / 29.0);
         let eps = if iter < 10 {
             1.0
         } else if iter < 20 {
@@ -159,11 +169,31 @@ fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
                 grad[i] += w * diff[i];
             }
         }
-        // dbg!(w_sum);
+
+        let lr = 1.0 / w_sum;
+        // eprintln!("iter = {}, lr = {}", iter, 1.0 / w_sum);
+
         for i in 0..4 {
-            // x[i] /= w_sum;
-            x[i] += grad[i] / w_sum;
+            grad[i] *= lr;
         }
+        // let step_size = grad.iter().map(|g| g.powi(2)).sum::<f64>().sqrt();
+        // dbg!(step_size, min_step_size);
+        // if step_size < min_step_size {
+        //     let fix = min_step_size / (1e-6 + step_size);
+        //     for i in 0..4{
+        //     grad[i] *= fix;}
+        // }
+        for i in 0..4 {
+            x[i] += grad[i];
+        }
+
+        // for i in 0..4 {
+        //     momentum[i] += (1.0 - gamma) * (grad[i] - momentum[i])
+        // }
+        // momentum[4] += (1.0 - gamma) * (1.0 - momentum[4]);
+        // for i in 0..4 {
+        //     x[i] += lr * (momentum[i] / momentum[4]);
+        // }
     }
     x
 }
