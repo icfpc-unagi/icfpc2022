@@ -13,7 +13,7 @@ fn main() {
     for _i1 in 0..2 {
         for _i2 in 0..4 {
             let mut png2 = png.clone();
-            let out = solve_swap(&mut png2, 10.0, 10);
+            let out = solve_swap(&mut png2, 1.0, 10);
             let mut canvas = icfpc2022::Canvas::new400();
             let score = canvas.apply_all_and_score(out.1.clone(), &png).unwrap();
 
