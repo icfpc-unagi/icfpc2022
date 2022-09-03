@@ -63,7 +63,8 @@ jobs:
 
       - name: Build binaries
         run: >
-          make docker/builder;
+          make secrets/service_account.json &&
+          make docker/builder &&
           docker run --rm icfpc-unagi/builder
               bash /work/scripts/deploy_binaries.sh
               "$(git rev-parse --short HEAD)"
