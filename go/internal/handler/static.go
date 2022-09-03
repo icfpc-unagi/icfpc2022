@@ -23,4 +23,13 @@ func init() {
 			http.NotFound(rw, r)
 		}
 	})
+
+	webDir := http.StripPrefix("/web/", http.FileServer(http.Dir("/work/web")))
+	http.HandleFunc("/web/", func(rw http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/web/") {
+			webDir.ServeHTTP(rw, r)
+		} else {
+			http.NotFound(rw, r)
+		}
+	})
 }
