@@ -1,0 +1,18 @@
+{
+  "source": "src/index.html",
+  "scripts": {
+    "start": "wasm-pack build --target web && parcel",
+    "build": "wasm-pack build --target web && parcel build",
+    "build:release": "wasm-pack build --release --target web && parcel build",
+    "lint": "eslint"
+  },
+  "devDependencies": {
+    "parcel": "^2.7.0"
+  },
+  "extends": "@parcel/config-default",
+  "transformers": {
+    "*.{ts,tsx}": [
+      "@parcel/transformer-typescript-tsc"
+    ]
+  }
+}

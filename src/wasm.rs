@@ -19,6 +19,7 @@ pub fn main() -> Result<(), JsValue> {
         managed.apply(&isl)?;
         managed.render()?;
     }
+    console::log_1(&JsValue::from("wasm initialized!!"));
     Ok(())
 }
 
@@ -59,7 +60,7 @@ pub fn run_isl_all(ctx: &CanvasRenderingContext2d, isl: &str) -> Result<(), JsVa
 }
 
 fn render_bitmap(ctx: &CanvasRenderingContext2d, bitmap: &Vec<Vec<Color>>) -> Result<(), JsValue> {
-    let v: Vec<_> = bitmap.iter().flatten().flatten().cloned().collect();
+    let v: Vec<_> = bitmap.iter().rev().flatten().flatten().cloned().collect();
     let imagedata = ImageData::new_with_u8_clamped_array_and_sh(
         Clamped(&v),
         bitmap[0].len() as u32,
