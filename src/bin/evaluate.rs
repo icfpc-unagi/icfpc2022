@@ -14,8 +14,8 @@ fn main() {
     let isl = read_isl(File::open(isl_path).unwrap()).unwrap();
     let png = read_png(&format!("problems/{}.png", problem_id));
     let mut canvas = Canvas::new400();
-    let cost = canvas.apply_all(isl) as u64;
-    let similarity = similarity(&png, &canvas.bitmap) as u64;
+    let cost = canvas.apply_all(isl).round() as u64;
+    let similarity = similarity(&png, &canvas.bitmap).round() as u64;
 
     let mut image = Vec::<u8>::new();
 
