@@ -92,7 +92,12 @@ pub fn best_color2(
     let u8_points = u8_points;
 
     let color = geometric_median_4d(&points);
-    let color = color.map(|v| v.floor().clamp(0.0, 254.0) as u8);
+
+    round_to_optimal_u8_color(&u8_points, &color)
+}
+
+pub fn round_to_optimal_u8_color(u8_points: &Vec<[u8; 4]>, f64_color: &[f64; 4]) -> ([u8; 4], f64) {
+    let color = f64_color.map(|v| v.floor().clamp(0.0, 254.0) as u8);
 
     let mut best = 1e99;
     let mut best_color = [0; 4];
@@ -121,7 +126,7 @@ fn dbg_point(p: [f64; 4]) {
     eprintln!("{:10.4} {:10.4} {:10.4} {:10.4} ", p[0], p[1], p[2], p[3])
 }
 
-fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
+pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     let n = points.len();
     let mut x = [0.0; 4];
     for p in points {

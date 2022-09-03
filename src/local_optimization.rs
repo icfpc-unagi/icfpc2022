@@ -13,7 +13,6 @@ pub fn optimize_step(
         .apply_all_and_score(program.clone(), image)
         .unwrap();
 
-    // TODO: random order
     for i in 0..program.len() {
         if let Move::LineCut(bid, ori, offset) = &program[i] {
             for d in diff_steps {
@@ -60,7 +59,21 @@ pub fn optimize_step_parallel(
                         {
                             if new_score < original_score {
                                 eprintln!("Improve: {} -> {}", original_score, new_score);
-                                result = Some((new_program, new_score));
+                                result = Some((new_program.clone(), new_score));
+
+                                // ついでに色やる
+                                let new_program2 = optimize_color(new_program.clone(), image);
+                                if let Ok(new_score2) = Canvas::new400()
+                                    .apply_all_and_score(new_program2.clone(), image)
+                                {
+                                    eprintln!(
+                                        "Improve: {} -> {} -> {}",
+                                        original_score, new_score, new_score2
+                                    );
+                                    if new_score2 < new_score {
+                                        result = Some((new_program2, new_score2));
+                                    }
+                                }
                             }
                         }
                     }
@@ -123,6 +136,59 @@ pub fn optimize(
 
     result
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program {
+    // (1) まず、Colorを全てユニークにしていく。
+    for (i, m) in program.iter_mut().enumerate() {
+        if let Move::Color(_, c) = m {
+            *c = [
+                (i % 256) as u8,
+                (i / 256 % 256) as u8,
+                (i / 256 / 256 % 256) as u8,
+                (i / 256 / 256 / 256) as u8,
+            ];
+        }
+    }
+
+    // (2) 次に色を決めていく
+    let mut canvas = Canvas::new400();
+    canvas.apply_all(program.clone());
+
+    // (3) 各Color命令が実際に塗るピクセルの色を集めていく
+    let mut points = vec![vec![]; program.len()];
+    for y in 0..canvas.bitmap.len() {
+        for x in 0..canvas.bitmap[y].len() {
+            let c = &canvas.bitmap[y][x];
+            let i = c[0] as usize
+                + (c[1] as usize + (c[2] as usize + (c[3] as usize) * 256) * 256) * 256;
+            points[i].push(image[y][x]);
+        }
+    }
+
+    // (4) 実際の色を決めてもどしていく
+    for (i, m) in program.iter_mut().enumerate() {
+        if let Move::Color(_, c) = m {
+            let points_u8 = &points[i];
+            if points_u8.is_empty() {
+                eprintln!("Color epmty: {}", i);
+                continue;
+            }
+            let points_f64: Vec<_> = points_u8.iter().map(|cs| cs.map(|c| c as f64)).collect();
+
+            let optimal_color = super::color::geometric_median_4d(&points_f64[..]);
+            let (optimal_color, _) =
+                super::color::round_to_optimal_u8_color(points_u8, &optimal_color);
+
+            *c = optimal_color;
+        }
+    }
+
+    program
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn read_submission(
     submission_id: u32,
