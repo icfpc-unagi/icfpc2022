@@ -12,7 +12,8 @@ fn main() {
 
     for _i1 in 0..2 {
         for _i2 in 0..4 {
-            let out = solve_swap(&mut png, 10.0, 10);
+            let mut png2 = png.clone();
+            let out = solve_swap(&mut png2, 10.0, 10);
             let mut canvas = icfpc2022::Canvas::new400();
             let score = canvas.apply_all_and_score(out.1.clone(), &png).unwrap();
 
@@ -30,8 +31,13 @@ fn main() {
     eprintln!("{}", best.0);
     let mut canvas = Canvas::new(png.len(), png[0].len());
     eprintln!("best cost = {}", best.0);
-    eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
-    eprintln!("diff cost = {}", similarity(&png, &canvas.bitmap));
+    eprintln!(
+        "cost = {}",
+        canvas.apply_all_and_score(best.1.clone(), &png).unwrap()
+    );
+    //eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
+    //eprintln!("diff cost = {}", similarity(&png, &canvas.bitmap));
+
     for p in best.1 {
         println!("{}", p);
     }
