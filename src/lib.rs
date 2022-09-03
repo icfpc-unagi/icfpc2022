@@ -145,7 +145,7 @@ impl FromStr for BlockId {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Eq, Ord, Default)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, PartialOrd, Eq, Ord, Default)]
 pub struct Block(pub Point, pub Point);
 
 impl Block {
