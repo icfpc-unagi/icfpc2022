@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use icfpc2022::{read_isl, write_apng_from_program, write_png, Canvas};
+use icfpc2022::{load_problem, read_isl, write_apng_from_program, write_png};
 
 fn main1(problem_id: u32, id: &str) -> anyhow::Result<()> {
     let mut f = File::open(format!("submissions/{id}.isl"))?;
@@ -11,7 +11,7 @@ fn main1(problem_id: u32, id: &str) -> anyhow::Result<()> {
     // eprintln!("{}", s);
 
     let program = read_isl(&mut f)?;
-    let mut canvas = Canvas::new400();
+    let mut canvas = load_problem(problem_id).0;
     write_apng_from_program(format!("tmp/{id}-animated.png"), &mut canvas, program, 5)?;
     write_png(&format!("tmp/{id}.png"), canvas.bitmap)?;
     Ok(())
