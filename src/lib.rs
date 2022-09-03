@@ -212,6 +212,7 @@ impl Block {
 }
 
 pub type Color = [u8; 4];
+const WHITE: Color = [255; 4];
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Move {
