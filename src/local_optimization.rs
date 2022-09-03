@@ -1,5 +1,6 @@
 use super::{Color, Program, Submission};
 use crate::{Canvas, Move};
+use rayon::prelude::*;
 
 const WIDTH: i32 = 400;
 
@@ -35,10 +36,53 @@ pub fn optimize_step(
     None
 }
 
+pub fn optimize_step_parallel(
+    program: Program,
+    image: &Vec<Vec<Color>>,
+    diff_steps: &[i32],
+) -> Option<(Program, f64)> {
+    let original_score = Canvas::new400()
+        .apply_all_and_score(program.clone(), image)
+        .unwrap();
+
+    let mut tmp = vec![];
+    (0..program.len())
+        .into_par_iter()
+        .map(|i| {
+            let mut result = None;
+            if let Move::LineCut(bid, ori, offset) = &program[i] {
+                for d in diff_steps {
+                    if 0 < offset + *d && offset + *d < WIDTH {
+                        let mut new_program = program.clone();
+                        new_program[i] = Move::LineCut(bid.clone(), *ori, offset + d);
+                        if let Ok(new_score) =
+                            Canvas::new400().apply_all_and_score(new_program.clone(), image)
+                        {
+                            if new_score < original_score {
+                                eprintln!("Improve: {} -> {}", original_score, new_score);
+                                result = Some((new_program, new_score));
+                            }
+                        }
+                    }
+                }
+            }
+            result
+        })
+        .collect_into_vec(&mut tmp);
+
+    for result in tmp {
+        if result.is_some() {
+            return result;
+        }
+    }
+    return None;
+}
+
 pub fn optimize(
     mut program: Program,
     image: &Vec<Vec<Color>>,
     max_diff_step: i32,
+    parallel: bool,
 ) -> (Program, f64) {
     let mut result = (
         program.clone(),
@@ -49,7 +93,11 @@ pub fn optimize(
 
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
-        let ret = optimize_step(program.clone(), &image, &[-diff_step, diff_step]);
+        let ret = if parallel {
+            optimize_step_parallel(program.clone(), &image, &[-diff_step, diff_step])
+        } else {
+            optimize_step(program.clone(), &image, &[-diff_step, diff_step])
+        };
 
         if let Some((improved_program, improved_score)) = ret {
             program = improved_program.clone();

@@ -6,12 +6,19 @@ fn main() -> anyhow::Result<()> {
     let (submission, program, image) =
         icfpc2022::local_optimization::read_submission(submission_id)?;
 
-    let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10);
+    // // let (program, score) =
+    // icfpc2022::local_optimization::optimize_step_parallel(program, &image, &[-1, 1]);
+    // // icfpc2022::write_isl(
+    // //     std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score)).unwrap(),
+    // //     program,
+    // // )
+    // // .unwrap();
+
+    let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
     icfpc2022::write_isl(
         std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score)).unwrap(),
         program,
-    )
-    .unwrap();
+    )?;
 
     // let mut step = 1;
     // loop {

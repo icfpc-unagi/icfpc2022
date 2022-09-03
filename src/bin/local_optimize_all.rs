@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
 
         let (submission, program, image) =
             icfpc2022::local_optimization::read_submission(submission.id)?;
-        let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10);
+        let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
 
         println!(
             "Problem {:3}: {:7} -> {:7}",
