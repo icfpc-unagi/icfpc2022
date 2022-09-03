@@ -59,7 +59,7 @@ SET
 WHERE
 	task_id = ? AND task_locked < CURRENT_TIMESTAMP()
 LIMIT 1
-`)
+`, taskID)
 		if err != nil {
 			return nil, errors.Errorf("failed to acquire a task: %+v", err)
 		}
