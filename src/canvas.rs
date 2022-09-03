@@ -141,8 +141,9 @@ impl Canvas {
                 block.area()
             }
             Move::Swap(b0, b1) => {
-                let block0 = &self.blocks[&b0];
-                let block1 = &self.blocks[&b1];
+                let block0 = self.blocks[&b0];
+                let block1 = self.blocks.insert(b1.clone(), block0).unwrap();
+                self.blocks.insert(b0.clone(), block1).unwrap();
                 let size = block0.size();
 
                 // Check!
