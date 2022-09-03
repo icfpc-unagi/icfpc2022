@@ -10,6 +10,7 @@ use std::{
 pub mod canvas;
 pub mod chokudai1;
 pub mod color;
+pub mod initial_json;
 pub mod local_optimization;
 pub mod rotate;
 #[cfg(target_arch = "wasm32")]
@@ -122,7 +123,19 @@ where
     Ok(())
 }
 
-#[derive(Clone, Copy, Default, Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(
+    Clone,
+    Copy,
+    Default,
+    Debug,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Point(pub i32, pub i32);
 
 impl Add<Point> for Point {
