@@ -8,6 +8,55 @@ pub struct Canvas {
     pub counter: u32,
 }
 
+fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
+    if b0.0 .0 > b1.0 .0 || b0.0 .1 > b1.0 .1 {
+        return check_merge_compatibility(b1, b0);
+    }
+    // b0のほうがb1より左(x座標小)か、下(y座標小)にある
+
+    if b0.0 .0 == b1.0 .0 {
+        // x座標一致、y座標方向のマージ
+        if b0.1 .0 != b1.1 .0 {
+            anyhow::bail!(
+                "Merge compatibility: x0 matches, but x1 differs: {:?} {:?}",
+                b0,
+                b1
+            );
+        }
+        if b0.1 .1 != b1.0 .1 {
+            anyhow::bail!(
+                "Merge compatibility: x0 and x1 match, but y1 and y0 differ: {:?} {:?}",
+                b0,
+                b1
+            );
+        }
+    } else if b0.0 .1 == b1.0 .1 {
+        // y座標一致、x座標方向のマージ
+        if b0.1 .1 != b1.1 .1 {
+            anyhow::bail!(
+                "Merge compatibility: y0 matches, but y1 differs: {:?} {:?}",
+                b0,
+                b1
+            );
+        }
+        if b0.1 .0 != b1.0 .0 {
+            anyhow::bail!(
+                "Merge compatibility: y0 and y1 match, but x1 and x0 differ: {:?} {:?}",
+                b0,
+                b1
+            );
+        }
+    } else {
+        anyhow::bail!(
+            "Merge compatibility: neither of x nor y coordinate matches: {:?} {:?}",
+            b0,
+            b1
+        );
+    }
+
+    anyhow::Ok(())
+}
+
 impl Canvas {
     pub fn new(w: usize, h: usize) -> Self {
         Self {
@@ -48,6 +97,12 @@ impl Canvas {
                     }
                     _ => panic!("bad orientation: {}", o),
                 }
+                if block0.area() == 0 {
+                    anyhow::bail!("Area of block {} is zero", bid0);
+                }
+                if block1.area() == 0 {
+                    anyhow::bail!("Area of block {} is zero", bid1);
+                }
                 assert!(self.blocks.insert(bid0, block0).is_none());
                 assert!(self.blocks.insert(bid1, block1).is_none());
                 block.area()
@@ -80,7 +135,20 @@ impl Canvas {
                 let block0 = &self.blocks[&b0];
                 let block1 = &self.blocks[&b1];
                 let size = block0.size();
-                assert_eq!(size, block1.size());
+
+                // Check!
+                //assert_eq!(size, block1.size());
+                let size1 = block1.size();
+                if size != size1 {
+                    anyhow::bail!(
+                        "Swaped blocks have different sizes: {:?} vs {:?} ({}, {})",
+                        size,
+                        size1,
+                        *b0,
+                        *b1,
+                    )
+                }
+
                 for y in 0..size.1 {
                     for x in 0..size.0 {
                         let y0 = (block0.0 .1 + y) as usize;
@@ -97,7 +165,9 @@ impl Canvas {
             Move::Merge(b0, b1) => {
                 let block0 = self.blocks.remove(&b0).unwrap();
                 let block1 = self.blocks.remove(&b1).unwrap();
-                // TODO: validate compatibility
+
+                check_merge_compatibility(&block0, &block1)?;
+
                 self.counter += 1;
                 let bid = BlockId(vec![self.counter]);
                 let block = Block(block0.0.min(block1.0), block0.1.max(block1.1));
@@ -115,11 +185,15 @@ impl Canvas {
     }
 
     pub fn apply_all<I: IntoIterator<Item = Move>>(&mut self, iter: I) -> f64 {
+        self.apply_all_safe(iter).unwrap()
+    }
+
+    pub fn apply_all_safe<I: IntoIterator<Item = Move>>(&mut self, iter: I) -> anyhow::Result<f64> {
         let mut cost = 0.0;
         for mov in iter {
-            cost += self.apply(&mov);
+            cost += self.apply_safe(&mov)?;
         }
-        cost
+        anyhow::Ok(cost)
     }
 }
 

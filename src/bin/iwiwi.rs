@@ -3,6 +3,19 @@ use icfpc2022;
 fn main() {
     let program = icfpc2022::read_isl(std::io::stdin()).unwrap();
 
+    let mut canvas = icfpc2022::Canvas::new400();
+    canvas.apply_all(program.into_iter());
+
+    // let program = vec![icfpc2022::Move::LineCut(
+    //     icfpc2022::BlockId(vec![0]),
+    //     'x',
+    //     0,
+    // )];
+    //
+    // // canvas.apply_all()
+    //
+    // canvas.apply_all(program.into_iter());
+
     //let input = std::env::args().nth(1).unwrap();
     //let png = icfpc2022::read_png(&input);
 
