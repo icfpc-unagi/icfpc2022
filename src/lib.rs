@@ -18,6 +18,7 @@ pub mod wasm;
 pub mod wata;
 
 pub use canvas::*;
+pub use initial_json::InitialJson;
 #[cfg(target_arch = "wasm32")]
 pub use wasm::*;
 

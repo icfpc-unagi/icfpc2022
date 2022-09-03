@@ -67,6 +67,42 @@ fn check_merge_compatibility(b0: &Block, b1: &Block) -> anyhow::Result<()> {
     anyhow::Ok(())
 }
 
+impl TryFrom<InitialJson> for Canvas {
+    type Error = anyhow::Error;
+
+    fn try_from(ini: InitialJson) -> anyhow::Result<Self> {
+        let w = ini.width;
+        let h = ini.height;
+        let mut bitmap = vec![vec![Color::default(); w]; h];
+        let mut blocks = HashMap::new();
+        for (i, block) in ini.blocks.iter().enumerate() {
+            let id = block.block_id.parse::<BlockId>().unwrap(); // TODO: use `?`
+            if id != BlockId(vec![i as u32]) {
+                anyhow::bail!("id is not sorted. please fix me and fix `counter`")
+            }
+            let rect = Block(block.bottom_left, block.top_right);
+            blocks.insert(id, rect);
+            for y in rect.0 .1..rect.1 .1 {
+                for x in rect.0 .0..rect.1 .0 {
+                    bitmap[y as usize][x as usize] = block.color;
+                }
+            }
+        }
+        // let blocks = .map(|(i, block)| {
+        //     if id.to_string() != block.block_id {
+        //         anyhow::bail!("id is not sorted. please fix me and fix `counter`")
+        //     }
+        //     // TODO: edit bitmap
+        //     (BlockId(vec![id]), )
+        // }).collect::<HashMap<_, _>>();
+        Ok(Self {
+            bitmap,
+            blocks,
+            counter: ini.blocks.len() as u32 - 1,
+        })
+    }
+}
+
 impl Canvas {
     pub fn new(w: usize, h: usize) -> Self {
         Self {
@@ -80,6 +116,9 @@ impl Canvas {
     }
     pub fn new400() -> Self {
         Self::new(400, 400)
+    }
+    pub fn from_initial_json<P: AsRef<std::path::Path>>(path: P) -> Self {
+        crate::InitialJson::from_path(path).try_into().unwrap()
     }
 
     // returns cost
@@ -273,5 +312,12 @@ mod tests {
         assert!(canvas
             .apply_safe(&Move::Merge(BlockId(vec![0, 0, 0]), BlockId(vec![0, 1, 0])))
             .is_err());
+    }
+
+    #[test]
+    fn test_initial_27() {
+        let canvas = Canvas::from_initial_json("problems/27.initial.json");
+        let initial_png = read_png("problems/27.initial.png");
+        assert_eq!(&canvas.bitmap, &initial_png);
     }
 }
