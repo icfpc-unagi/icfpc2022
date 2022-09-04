@@ -150,7 +150,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 		resp.ProblemID, resp.Image, resp.Image, resp.ProblemID)
 	fmt.Fprint(buf, `<table style="table-layout:fixed; width:100%;"><tr><td width="50%" style="vertical-align:top">`)
 	if ranking != nil {
-		fmt.Fprint(buf, `<table style="width: 100%">`)
+		fmt.Fprint(buf, `<table style="width: 100%; table-layout: fixed">`)
 		for i, r := range ranking {
 			style := ""
 			if i >= 10 && r.TeamName != "Unagi" {
@@ -171,7 +171,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 			if r.Rank != 1 {
 				diff = fmt.Sprintf("%+.1f%%", float64(r.MinCost)/float64(ranking[0].MinCost))
 			}
-			fmt.Fprintf(buf, `<tr style="white-space: nowrap; %s"><td>%d位</td><td style="overflow-x:hidden; text-overflow: ellipsis; width: 50%%">%s%s</td><td style="text-align:right">%d</td><td style="text-align:right">%s</td>`,
+			fmt.Fprintf(buf, `<tr style="white-space: nowrap; %s"><td style="width:4ex;">%d位</td><td style="overflow-x:hidden; text-overflow: ellipsis; width: 50%%">%s%s</td><td style="text-align:right; width: 6ex;">%d</td><td style="text-align:right; width: 6ex;">%s</td>`,
 				style,
 				r.Rank, rankStr, html.EscapeString(r.TeamName), r.MinCost, diff)
 		}
@@ -183,6 +183,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 		fmt.Fprintf(buf, `<li>スコア: %d (コスト: %d, 類似度: %d)</li>`,
 			resp.Cost+resp.Similarity, resp.Cost, resp.Similarity)
 		fmt.Fprintf(buf, "</ul>")
+		fmt.Fprintf(buf, `<form action="/visualizer/" method="GET" style="text-align: center;"><input type="hidden" name="submission_id" value="%d"><input type="submit" value="可視化"></form>`, record.SubmissionID)
 	}
 	fmt.Fprint(buf, `</td></tr></table>`)
 }
