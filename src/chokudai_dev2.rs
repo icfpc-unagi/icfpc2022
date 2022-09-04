@@ -8,7 +8,7 @@ pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>) -> (f64, Program) {
     let mut map: HashMap<i64, usize> = HashMap::new();
     let mut list = vec![];
     let mut best = 999999999.0;
-    for i in 0..200000 {
+    for i in 0..100000 {
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
         if best > ret {
             best = ret;
@@ -62,7 +62,7 @@ fn search2(
         let block = blocks.pop().unwrap();
         moves.push(Move::Color(
             block.clone(),
-            best_color(&png, lx, rx, ly, ry).0,
+            best_color2(&png, lx, rx, ly, ry).0,
         ));
         blocks.push(block);
     } else {

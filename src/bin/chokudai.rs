@@ -39,6 +39,8 @@ fn main() {
     //eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
     //eprintln!("diff cost = {}", similarity(&png, &canvas.bitmap));
 
+
+    println!("# chokudai monte with swap")
     for p in best.1 {
         println!("{}", p);
     }
