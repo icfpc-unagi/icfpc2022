@@ -141,8 +141,8 @@ fn main() {
         flip_x = !flip_x;
     }
     eprintln!("{}", best.0);
-    if let Some(swap) = swap {
-        best.1 = merge_solution(&init_canvas, &best.1, &swap);
+    if let Some(swap) = &swap {
+        best.1 = merge_solution(&init_canvas, &best.1, swap);
     }
     let mut canvas = init_canvas;
     let move_score = canvas.apply_all(best.1.clone());
@@ -163,6 +163,11 @@ fn main() {
         "# wata5 FLIP_ROTATE={} FLIP_ROTATE_BEST_ONLY={} MAX_WIDTH={} MAX_CANDIDATES={} SWAP={}",
         *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_CANDIDATES, *SWAP,
     );
+    if let Some(swap) = swap {
+        for p in swap {
+            println!("# {}", p);
+        }
+    }
     for p in best.1 {
         println!("{}", p);
     }
