@@ -21,6 +21,9 @@ struct Args {
     program_name: Option<String>,
 
     #[clap(long)]
+    program_name_not: Option<String>,
+
+    #[clap(long)]
     allow_not_best: bool,
 
     #[clap(long)]
@@ -39,6 +42,7 @@ fn main() -> anyhow::Result<()> {
         args.submission_ids,
         args.submission_id_min,
         args.program_name,
+        args.program_name_not,
         args.allow_not_best,
     )?;
     println!("Applying to {} submissions", spcs.len());

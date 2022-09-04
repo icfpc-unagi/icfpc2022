@@ -174,6 +174,7 @@ pub fn query_submission_ids(
     submission_ids: Option<String>,
     submission_id_min: Option<u32>,
     program_name: Option<String>,
+    program_name_not: Option<String>,
     allow_not_best: bool,
 ) -> anyhow::Result<Vec<(Submission, Program, Vec<String>)>> {
     let mut spcs = read_all_submissions_and_programs()?;
@@ -224,6 +225,14 @@ pub fn query_submission_ids(
         spcs = spcs
             .into_iter()
             .filter(|(_, _, c)| estimate_program_name(&c) == program_name)
+            .collect();
+        eprintln!("Submissions filtered by program name: {}", spcs.len());
+    }
+
+    if let Some(program_name_not) = program_name_not {
+        spcs = spcs
+            .into_iter()
+            .filter(|(_, _, c)| estimate_program_name(&c) != program_name_not)
             .collect();
         eprintln!("Submissions filtered by program name: {}", spcs.len());
     }
