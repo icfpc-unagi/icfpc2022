@@ -94,7 +94,7 @@ fn main() {
             best.0.round()
         );
     }
-    println!("# chokudai-swap 300sec");
+    println!("# chokudai-swap 300sec target64 bitcount");
 
     for p in best.1 {
         println!("{}", p);
