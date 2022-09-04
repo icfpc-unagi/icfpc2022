@@ -7,4 +7,4 @@ if [ "${version}" == '' ]; then
     exit 1
 fi
 
-gsutil -m cp /usr/local/bin/* gs://icfpc2022/bin/${version}/
+gsutil -m cp -Z /usr/local/bin/* gs://icfpc2022/bin/${version}/
