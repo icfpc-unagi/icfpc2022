@@ -37,6 +37,53 @@ pub fn best_color(
     return (color, cost);
 }
 
+fn median_array(mut a: Vec<u8>) -> u8 {
+    a.sort();
+    let n = a.len();
+    assert!(n >= 1);
+    // TODO: そのうち暇な時、偶数の時にあれする
+    return a[n / 2];
+}
+
+pub fn median_color(
+    png: &Vec<Vec<[u8; 4]>>,
+    lx: usize,
+    rx: usize,
+    ly: usize,
+    ry: usize,
+) -> ([u8; 4], f64) {
+    let area = (rx - lx) * (ry - ly);
+
+    let mut points = [
+        Vec::with_capacity((ry - ly) * (rx - lx)),
+        Vec::with_capacity((ry - ly) * (rx - lx)),
+        Vec::with_capacity((ry - ly) * (rx - lx)),
+        Vec::with_capacity((ry - ly) * (rx - lx)),
+    ];
+    for y in ly..ry {
+        for x in lx..rx {
+            for c in 0..4 {
+                points[c].push(png[y][x][c]);
+            }
+        }
+    }
+    let color = points.map(|p| median_array(p));
+
+    let mut cost = 0.0;
+    for y in ly..ry {
+        for x in lx..rx {
+            let mut t = 0.0;
+            for c in 0..4 {
+                let d = (color[c] as f64) - (png[y][x][c] as f64);
+                t += d * d
+            }
+            cost += t.sqrt();
+        }
+    }
+
+    (color, cost)
+}
+
 pub fn mode_color(
     png: &Vec<Vec<[u8; 4]>>,
     lx: usize,
