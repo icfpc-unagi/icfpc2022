@@ -20,8 +20,18 @@ import (
 	"github.com/icfpc-unagi/icfpc2022/go/internal/client"
 )
 
+const CONTAINER_IMAGE = "asia-docker.pkg.dev/icfpc-primary/asia/runner"
+
 func main() {
 	flag.Parse()
+	glog.Info("Pulling a container image...")
+	cmd := exec.Command("docker", "pull", CONTAINER_IMAGE)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		glog.Fatalf("Failed to pull a container image from: %s: %+v",
+			CONTAINER_IMAGE, err)
+	}
+
 	glog.Info("Started")
 	for !Exists("/shutdown") {
 		if err := Loop(); err != nil {
@@ -44,13 +54,14 @@ func Loop() error {
 		return nil
 	}
 	glog.Infof("Acquired a run: run_id=%d", resp.RunID)
+	defer glog.Infof("Closing a run: run_id=%d", resp.RunID)
 
 	dir, err := os.MkdirTemp(os.TempDir(), "executor")
 	name := fmt.Sprintf("c%06d", rand.Intn(1000000))
 	glog.Infof("Running command: %s", resp.RunCommand)
 	cmd := exec.CommandContext(ctx,
 		"docker", "run", "--rm", "--name", name,
-		"runner", "bash", "-c",
+		CONTAINER_IMAGE, "bash", "-c",
 		strings.ReplaceAll(resp.RunCommand, "\r", ""))
 	cmd.Dir = dir
 	stdout, err := os.Create(path.Join(dir, "stdout"))

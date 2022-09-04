@@ -1,3 +1,5 @@
+use std::mem;
+
 use itertools::Itertools;
 
 use crate::{mat, Block, BlockId, Canvas, Move, Point, SetMinMax};
@@ -17,7 +19,7 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
     let h = canvas_h / block_h as usize;
     let w = canvas_w / block_w as usize;
 
-    let mut block_ids = mat![BlockId(vec![]); h; w];
+    let mut block_ids = mat![None; h; w];
     for (id, block) in canvas.blocks.iter() {
         let Block(Point(x0, y0), _) = block;
         let i = y0 / block_h;
@@ -30,9 +32,8 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
         {
             anyhow::bail!("unexpected position of block");
         }
-        block_ids[i as usize][j as usize] = id.clone();
+        block_ids[i as usize][j as usize] = Some(id.clone());
     }
-    let block_ids = block_ids;
 
     // if h != w {
     //     bail!("not implemented yet...");
@@ -40,8 +41,64 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
 
     let (cost, path) = merge_all_internal(h, w);
     eprintln!("{:?}", path);
+    dbg!(cost);
 
+    let mut id_a = BlockId(vec![]); // invalid id
+    let mut id_b = BlockId(vec![]); // invalid id
     let mut moves = vec![];
+
+    let mut canvas_counter = canvas.counter;
+    let mut new_id = || {
+        canvas_counter += 1;
+        BlockId(vec![canvas_counter])
+    };
+    let mut actual_cost = 0.0;
+    let mut push = |mov: Move| {
+        eprintln!("{:?}", &mov);
+        actual_cost += canvas.apply(&mov);
+        moves.push(mov);
+    };
+    let cut_a = |id, a: usize| Move::LineCut(id, 'y', block_h * a as i32);
+    let cut_b = |id, b: usize| Move::LineCut(id, 'x', block_w * b as i32);
+
+    let mut r_prev = -1;
+    for (a, b, r) in path {
+        eprintln!("{:?}", (a, b, r));
+        match r {
+            0 => {
+                let mut id_tmp = if b == 0 {
+                    block_ids[a][0].take().unwrap()
+                } else if r_prev == r {
+                    let [id0, id1] = id_b.cut();
+                    push(cut_a(id_b.clone(), a + 1));
+                    id_b = id1;
+                    id0
+                } else {
+                    todo!()
+                };
+                for bb in b.max(1)..w {
+                    push(Move::Merge(
+                        mem::replace(&mut id_tmp, new_id()),
+                        block_ids[a][bb].take().unwrap(),
+                    ));
+                }
+                if a > 0 {
+                    push(Move::Merge(mem::replace(&mut id_a, new_id()), id_tmp));
+                } else {
+                    id_a = id_tmp;
+                }
+                // if r_prev == 1 {
+                //     let m = Move::LineCut
+                // }
+            }
+            _ => {
+                todo!()
+            }
+        }
+    }
+    // for ((a0, b0, r), (a1, b1, _)) in path.into_iter().tuple_windows() {
+
+    // }
     Ok(moves)
 }
 
@@ -59,7 +116,7 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
         .sorted_by_key(|&(a, b)| (a + b, a))
         .rev()
     {
-        dbg!(a, b);
+        // dbg!(a, b);
         if a == h {
             cost0[a][b].0 = 0;
         }
@@ -83,10 +140,11 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
                 cost0[a][b].setmin((common_cost, rep));
             } else {
                 cost0[a][b].setmin((common_cost + cut_cost(h - a, b), rep));
-                cost1[a][b].setmin((
-                    common_cost + cut_cost(h, b) + cut_cost((a + 1).max(h - a), b),
-                    rep,
-                ));
+                let mut c = cut_cost(h, b);
+                if a > 0 {
+                    c += cut_cost((a + 1).max(h - a), b) + merge_cost(a, b.max(w - b));
+                }
+                cost1[a][b].setmin((common_cost + c, rep));
             }
         }
         if b < w {
@@ -103,14 +161,15 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
                 cost1[a][b].setmin((common_cost, rep));
             } else {
                 cost1[a][b].setmin((common_cost + cut_cost(a, w - b), rep));
-                cost0[a][b].setmin((
-                    common_cost + cut_cost(a, w) + cut_cost(a, (b + 1).max(w - b)),
-                    rep,
-                ));
+                let mut c = cut_cost(a, w);
+                if b > 0 {
+                    c += cut_cost(a, (b + 1).max(w - b)) + merge_cost(a.max(h - a), b);
+                }
+                cost0[a][b].setmin((common_cost + c, rep));
             }
         }
-        dbg!(cost0[a][b]);
-        dbg!(cost1[a][b]);
+        // dbg!(cost0[a][b]);
+        // dbg!(cost1[a][b]);
     }
     let mut a = 0;
     let mut b = 0;

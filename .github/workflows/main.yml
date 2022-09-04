@@ -46,9 +46,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            ${{ github.ref }}-${{ github.sha }}
+            ${{ github.ref }}
+            refs/head/main
       - uses: docker/setup-buildx-action@v1
-      - name: Build an image
-        run: make docker/server
+      - name: Set up credentials
+        run: make secrets
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./docker/server.Dockerfile
+          build-args: UNAGI_PASSWORD=${{ secrets.UNAGI_PASSWORD }}
+          builder: ${{ steps.buildx.outputs.name }}
+          push: false
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
 
   runner:
     runs-on: ubuntu-latest
@@ -64,11 +84,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            ${{ github.ref }}-${{ github.sha }}
+            ${{ github.ref }}
+            refs/head/main
       - uses: docker/setup-buildx-action@v1
       - name: Set up credentials
-        run: make secrets/service_account.json
-      - name: Build an image
-        run: make docker/builder
+        run: make secrets
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./docker/builder.Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          push: false
+          load: true
+          tags: icfpc-unagi/builder
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
       - name: Deploy binaries
         run: |
           docker run --rm icfpc-unagi/builder \
