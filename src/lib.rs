@@ -9,6 +9,7 @@ use std::{
 
 pub mod canvas;
 pub mod chokudai1;
+pub mod chokudai_dev2;
 pub mod color;
 pub mod initial_json;
 pub mod local_optimization;

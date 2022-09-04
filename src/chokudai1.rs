@@ -1,4 +1,5 @@
-use crate::wata::*;
+use crate::chokudai_dev2::*;
+//use crate::wata::*;
 use crate::*;
 use crate::{BlockId, Move};
 //use std::collections::HashMap;
@@ -145,7 +146,7 @@ pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f6
 
     eprintln!("xswap:{}, yswap:{}", xlist.len(), ylist.len());
 
-    let (_, moves) = solve2(&png);
+    let (_, moves) = monte_solve(png);
 
     let mut blocks = vec![BlockId(vec![0])];
     let mut id = 0;
