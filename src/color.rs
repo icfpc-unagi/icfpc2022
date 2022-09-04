@@ -565,26 +565,48 @@ mod tests {
             assert_eq!(c1, c2);
         }
     }
-    //
-    // #[test]
-    // fn test_median_color_selector() {
-    //     let image = crate::read_png("problems/16.png");
-    //     let h = image.len();
-    //     let w = image[0].len();
-    //     let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
-    //     let selector = MedianColorSelector::new(&image);
-    //
-    //     for _ in 0..100 {
-    //         let (lx, rx) = minmax(rng.gen::<usize>() % w, rng.gen::<usize>() % w);
-    //         let rx = rx + 1;
-    //
-    //         let (ly, ry) = minmax(rng.gen::<usize>() % h, rng.gen::<usize>() % h);
-    //         let ry = ry + 1;
-    //
-    //         let (col1, _) = median_color(&image, lx, rx, ly, ry);
-    //         let l1 = l1_naive(&image, &color_ans, );
-    //         let c2 = median_color_by_sort(&image, lx, rx, ly, ry);
-    //         assert_eq!(c1, c2);
-    //     }
-    // }
+
+    #[test]
+    fn test_median_color_selector() {
+        let mut image = crate::read_png("problems/16.png");
+        // くそでか状態でやるとおそすぎてやばいので小さくする
+        image.truncate(30);
+        image.iter_mut().for_each(|row| row.truncate(40));
+
+        let h = image.len();
+        let w = image[0].len();
+
+        let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
+        let selector = MedianColorSelector::new(&image);
+
+        check_median_selector(&image, &selector, 0, w, 0, h);
+        check_median_selector(&image, &selector, 0, 1, 0, 1);
+        check_median_selector(&image, &selector, w - 1, w, h - 1, h);
+
+        for _ in 0..100 {
+            let (lx, rx) = minmax(rng.gen::<usize>() % w, rng.gen::<usize>() % w);
+            let rx = rx + 1;
+
+            let (ly, ry) = minmax(rng.gen::<usize>() % h, rng.gen::<usize>() % h);
+            let ry = ry + 1;
+
+            check_median_selector(&image, &selector, lx, rx, ly, ry);
+        }
+    }
+
+    fn check_median_selector(
+        image: &Vec<Vec<[u8; 4]>>,
+        selector: &MedianColorSelector,
+        lx: usize,
+        rx: usize,
+        ly: usize,
+        ry: usize,
+    ) {
+        let (c1, _) = median_color(&image, lx, rx, ly, ry);
+        let l1 = l1_naive(&image, &c1, lx, rx, ly, ry);
+
+        let (c2, l2) = selector.query(lx, rx, ly, ry);
+        assert_eq!(c1, c2);
+        assert_eq!(l1, l2);
+    }
 }
