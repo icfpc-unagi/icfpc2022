@@ -1,6 +1,6 @@
 use icfpc2022::{
     submissions::find_best_score,
-    wata::{MAX_AREA, MAX_CANDIDATES, MAX_WIDTH},
+    wata::{MAX_CANDIDATES, MAX_WIDTH},
     *,
 };
 use once_cell::sync::Lazy;
@@ -14,6 +14,13 @@ pub static FLIP_ROTATE: Lazy<i32> = Lazy::new(|| {
 
 pub static FLIP_ROTATE_BEST_ONLY: Lazy<i32> = Lazy::new(|| {
     std::env::var("FLIP_ROTATE_BEST_ONLY")
+        .unwrap_or("0".to_owned())
+        .parse()
+        .unwrap()
+});
+
+pub static SWAP: Lazy<i32> = Lazy::new(|| {
+    std::env::var("SWAP")
         .unwrap_or("0".to_owned())
         .parse()
         .unwrap()
@@ -41,7 +48,25 @@ fn main() {
     for _ in 0..2 {
         for _ in 0..2 {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
-                let out = wata::solve5(&png, &init_canvas);
+                let out = if *SWAP > 0 {
+                    let out = chokudai1::solve_swap2(
+                        &mut png.clone(),
+                        20.0,
+                        8,
+                        &init_canvas,
+                        &wata::solve5,
+                    )
+                    .1;
+                    (
+                        init_canvas
+                            .clone()
+                            .apply_all_and_score(out.clone(), &png)
+                            .unwrap(),
+                        out,
+                    )
+                } else {
+                    wata::solve5(&png, &init_canvas)
+                };
                 if best.0.setmin(out.0) {
                     eprintln!("{}", best.0);
                     best.1 = out.1;
@@ -78,8 +103,8 @@ fn main() {
         );
     }
     println!(
-        "# wata5 FLIP_ROTATE={} FLIP_ROTATE_BEST_ONLY={} MAX_WIDTH={} MAX_CANDIDATES={}",
-        *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_CANDIDATES
+        "# wata5 FLIP_ROTATE={} FLIP_ROTATE_BEST_ONLY={} MAX_WIDTH={} MAX_CANDIDATES={} SWAP={}",
+        *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_CANDIDATES, *SWAP,
     );
     for p in best.1 {
         println!("{}", p);

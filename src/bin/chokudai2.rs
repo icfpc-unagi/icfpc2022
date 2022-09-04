@@ -47,7 +47,9 @@ fn main() {
         for _ in 0..2 {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
                 let mut png2 = png.clone();
-                let mut out = solve_swap2(&mut png2, sec, 20.0, 8, &init_canvas);
+                let mut out = solve_swap2(&mut png2, 20.0, 8, &init_canvas, &|png, canvas| {
+                    chokudai_dev2::monte_solve2(png, sec, canvas)
+                });
 
                 //for mm in &out.1 {
                 //    println!("{}", mm);

@@ -15,19 +15,19 @@ pub fn solve_swap(
 ) -> (f64, Program) {
     return solve_swap2(
         png,
-        sec,
         border,
         combo,
         &Canvas::new(png[0].len(), png.len()),
+        &|png, canvas| monte_solve2(png, sec, canvas),
     );
 }
 
 pub fn solve_swap2(
     png: &mut Vec<Vec<[u8; 4]>>,
-    sec: i32,
     border: f64,
     combo: usize,
     init_canvas: &Canvas,
+    solver: &dyn Fn(&Vec<Vec<[u8; 4]>>, &Canvas) -> (f64, Program),
 ) -> (f64, Program) {
     let campus_size = 400 as usize;
 
@@ -167,7 +167,7 @@ pub fn solve_swap2(
 
     eprintln!("xswap:{}, yswap:{}", xlist.len(), ylist.len());
 
-    let (_, moves) = monte_solve2(png, sec, init_canvas);
+    let (_, moves) = solver(png, init_canvas);
 
     let mut id = init_canvas.blocks.len() as u32 - 1;
     let mut blocks = vec![BlockId(vec![])];
@@ -335,6 +335,9 @@ pub fn solve_swap2(
             ans.push(p.clone());
             //score += p.score();
         }
+    }
+    while let Some(Move::Merge(_, _)) = ans.last() {
+        ans.pop();
     }
     (0.0, ans)
 }
