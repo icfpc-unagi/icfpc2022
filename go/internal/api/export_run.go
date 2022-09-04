@@ -43,7 +43,7 @@ func exportHandler(w http.ResponseWriter, r *http.Request, isJSON bool) {
 		return
 	}
 
-	resp, err := exportRun(runID)
+	resp, err := ExportRun(runID)
 	if err != nil {
 		w.WriteHeader(500)
 		glog.Errorf("Failed to export: %+v", err)
@@ -64,7 +64,7 @@ func exportHandler(w http.ResponseWriter, r *http.Request, isJSON bool) {
 	}
 }
 
-func exportRun(runID int) (*ExportResponse, error) {
+func ExportRun(runID int) (*ExportResponse, error) {
 	resp := &ExportResponse{}
 	if err := db.Row(context.Background(), resp, `
 SELECT
