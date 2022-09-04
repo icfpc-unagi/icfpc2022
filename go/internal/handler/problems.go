@@ -169,7 +169,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 			}
 			diff := ""
 			if r.Rank != 1 {
-				diff = fmt.Sprintf("%+.1f%%", float64(r.MinCost)/float64(ranking[0].MinCost))
+				diff = fmt.Sprintf("%+.1f%%", (float64(r.MinCost)/float64(ranking[0].MinCost)-1)*100)
 			}
 			fmt.Fprintf(buf, `<tr style="white-space: nowrap; %s"><td style="width:4ex;">%d位</td><td style="overflow-x:hidden; text-overflow: ellipsis; width: 50%%">%s%s</td><td style="text-align:right; width: 6ex;">%d</td><td style="text-align:right; width: 6ex;">%s</td>`,
 				style,
