@@ -2,37 +2,17 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html"
 	"net/http"
 	"sort"
 	"strings"
 
-	"github.com/icfpc-unagi/icfpc2022/go/internal/official"
-
 	"github.com/icfpc-unagi/icfpc2022/go/internal/api"
-
-	"github.com/golang/glog"
-
-	"github.com/icfpc-unagi/icfpc2022/go/pkg/db"
 )
 
 func init() {
 	http.HandleFunc("/problems", problemsTemplate)
-}
-
-type submissionsRecord struct {
-	ProblemID          int    `db:"problem_id"`
-	SubmissionID       int    `db:"submission_id""`
-	SubmissionScore    int64  `db:"submission_score""`
-	SubmissionSolution string `db:"submission_solution"`
-}
-
-type rankingRecord struct {
-	TeamName string
-	MinCost  int
-	Rank     int
 }
 
 func problemsTemplate(w http.ResponseWriter, r *http.Request) {
@@ -41,88 +21,50 @@ func problemsTemplate(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(buf, "<h1>Problems</h1>")
 
-	submissions := make([]*submissionsRecord, 0)
-	if err := db.Select(context.Background(), &submissions, `
-SELECT
-	problem_id,
-	submission_id,
-	submission_score,
-	submission_solution
-FROM
-    submissions
-NATURAL JOIN(
-    SELECT
-        MIN(submission_id) AS submission_id
-    FROM
-        submissions
-    NATURAL JOIN(
-        SELECT
-            problem_id,
-            MIN(submission_score) AS submission_score
-        FROM
-            submissions
-        GROUP BY
-            problem_id
-    ) AS s
-GROUP BY
-    problem_id
-) AS s
-ORDER BY problem_id
-`); err != nil {
-		glog.Errorf("Failed to fetch submissions from DB: %+v", err)
-	}
-
-	scoreboard, err := official.Scoreboard()
-	if err != nil {
-		glog.Errorf("Failed to fetch scoreboard: %+v", err)
-	}
-
-	ranks := map[int][]*rankingRecord{}
-	if scoreboard != nil {
-		for _, u := range scoreboard.Users {
-			for _, r := range u.Results {
-				if r.SubmissionCount == 0 {
-					continue
-				}
-				ranks[r.ProblemID] = append(ranks[r.ProblemID], &rankingRecord{
-					TeamName: u.TeamName,
-					MinCost:  r.MinCost,
-				})
-			}
-		}
-	}
-	for _, r := range ranks {
-		sort.SliceStable(r, func(i, j int) bool {
-			return r[i].MinCost < r[j].MinCost
-		})
-		for i, _ := range r {
-			r[i].Rank = i + 1
-			if i > 0 && r[i].MinCost == r[i-1].MinCost {
-				r[i].Rank = r[i-1].Rank
-			}
-		}
-	}
-
-	submissionMap := map[int]*submissionsRecord{}
-	for _, s := range submissions {
-		submissionMap[s.ProblemID] = s
+	records := getAllRecords(buf)
+	problemToRecords := map[int][]*scoreboardRecord{}
+	for _, r := range records {
+		problemToRecords[r.ProblemID] = append(problemToRecords[r.ProblemID], r)
 	}
 
 	for _, problem := range Problems() {
-		showProblem(buf, submissionMap[problem.ID], &problem, ranks[problem.ID])
+		showProblem(buf, &problem, problemToRecords[problem.ID])
 	}
 }
 
-func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem, ranking []*rankingRecord) {
+func showProblem(buf *bytes.Buffer, problem *Problem, records []*scoreboardRecord) {
 	fmt.Fprintf(buf, `<h2><a name="problem_%d"></a>Problem %d: %s</h2>`,
 		problem.ID, problem.ID, problem.Name)
 
+	sort.SliceStable(records, func(i, j int) bool {
+		return records[i].Score < records[j].Score
+	})
+
+	var bestRecord *scoreboardRecord
+	for _, r := range records {
+		if r.RunID != 0 {
+			bestRecord = r
+			break
+		}
+	}
+
+	var exportResp *api.ExportResponse
+
+	if bestRecord.RunID != 0 {
+		var err error
+		exportResp, err = api.ExportRun(bestRecord.RunID)
+		if err != nil {
+			fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
+				html.EscapeString(fmt.Sprintf("%+v", err)))
+		}
+	}
+
 	resp := &api.EvaluateResponse{}
-	if record != nil && record.SubmissionSolution != "" {
+	if exportResp != nil && exportResp.ISL != "" {
 		var err error
 		resp, err = api.Evaluate(&api.EvaluateRequest{
 			ProblemID: problem.ID,
-			ISL:       record.SubmissionSolution,
+			ISL:       exportResp.ISL,
 		})
 		if err != nil {
 			resp = &api.EvaluateResponse{}
@@ -153,47 +95,58 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 </tr></table>`,
 		problem.ID, resp.Image, resp.Image, problem.ID)
 	fmt.Fprint(buf, `<table style="table-layout:fixed; width:100%;"><tr><td width="50%" style="vertical-align:top">`)
-	if ranking != nil {
+	externalCount := 0
+	internalCount := 0
+	if len(records) > 0 {
 		fmt.Fprint(buf, `<table style="width: 100%; table-layout: fixed">`)
-		for i, r := range ranking {
+		for _, r := range records {
 			style := ""
-			if i >= 10 && r.TeamName != "Unagi" {
+			if r.UserName == "Unagi" {
+				// pass
+			} else if r.IsInternal && internalCount > 5 {
+				continue
+			} else if !r.IsInternal && externalCount > 10 {
 				continue
 			}
-			if r.TeamName == "Unagi" {
+			if r.IsInternal {
+				internalCount++
+			} else {
+				externalCount++
+			}
+			if r.UserName == "Unagi" {
 				style = `background: #cdf; color: red; font-weight: bold`
 			}
 			rankStr := ""
-			if r.Rank == 1 {
+			if r.ProblemRank == 1 {
 				rankStr = "👑 "
-			} else if r.Rank == 2 {
+			} else if r.ProblemRank == 2 {
 				rankStr = "🥈 "
-			} else if r.Rank == 3 {
+			} else if r.ProblemRank == 3 {
 				rankStr = "🥉 "
 			}
 			diff := ""
-			if r.Rank != 1 {
-				diff = fmt.Sprintf("%+.1f%%", (float64(r.MinCost)/float64(ranking[0].MinCost)-1)*100)
+			if r.ProblemRank != 1 {
+				diff = fmt.Sprintf("%+.1f%%", (float64(r.Score)/float64(records[0].Score)-1)*100)
 			}
 			fmt.Fprintf(buf, `<tr style="white-space: nowrap; %s"><td style="width:4ex;">%d位</td><td style="overflow-x:hidden; text-overflow: ellipsis; width: 50%%">%s%s</td><td style="text-align:right; width: 6ex;">%d</td><td style="text-align:right; width: 6ex;">%s</td>`,
 				style,
-				r.Rank, rankStr, html.EscapeString(r.TeamName), r.MinCost, diff)
+				r.ProblemRank, rankStr, html.EscapeString(r.UserName), r.Score, diff)
 		}
 		fmt.Fprintf(buf, `</table>`)
 	}
 	fmt.Fprint(buf, `</td><td width="50%" style="vertical-align:top">`)
-	if record != nil && record.SubmissionSolution != "" {
-		comment := strings.SplitN(record.SubmissionSolution, "\n", 2)[0]
+	if exportResp != nil && exportResp.ISL != "" {
+		comment := strings.SplitN(exportResp.ISL, "\n", 2)[0]
 		fmt.Fprintf(buf, `<ul>`)
 		if strings.HasPrefix(comment, "#") {
 			comment = strings.TrimSpace(strings.TrimPrefix(comment, "#"))
 			fmt.Fprintf(buf, `<li>提出情報: %s</li>`, html.EscapeString(comment))
 		}
-		fmt.Fprintf(buf, `<li>提出ID: %d</li>`, record.SubmissionID)
+		fmt.Fprintf(buf, `<li>提出ID: %d</li>`, exportResp.RunID)
 		fmt.Fprintf(buf, `<li>スコア: %d (コスト: %d, 類似度: %d)</li>`,
 			resp.Cost+resp.Similarity, resp.Cost, resp.Similarity)
 		fmt.Fprintf(buf, "</ul>")
-		fmt.Fprintf(buf, `<form action="/visualizer/" method="GET" style="text-align: center;"><input type="hidden" name="submission_id" value="%d"><input type="submit" value="可視化"></form>`, record.SubmissionID)
+		fmt.Fprintf(buf, `<form action="/visualizer/" method="GET" style="text-align: center;"><input type="hidden" name="run_id" value="%d"><input type="submit" value="可視化"></form>`, exportResp.RunID)
 	}
 	fmt.Fprint(buf, `</td></tr></table>`)
 }
