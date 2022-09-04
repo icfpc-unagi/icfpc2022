@@ -7,9 +7,6 @@ fn main() -> anyhow::Result<()> {
         if *problem_id >= 26 {
             continue;
         }
-        if *problem_id != 2 {
-            continue;
-        }
 
         let (submission, program, image) =
             icfpc2022::local_optimization::read_submission(submission.id)?;
