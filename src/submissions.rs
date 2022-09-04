@@ -1,4 +1,15 @@
-use crate::{Move, Program, Submission};
+use crate::{Canvas, Move, Program, Submission};
+
+pub fn read_submission(submission_id: u32) -> anyhow::Result<Submission> {
+    let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
+        "submissions/{}.json",
+        submission_id
+    ))?)?;
+    if sub.status != "SUCCEEDED" {
+        anyhow::bail!("Submission status si not SUCCEEDED {:?}", &sub);
+    }
+    anyhow::Ok(sub)
+}
 
 pub fn find_best_submissions() -> anyhow::Result<std::collections::BTreeMap<u32, Submission>> {
     let mut best_submissions = std::collections::BTreeMap::<u32, Submission>::new();
@@ -68,4 +79,22 @@ pub fn find_best_score(problem_id: u32) -> u32 {
     } else {
         u32::MAX
     }
+}
+
+pub fn read_solution(
+    submission_id: u32,
+) -> anyhow::Result<(Submission, Program, Canvas, Vec<Vec<crate::Color>>)> {
+    let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
+        "submissions/{}.json",
+        submission_id
+    ))?)?;
+    assert_eq!(sub.status, "SUCCEEDED");
+
+    let (initial_canvas, image) = crate::load_problem(sub.problem_id);
+    let program = crate::read_isl(std::fs::File::open(format!(
+        "submissions/{}.isl",
+        submission_id
+    ))?)?;
+
+    Ok((sub, program, initial_canvas, image))
 }

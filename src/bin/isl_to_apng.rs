@@ -20,7 +20,7 @@ fn main1(problem_id: u32, id: &str) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     let mut best_submissions = std::collections::BTreeMap::<u32, (u32, String)>::new();
 
-    // from local_optimize_all.rs
+    // from optimize
     for json_path in glob::glob("submissions/*.json")? {
         let json_path = json_path?;
         let submission_id = json_path.file_name().unwrap().to_str().unwrap();

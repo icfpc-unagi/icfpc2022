@@ -1,5 +1,5 @@
-use super::{Color, Program, Submission};
-use crate::{Canvas, Move, WHITE};
+use super::{Color, Program};
+use crate::{score, Canvas, Move, WHITE};
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -9,6 +9,7 @@ const WIDTH: i32 = 400;
 // 座標関連
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
 pub fn optimize_step(
     program: Program,
     image: &Vec<Vec<Color>>,
@@ -40,15 +41,15 @@ pub fn optimize_step(
 
     None
 }
+ */
 
 pub fn optimize_step_parallel(
     program: Program,
+    initial_canvas: &Canvas,
     image: &Vec<Vec<Color>>,
     diff_steps: &[i32],
 ) -> Option<(Program, f64)> {
-    let original_score = Canvas::new400()
-        .apply_all_and_score(program.clone(), image)
-        .unwrap();
+    let original_score = score(&program, initial_canvas, image).unwrap();
 
     let mut tmp = vec![];
     (0..program.len())
@@ -60,17 +61,15 @@ pub fn optimize_step_parallel(
                     if 0 < offset + *d && offset + *d < WIDTH {
                         let mut new_program = program.clone();
                         new_program[i] = Move::LineCut(bid.clone(), *ori, offset + d);
-                        if let Ok(new_score) =
-                            Canvas::new400().apply_all_and_score(new_program.clone(), image)
-                        {
+                        if let Ok(new_score) = score(&new_program, initial_canvas, image) {
                             if new_score < original_score {
                                 //eprintln!("Improve: {} -> {}", original_score, new_score);
                                 result = Some((new_program.clone(), new_score));
 
                                 // ついでに色やる
-                                let new_program2 = optimize_color(new_program.clone(), image);
-                                if let Ok(new_score2) = Canvas::new400()
-                                    .apply_all_and_score(new_program2.clone(), image)
+                                let new_program2 =
+                                    optimize_color(new_program.clone(), initial_canvas, image);
+                                if let Ok(new_score2) = score(&new_program2, initial_canvas, image)
                                 {
                                     // eprintln!(
                                     //     "Improve: {} -> {} -> {}",
@@ -101,7 +100,11 @@ pub fn optimize_step_parallel(
 // 色関連
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program {
+pub fn optimize_color(
+    mut program: Program,
+    initial_canvas: &Canvas,
+    image: &Vec<Vec<Color>>,
+) -> Program {
     // (1) まず、Colorを全てユニークにしていく。
     for (i, m) in program.iter_mut().enumerate() {
         if let Move::Color(_, c) = m {
@@ -110,8 +113,7 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     }
 
     // (2) 次に色を決めていく
-    let mut canvas = Canvas::new400();
-    // TODO: initial canvas対応した際にここ気をつけること！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+    let mut canvas = initial_canvas.clone();
     canvas.bitmap.iter_mut().for_each(|row| row.fill(WHITE));
     canvas.apply_all(program.clone());
 
@@ -120,7 +122,6 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     for y in 0..canvas.bitmap.len() {
         for x in 0..canvas.bitmap[y].len() {
             let c = &canvas.bitmap[y][x];
-            // TODO: ここも！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
             if c == &WHITE {
                 continue;
             }
@@ -150,8 +151,12 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     program
 }
 
-pub fn try_removing_color_op(program: Program, image: &Vec<Vec<Color>>) -> (Program, f64) {
-    let original_score = super::canvas::score(&program, image).unwrap();
+pub fn try_removing_color_op(
+    program: Program,
+    initial_canvas: &Canvas,
+    image: &Vec<Vec<Color>>,
+) -> (Program, f64) {
+    let original_score = score(&program, initial_canvas, image).unwrap();
 
     let mut tmp = vec![];
     (0..program.len())
@@ -160,11 +165,11 @@ pub fn try_removing_color_op(program: Program, image: &Vec<Vec<Color>>) -> (Prog
             if let Move::Color(_, _) = program[i] {
                 let mut candidate_program = program.clone();
                 candidate_program.remove(i);
-                let candidate_program = optimize_color(candidate_program, image);
-                let candidate_score = super::canvas::score(&candidate_program, image).unwrap();
+                let candidate_program = optimize_color(candidate_program, initial_canvas, image);
+                let candidate_score = score(&candidate_program, initial_canvas, image).unwrap();
 
                 let candidate_program2 = remove_unnecessary_operations(&candidate_program);
-                let candidate_score2 = super::canvas::score(&candidate_program2, image).unwrap();
+                let candidate_score2 = score(&candidate_program2, initial_canvas, image).unwrap();
                 assert!(candidate_score2 <= candidate_score);
 
                 Some((candidate_score2, candidate_program2))
@@ -277,43 +282,24 @@ pub fn remove_unnecessary_operations(program: &Program) -> Program {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// ユーティリティ
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub fn read_submission(
-    submission_id: u32,
-) -> anyhow::Result<(Submission, Program, Vec<Vec<Color>>)> {
-    let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
-        "submissions/{}.json",
-        submission_id
-    ))?)?;
-    assert_eq!(sub.status, "SUCCEEDED");
-    let program = crate::read_isl(std::fs::File::open(format!(
-        "submissions/{}.isl",
-        submission_id
-    ))?)?;
-    let png = crate::read_png(&format!("problems/{}.png", sub.problem_id));
-
-    Ok((sub, program, png))
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// ユーティリティ
+// メインループ
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn optimize(
     mut best_program: Program,
+    initial_canvas: &Canvas,
     image: &Vec<Vec<Color>>,
     max_diff_step: i32,
     parallel: bool,
 ) -> (Program, f64) {
-    let mut best_score = super::canvas::score(&best_program, image).unwrap();
+    let mut best_score = super::canvas::score(&best_program, initial_canvas, image).unwrap();
 
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
         // Try color improvement
         if diff_step == 1 {
-            let (new_program, new_score) = try_removing_color_op(best_program.clone(), &image);
+            let (new_program, new_score) =
+                try_removing_color_op(best_program.clone(), initial_canvas, &image);
             if new_score < best_score {
                 eprintln!("Improvement - Color: {} -> {}", best_score, new_score);
                 best_program = new_program;
@@ -324,9 +310,15 @@ pub fn optimize(
 
         // Try coordinate improvement
         let ret = if parallel {
-            optimize_step_parallel(best_program.clone(), &image, &[-diff_step, diff_step])
+            optimize_step_parallel(
+                best_program.clone(),
+                initial_canvas,
+                image,
+                &[-diff_step, diff_step],
+            )
         } else {
-            optimize_step(best_program.clone(), &image, &[-diff_step, diff_step])
+            todo!();
+            //optimize_step(best_program.clone(), &image, &[-diff_step, diff_step])
         };
         if let Some((new_program, new_score)) = ret {
             if new_score < best_score {

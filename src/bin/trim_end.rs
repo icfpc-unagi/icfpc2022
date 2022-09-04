@@ -30,7 +30,7 @@ fn main1(problem_id: u32, submission_id: u32) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     let mut best_submissions = std::collections::BTreeMap::<u32, icfpc2022::Submission>::new();
 
-    // from local_optimize_all.rs
+    // from optimize
     for json_path in glob::glob("submissions/*.json")? {
         let json_path = json_path?;
         let submission: icfpc2022::Submission =
