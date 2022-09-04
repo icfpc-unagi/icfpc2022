@@ -2,13 +2,19 @@ use std::mem;
 
 use itertools::Itertools;
 
-use crate::{mat, Block, BlockId, Canvas, Move, Point, SetMinMax};
+use crate::{mat, Block, BlockId, Canvas, CostType, Move, Point, SetMinMax};
 
 pub fn merge_all(canvas: &mut Canvas) -> Vec<Move> {
     merge_all_safe(canvas).unwrap()
 }
 
 fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
+    if canvas.blocks.len() == 1 {
+        // do nothing
+        return Ok(vec![]);
+    };
+    assert_eq!(canvas.cost_type, CostType::Basic);
+
     let canvas_h = canvas.bitmap.len();
     let canvas_w = canvas.bitmap[0].len();
 
@@ -163,6 +169,7 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
     let mut cost1 = mat![(INF, -1); h+1; w+1];
 
     let cost_scale = (h * w) as f64;
+    // CostType::Basic is assumed here!!
     let cut_cost = |a: usize, b: usize| (7.0 * cost_scale / ((a * b) as f64)).round() as i32;
     let merge_cost = |a: usize, b: usize| (1.0 * cost_scale / ((a * b) as f64)).round() as i32;
 
