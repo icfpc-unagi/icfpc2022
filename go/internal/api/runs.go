@@ -332,7 +332,17 @@ SET
 		resp.RunScore = eResp.RunScore
 	}
 
-	return &RunAddResponse{RunID: int(id)}, nil
+	if result, err := db.Execute(ctx, `
+UPDATE runs SET run_score = ? WHERE run_id = ? LIMIT 1
+`, resp.RunScore, resp.RunID); err != nil {
+		glog.Errorf("Failed to update run_score: %+v", err)
+	} else if n, err := result.RowsAffected(); err != nil {
+		glog.Errorf("Failed to get # of affected rows: %+v", err)
+	} else if n != 1 {
+		glog.Errorf("Failed to update run_score: %d", n)
+	}
+
+	return resp, nil
 }
 
 func handleRunEvaluate(w http.ResponseWriter, r *http.Request) {
@@ -377,10 +387,10 @@ func RunEvaluate(ctx context.Context, req *RunEvaluateRequest) (*RunEvaluateResp
 		SolutionISL string `db:"solution_isl"`
 		ProblemID   int    `db:"problem_id"`
 	}{}
-	if err := db.Cell(ctx, &record, `
-SELECT solution_isl, problem_id FROM solutions NATURAL JOIN (
+	if err := db.Row(ctx, &record, `
+SELECT solution_isl, problem_id FROM (solutions NATURAL JOIN (
 	SELECT solution_id, problem_id FROM runs WHERE run_id = ? LIMIT 1
-)
+) t)
 LIMIT 1
 `, req.RunID); err != nil {
 		return nil, errors.Wrapf(err, "failed to fetch a solution")
