@@ -53,7 +53,7 @@ impl ManagedCanvas {
     }
 
     pub fn apply(&mut self, isl: &str) -> Result<f64, JsValue> {
-        let isl = read_isl(isl.as_bytes()).unwrap();
+        let isl = read_isl(isl.as_bytes()).map_err(|e| JsValue::from(e.to_string()))?;
         for mov in isl {
             match self.model.apply_safe(&mov) {
                 Ok(cost) => self.cost += cost,

@@ -8,11 +8,11 @@
   </head>
   <body>
     <form onsubmit="loadSubmission(problem_id.value);return false">
-      <label>
+      <label for="problem_id">
         Problem ID:
         <input type="number" id="problem_id" value="1" min="1" max="18446744073709551615" onchange="updateOutput()"/>
       </label>
-      <input type="submit" value="Load submission">
+      <input type="submit" value="Load best submission">
     </form>
     <p>
       <label>
