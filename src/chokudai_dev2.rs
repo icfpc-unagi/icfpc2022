@@ -22,8 +22,9 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas)
             break;
         }
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
-        if best > ret {
-            best = ret;
+        let ret_score = ret.0;
+        if best > ret_score {
+            best = ret_score;
             eprintln!("cnt:{}   score:{}    node:{}", i, best, list.len());
         }
         //eprintln!("cnt:{}   score:{}", cnt, best);
@@ -139,7 +140,7 @@ fn search(
     map: &mut HashMap<i64, usize>,
     list: &mut Vec<Node>,
     png: &Vec<Vec<[u8; 4]>>,
-) -> f64 {
+) -> (f64, bool) {
     let hash = (((ly * 65536 + ry) as i64) << 31) + (lx * 65536 + rx) as i64;
     if !map.contains_key(&hash) {
         map.insert(hash, list.len());
@@ -149,18 +150,25 @@ fn search(
             def: median_color(png, lx, rx, ly, ry).1 * 0.005
                 + 5.0 * 400.0 * 400.0 / (400.00001 - ly as f64) / (400.00001 - lx as f64),
             target: 0,
+            used: false,
+            ok_count: 0,
             next: vec![],
         });
     }
 
     if lx == 400 || ly == 400 || lx >= rx || ly >= ry {
         eprintln!("?????? {} {} {} {}", ly, lx, ry, rx);
-        return 99999999999.9;
+
+        return (99999999999.9, true);
     }
 
     //eprintln!("c1 {} {} {} {}", ly, ry, lx, rx);
 
     let now = map[&hash];
+
+    if list[now].used {
+        return (list[now].best, list[now].used);
+    }
 
     if list[now].cnt == 0 {
         list[now].best = list[now].def;
@@ -266,11 +274,11 @@ fn search(
             let left;
             let right;
             if div.1 == 'X' {
-                left = (9999999999.0, [ly, ry, lx, div.2]);
-                right = (9999999999.0, [ly, ry, div.2, rx]);
+                left = (false, [ly, ry, lx, div.2]);
+                right = (false, [ly, ry, div.2, rx]);
             } else {
-                left = (9999999999.0, [ly, div.2, lx, rx]);
-                right = (9999999999.0, [div.2, ry, lx, rx]);
+                left = (false, [ly, div.2, lx, rx]);
+                right = (false, [div.2, ry, lx, rx]);
             }
             div.0 = 9999999999.0;
             list[now].next.push((div, left, right));
@@ -284,10 +292,11 @@ fn search(
             list[now].cnt, ly, lx, ry, rx, list[now].best
         );
         */
-        return list[now].best;
+        list[now].used = true;
+        return (list[now].best, list[now].used);
     }
 
-    let choice;
+    let mut choice;
     list[now].cnt += 1;
     if list[now].target > list[now].cnt - 1 {
         choice = list[now].cnt - 1;
@@ -299,6 +308,12 @@ fn search(
             choice = list[now].cnt % list[now].target;
         }
     }
+    for i in 0..list[now].target {
+        if list[now].next[choice].1 .0 && list[now].next[choice].2 .0 {
+            choice += 1;
+            choice %= list[now].target;
+        }
+    }
 
     let left = list[now].next[choice].1;
     let right = list[now].next[choice].2;
@@ -307,6 +322,18 @@ fn search(
     let rightret = search(
         right.1[0], right.1[1], right.1[2], right.1[3], map, list, png,
     );
+    let leftret_score = leftret.0;
+    let rightret_score = rightret.0;
+
+    list[now].next[choice].1 .0 |= leftret.1;
+    list[now].next[choice].2 .0 |= rightret.1;
+
+    if leftret.1 && rightret.1 {
+        list[now].ok_count += 1;
+        if list[now].ok_count == list[now].target {
+            list[now].used = true;
+        }
+    }
 
     let s = {
         let s1 = (400.001 - right.1[0] as f64) * (400.001 - right.1[2] as f64);
@@ -318,8 +345,8 @@ fn search(
         }
     };
 
-    let ret = leftret
-        + rightret
+    let ret = leftret_score
+        + rightret_score
         + (400.0 * 400.0 / s) * 1.0
         + (400.0 * 400.0 / ((400.00001 - lx as f64) * (400.00001 - ly as f64))) * 7.0;
 
@@ -352,12 +379,12 @@ fn search(
             right.1[2],
             right.1[1],
             right.1[3],
-            leftret,
-            rightret,
+            leftret_score,
+            rightret_score,
             list[now].def
         );
     }
-    return list[now].best;
+    return (list[now].best, list[now].used);
 }
 
 fn bit_count(a: usize) -> usize {
@@ -374,5 +401,7 @@ struct Node {
     best: f64,
     def: f64,
     target: usize,
-    next: Vec<((f64, char, usize), (f64, [usize; 4]), (f64, [usize; 4]))>,
+    used: bool,
+    ok_count: usize,
+    next: Vec<((f64, char, usize), (bool, [usize; 4]), (bool, [usize; 4]))>,
 }

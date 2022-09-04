@@ -27,7 +27,7 @@ fn main() {
     let mut best = (wata::INF, vec![]);
 
     //TODO 引数で時間が弄れるようにする
-    let sec = 300;
+    let sec = 120;
 
     let best_flips;
     if *FLIP_ROTATE_BEST_ONLY != 0 {
@@ -94,7 +94,7 @@ fn main() {
             best.0.round()
         );
     }
-    println!("# chokudai-swap 300sec target64 bitcount");
+    println!("# chokudai-swap {} sec target64 bitcount", sec);
 
     for p in best.1 {
         println!("{}", p);
