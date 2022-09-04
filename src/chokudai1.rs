@@ -7,12 +7,24 @@ use crate::{BlockId, Move};
 //png       画像データ
 //border    1行のエラーの合計許容値。3~10くらいがおススメ
 //combo     連続何行でswap対象になるか。10くらいがお勧め
-pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f64, Program) {
-    return solve_swap2(png, border, combo, &Canvas::new(png[0].len(), png.len()));
+pub fn solve_swap(
+    png: &mut Vec<Vec<[u8; 4]>>,
+    sec: i32,
+    border: f64,
+    combo: usize,
+) -> (f64, Program) {
+    return solve_swap2(
+        png,
+        sec,
+        border,
+        combo,
+        &Canvas::new(png[0].len(), png.len()),
+    );
 }
 
 pub fn solve_swap2(
     png: &mut Vec<Vec<[u8; 4]>>,
+    sec: i32,
     border: f64,
     combo: usize,
     init_canvas: &Canvas,
@@ -155,7 +167,7 @@ pub fn solve_swap2(
 
     eprintln!("xswap:{}, yswap:{}", xlist.len(), ylist.len());
 
-    let (_, moves) = monte_solve2(png, init_canvas);
+    let (_, moves) = monte_solve2(png, sec, init_canvas);
 
     let mut id = init_canvas.blocks.len() as u32 - 1;
     let mut blocks = vec![BlockId(vec![])];

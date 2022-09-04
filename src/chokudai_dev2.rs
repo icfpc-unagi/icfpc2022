@@ -7,18 +7,18 @@ use std::time::{Duration, Instant};
 
 //use std::collections::HashMap;
 
-pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>) -> (f64, Program) {
-    return monte_solve2(png, &Canvas::new(png[0].len(), png.len()));
+pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>, sec: i32) -> (f64, Program) {
+    return monte_solve2(png, sec, &Canvas::new(png[0].len(), png.len()));
 }
 
-pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
+pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> (f64, Program) {
     let mut map: HashMap<i64, usize> = HashMap::new();
     let mut list = vec![];
     let mut best = 999999999.0;
     let start = Instant::now();
     for i in 0..200000000 {
         let end = start.elapsed();
-        if end >= Duration::from_secs(300) {
+        if end >= Duration::from_secs(sec as u64) {
             break;
         }
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);

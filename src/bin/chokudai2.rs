@@ -26,6 +26,9 @@ fn main() {
     let (init_canvas, mut png) = load_problem(problem_id);
     let mut best = (wata::INF, vec![]);
 
+    //TODO 引数で時間が弄れるようにする
+    let sec = 300;
+
     let best_flips;
     if *FLIP_ROTATE_BEST_ONLY != 0 {
         best_flips = Some(submissions::find_best_flip(problem_id).unwrap());
@@ -44,7 +47,7 @@ fn main() {
         for _ in 0..2 {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
                 let mut png2 = png.clone();
-                let mut out = solve_swap2(&mut png2, 20.0, 8, &init_canvas);
+                let mut out = solve_swap2(&mut png2, sec, 20.0, 8, &init_canvas);
 
                 //for mm in &out.1 {
                 //    println!("{}", mm);
