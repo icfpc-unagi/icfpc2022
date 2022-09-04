@@ -56,7 +56,7 @@ jobs:
             ${{ github.ref }}
             refs/head/main
       - uses: docker/setup-buildx-action@v1
-      - name: create tag
+      - name: Create a tag
         run: |
           SHA=${{ github.sha }}
           TAG=${IMAGE}:$(TZ=UTC+9 date '+%Y%m')-${SHA:0:7}
@@ -105,7 +105,7 @@ jobs:
             ${{ github.ref }}
             refs/head/main
       - uses: docker/setup-buildx-action@v1
-      - name: create tag
+      - name: Create a tag
         run: |
           SHA=${{ github.sha }}
           TAG=${IMAGE}:$(TZ=UTC+9 date '+%Y%m')-${SHA:0:7}
