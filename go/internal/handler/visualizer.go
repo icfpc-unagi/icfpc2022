@@ -79,8 +79,8 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
       </label>
     </p>
     <p>
-      <input type="checkbox" id="show_blocks" onchange="visualize()">show blocks&emsp;
-      <input type="checkbox" id="show_diff" onchange="visualize()">show diff
+      <input type="checkbox" id="show_blocks" onchange="visualize()"><label for="show_blocks">ブロック境界表示</label>&emsp;
+      <input type="checkbox" id="show_diff" onchange="visualize()"><label for="show_diff">画像差分表示</label>
     </p>
     <p>
       <input type="range" id="t_bar" min="0" max="0" value="0" style="width:780px;" onchange="update_t(this.value)" oninput="update_t(this.value)">
