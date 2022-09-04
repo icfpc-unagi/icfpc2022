@@ -11,6 +11,9 @@ struct Args {
 
     #[clap(short, long)]
     submission_ids: Option<String>,
+
+    #[clap(short, long)]
+    latest: Option<usize>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -41,6 +44,33 @@ fn main() -> anyhow::Result<()> {
                     .map_err(anyhow::Error::from)
                     .and_then(|id_u32| submissions::find_best_submission(id_u32))
             })
+            .collect::<anyhow::Result<Vec<_>>>()?;
+    } else if let Some(latest) = args.latest {
+        let paths = glob::glob("submissions/*.json")?;
+        let mut paths = paths
+            .map(|path| path.map_err(anyhow::Error::from))
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let mut submission_ids = paths
+            .into_iter()
+            .map(|path| {
+                path.to_str()
+                    .unwrap()
+                    .split('/')
+                    .nth(1)
+                    .unwrap()
+                    .split('.')
+                    .nth(0)
+                    .unwrap()
+                    .parse::<u32>()
+                    .map_err(anyhow::Error::from)
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        submission_ids.sort();
+        submission_ids.reverse();
+        dbg!(&submission_ids[0..latest]);
+        submissions = submission_ids[0..latest]
+            .into_iter()
+            .map(|id| submissions::read_submission(*id))
             .collect::<anyhow::Result<Vec<_>>>()?;
     } else {
         submissions = submissions::find_best_submissions()?
