@@ -377,7 +377,7 @@ impl MedianSelector {
     }
 
     /// [lx, rx) * [ly, ry) のk番目
-    fn kth_rectangle(&self, lx: usize, rx: usize, ly: usize, ry: usize, mut k: usize) -> u8 {
+    fn kth_rectangle(&self, lx: usize, rx: usize, ly: usize, ry: usize, k: usize) -> u8 {
         let mut z = 0;
         for lev in (0..8).rev() {
             let b = 1 << lev;

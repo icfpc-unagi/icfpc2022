@@ -114,7 +114,6 @@ pub fn optimize_coord_two(
     initial_canvas: &Canvas,
     image: &Vec<Vec<Color>>,
     diff_step: i32,
-    n_candidates: usize,
 ) -> Option<(Program, f64)> {
     let original_score = score(&program, initial_canvas, image).unwrap();
 
@@ -170,7 +169,6 @@ pub fn optimize_coord_two(
             } else {
                 panic!()
             }
-            None
         })
         .collect_into_vec(&mut results);
 
