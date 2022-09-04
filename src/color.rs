@@ -37,12 +37,26 @@ pub fn best_color(
     return (color, cost);
 }
 
-fn median_array(mut a: Vec<u8>) -> u8 {
-    a.sort();
-    let n = a.len();
-    assert!(n >= 1);
-    // TODO: そのうち暇な時、偶数の時にあれする
-    return a[n / 2];
+fn cost(
+    png: &Vec<Vec<[u8; 4]>>,
+    lx: usize,
+    rx: usize,
+    ly: usize,
+    ry: usize,
+    color: [u8; 4],
+) -> f64 {
+    let mut cost = 0.0;
+    for y in ly..ry {
+        for x in lx..rx {
+            let mut t = 0.0;
+            for c in 0..4 {
+                let d = (color[c] as f64) - (png[y][x][c] as f64);
+                t += d * d
+            }
+            cost += t.sqrt();
+        }
+    }
+    cost
 }
 
 pub fn median_color(
@@ -53,7 +67,62 @@ pub fn median_color(
     ry: usize,
 ) -> ([u8; 4], f64) {
     let area = (rx - lx) * (ry - ly);
+    let color;
+    if area <= 100 {
+        color = median_color_by_sort(png, lx, rx, ly, ry);
+    } else {
+        color = median_color_by_bucketing(png, lx, rx, ly, ry);
+    }
+    (color, cost(png, lx, rx, ly, ry, color))
+}
 
+fn median_bucket(b: [usize; 256], n: usize) -> u8 {
+    let mut s = 0;
+    for i in 0..256 {
+        s += b[i];
+        if s >= n / 2 {
+            return i as u8;
+        }
+    }
+    panic!();
+}
+
+pub fn median_color_by_bucketing(
+    png: &Vec<Vec<[u8; 4]>>,
+    lx: usize,
+    rx: usize,
+    ly: usize,
+    ry: usize,
+) -> [u8; 4] {
+    let mut buckets = [[0_usize; 256]; 4];
+    for y in ly..ry {
+        for x in lx..rx {
+            for c in 0..4 {
+                buckets[c][png[y][x][c] as usize] += 1;
+            }
+        }
+    }
+
+    let n = (rx - lx) * (ry - ly);
+
+    buckets.map(|b| median_bucket(b, n))
+}
+
+fn median_array(mut a: Vec<u8>) -> u8 {
+    a.sort();
+    let n = a.len();
+    assert!(n >= 1);
+    // TODO: そのうち暇な時、偶数の時にあれする
+    return a[n / 2];
+}
+
+pub fn median_color_by_sort(
+    png: &Vec<Vec<[u8; 4]>>,
+    lx: usize,
+    rx: usize,
+    ly: usize,
+    ry: usize,
+) -> [u8; 4] {
     let mut points = [
         Vec::with_capacity((ry - ly) * (rx - lx)),
         Vec::with_capacity((ry - ly) * (rx - lx)),
@@ -67,21 +136,7 @@ pub fn median_color(
             }
         }
     }
-    let color = points.map(|p| median_array(p));
-
-    let mut cost = 0.0;
-    for y in ly..ry {
-        for x in lx..rx {
-            let mut t = 0.0;
-            for c in 0..4 {
-                let d = (color[c] as f64) - (png[y][x][c] as f64);
-                t += d * d
-            }
-            cost += t.sqrt();
-        }
-    }
-
-    (color, cost)
+    points.map(|p| median_array(p))
 }
 
 pub fn mode_color(
