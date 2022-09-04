@@ -86,6 +86,7 @@ impl TryFrom<InitialJson> for Canvas {
         let h = ini.height;
         let mut bitmap = vec![vec![WHITE; w]; h];
         let mut blocks = HashMap::new();
+        let mut cost_type = Default::default();
         for (i, block) in ini.blocks.iter().enumerate() {
             let id = block.block_id.parse::<BlockId>().unwrap(); // TODO: use `?`
             if id != BlockId(vec![i as u32]) {
@@ -109,6 +110,7 @@ impl TryFrom<InitialJson> for Canvas {
                 assert_eq!(block.png_bottom_left_point, Some(Point(0, 0)));
                 assert_eq!(rect, Block(Point(0, 0), Point(w as i32, h as i32)));
                 bitmap = png;
+                cost_type = CostType::V2; // if sourcePngPNG is given
             } else {
                 anyhow::bail!("missing value: `color` or `sourcePngPNG`")
             }
@@ -124,7 +126,7 @@ impl TryFrom<InitialJson> for Canvas {
             bitmap,
             blocks,
             counter: ini.blocks.len() as u32 - 1,
-            cost_type: CostType::Basic, // TODO
+            cost_type,
         })
     }
 }
