@@ -215,32 +215,11 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
         .set("viewBox", (-5, -5, w * 4 + 10 + 50, h * 2 + 10))
         .set("width", w * 4 + 10 + 50)
         .set("height", h * 2 + 10);
-    let mut dummy_png = mat![[0; 4]; h; w];
-    for y in 0..h {
-        for x in 0..w {
-            dummy_png[y][x][0] = (y / 256) as u8;
-            dummy_png[y][x][1] = y as u8;
-            dummy_png[y][x][2] = (x / 256) as u8;
-            dummy_png[y][x][3] = x as u8;
-        }
-    }
     match read_isl(output.into_bytes().as_slice()) {
         Ok(program) => {
             let mut dummy_canvas = Canvas::new(w, h);
             let _ = dummy_canvas.apply_all_safe(program[0..t as usize].iter().cloned());
-            dummy_canvas.bitmap = dummy_png;
-            let _ = dummy_canvas.apply_all_safe(program[t as usize..].iter().filter(|p| match p {
-                Move::Color(_, _) => false,
-                _ => true,
-            }).cloned());
-            let png2 = png.clone();
-            for y in 0..h {
-                for x in 0..w {
-                    let y2 = dummy_canvas.bitmap[y][x][0] as usize * 256 + dummy_canvas.bitmap[y][x][1] as usize;
-                    let x2 = dummy_canvas.bitmap[y][x][2] as usize * 256 + dummy_canvas.bitmap[y][x][3] as usize;
-                    png[y2][x2] = png2[y][x];
-                }
-            }
+            png = wata::get_swapped_png(&png, &program[t as usize..], &dummy_canvas);
             let mut canvas = if let Some(json) = INIT_CANVAS[problem_id] {
                 let mut json: InitialJson = serde_json::from_reader(json).unwrap();
                 if problem_id >= 35 {

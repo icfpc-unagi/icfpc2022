@@ -923,6 +923,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         &mut id,
                         &mut blocks,
                         &mut out,
+                        false,
                     );
                 }
                 y = dp_y[lx][ux][y].1;
@@ -961,6 +962,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         &mut id,
                         &mut blocks,
                         &mut out,
+                        false,
                     );
                 }
                 x = dp_x[ly][uy][x].1;
@@ -1011,17 +1013,18 @@ fn rec(
     id: &mut u32,
     blocks: &mut Vec<BlockId>,
     out: &mut Vec<Move>,
+    do_all_merge: bool,
 ) {
     match dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .0 {
         0 => {
             // eprintln!("{:?}", (lx, ux, ly, uy));
             let x = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1 as usize;
-            rec(lx, x, ly, uy, w, h, dp, id, blocks, out);
+            rec(lx, x, ly, uy, w, h, dp, id, blocks, out, do_all_merge);
             let block = blocks.pop().unwrap();
             out.push(Move::LineCut(block.clone(), 'x', x as i32));
             blocks.extend(block.cut());
-            rec(x, ux, ly, uy, w, h, dp, id, blocks, out);
-            if ux < w || uy < h {
+            rec(x, ux, ly, uy, w, h, dp, id, blocks, out, do_all_merge);
+            if do_all_merge || ux < w || uy < h {
                 let b2 = blocks.pop().unwrap();
                 let b1 = blocks.pop().unwrap();
                 out.push(Move::Merge(b1, b2));
@@ -1032,12 +1035,12 @@ fn rec(
         1 => {
             // eprintln!("{:?}", (lx, ux, ly, uy));
             let y = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1 as usize;
-            rec(lx, ux, ly, y, w, h, dp, id, blocks, out);
+            rec(lx, ux, ly, y, w, h, dp, id, blocks, out, do_all_merge);
             let block = blocks.pop().unwrap();
             out.push(Move::LineCut(block.clone(), 'y', y as i32));
             blocks.extend(block.cut());
-            rec(lx, ux, y, uy, w, h, dp, id, blocks, out);
-            if ux < w || uy < h {
+            rec(lx, ux, y, uy, w, h, dp, id, blocks, out, do_all_merge);
+            if do_all_merge || ux < w || uy < h {
                 let b2 = blocks.pop().unwrap();
                 let b1 = blocks.pop().unwrap();
                 out.push(Move::Merge(b1, b2));
@@ -1066,7 +1069,7 @@ pub static MAX_CANDIDATES: Lazy<usize> = Lazy::new(|| {
         .unwrap()
 });
 
-pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
+pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas, do_all_merge: bool) -> (f64, Program) {
     let D = *MAX_WIDTH;
     let h = png.len();
     let w = png[0].len();
@@ -1142,7 +1145,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     for x2 in x + 1..=x + dx {
                         let mut cost = dp[x][x2 - x - 1][y][dy].0 + dp[x2][x + dx - x2][y][dy].0;
                         cost += (CUT * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
-                        if x + dx + 1 < w || y + dy + 1 < h {
+                        if do_all_merge || x + dx + 1 < w || y + dy + 1 < h {
                             cost += (1.0 * (w * h) as f64
                                 / ((w - x2).max(x2 - x) * (h - y)) as f64)
                                 .round();
@@ -1154,7 +1157,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     for y2 in y + 1..=y + dy {
                         let mut cost = dp[x][dx][y][y2 - y - 1].0 + dp[x][dx][y2][y + dy - y2].0;
                         cost += (CUT * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
-                        if x + dx + 1 < w || y + dy + 1 < h {
+                        if do_all_merge || x + dx + 1 < w || y + dy + 1 < h {
                             cost += (1.0 * (w * h) as f64
                                 / ((h - y2).max(y2 - y) * (w - x)) as f64)
                                 .round();
@@ -1314,7 +1317,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         let mut cost = dp2[lx][mx][ly][uy].0 + dp2[mx][ux][ly][uy].0;
                         cost +=
                             (CUT * (w * h) as f64 / ((w - xs[lx]) * (h - ys[ly])) as f64).round();
-                        if ux + 1 < xs.len() || uy + 1 < ys.len() {
+                        if do_all_merge || ux + 1 < xs.len() || uy + 1 < ys.len() {
                             cost += (1.0 * (w * h) as f64
                                 / ((w - xs[mx]).max(xs[mx] - xs[lx]) * (h - ys[ly])) as f64)
                                 .round();
@@ -1327,7 +1330,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         let mut cost = dp2[lx][ux][ly][my].0 + dp2[lx][ux][my][uy].0;
                         cost +=
                             (CUT * (w * h) as f64 / ((w - xs[lx]) * (h - ys[ly])) as f64).round();
-                        if ux + 1 < xs.len() || uy + 1 < ys.len() {
+                        if do_all_merge || ux + 1 < xs.len() || uy + 1 < ys.len() {
                             cost += (1.0 * (w * h) as f64
                                 / ((h - ys[my]).max(ys[my] - ys[ly]) * (w - xs[lx])) as f64)
                                 .round();
@@ -1364,6 +1367,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
         &mut id,
         &mut blocks,
         &mut out,
+        do_all_merge,
     );
     let mut canvas = init_canvas.clone();
     let mut cost = canvas.apply_all(out.clone());
@@ -1395,16 +1399,47 @@ fn rec2(
     id: &mut u32,
     blocks: &mut Vec<BlockId>,
     out: &mut Vec<Move>,
+    do_all_merge: bool,
 ) {
     match dp2[lx][ux][ly][uy].1 .0 {
         0 => {
             let x = dp2[lx][ux][ly][uy].1 .1 as usize;
-            rec2(lx, x, ly, uy, w, h, xs, ys, dp, dp2, id, blocks, out);
+            rec2(
+                lx,
+                x,
+                ly,
+                uy,
+                w,
+                h,
+                xs,
+                ys,
+                dp,
+                dp2,
+                id,
+                blocks,
+                out,
+                do_all_merge,
+            );
             let block = blocks.pop().unwrap();
             out.push(Move::LineCut(block.clone(), 'x', xs[x] as i32));
             blocks.extend(block.cut());
-            rec2(x, ux, ly, uy, w, h, xs, ys, dp, dp2, id, blocks, out);
-            if ux + 1 < xs.len() || uy + 1 < ys.len() {
+            rec2(
+                x,
+                ux,
+                ly,
+                uy,
+                w,
+                h,
+                xs,
+                ys,
+                dp,
+                dp2,
+                id,
+                blocks,
+                out,
+                do_all_merge,
+            );
+            if do_all_merge || ux + 1 < xs.len() || uy + 1 < ys.len() {
                 let b2 = blocks.pop().unwrap();
                 let b1 = blocks.pop().unwrap();
                 out.push(Move::Merge(b1, b2));
@@ -1414,12 +1449,42 @@ fn rec2(
         }
         1 => {
             let y = dp2[lx][ux][ly][uy].1 .1 as usize;
-            rec2(lx, ux, ly, y, w, h, xs, ys, dp, dp2, id, blocks, out);
+            rec2(
+                lx,
+                ux,
+                ly,
+                y,
+                w,
+                h,
+                xs,
+                ys,
+                dp,
+                dp2,
+                id,
+                blocks,
+                out,
+                do_all_merge,
+            );
             let block = blocks.pop().unwrap();
             out.push(Move::LineCut(block.clone(), 'y', ys[y] as i32));
             blocks.extend(block.cut());
-            rec2(lx, ux, y, uy, w, h, xs, ys, dp, dp2, id, blocks, out);
-            if ux + 1 < xs.len() || uy + 1 < ys.len() {
+            rec2(
+                lx,
+                ux,
+                y,
+                uy,
+                w,
+                h,
+                xs,
+                ys,
+                dp,
+                dp2,
+                id,
+                blocks,
+                out,
+                do_all_merge,
+            );
+            if do_all_merge || ux + 1 < xs.len() || uy + 1 < ys.len() {
                 let b2 = blocks.pop().unwrap();
                 let b1 = blocks.pop().unwrap();
                 out.push(Move::Merge(b1, b2));
@@ -1449,6 +1514,7 @@ fn rec2(
                 id,
                 blocks,
                 out,
+                do_all_merge,
             );
         }
         _ => unreachable!(),
@@ -1467,4 +1533,44 @@ pub fn merge_solution(init_canvas: &Canvas, s1: &Program, s2: &Program) -> Progr
         out.push(p);
     }
     out
+}
+
+pub fn get_swapped_png(
+    png: &Vec<Vec<[u8; 4]>>,
+    program: &[Move],
+    init_canvas: &Canvas,
+) -> Vec<Vec<[u8; 4]>> {
+    let h = png.len();
+    let w = png[0].len();
+    let mut dummy_png = mat![[0; 4]; h; w];
+    for y in 0..h {
+        for x in 0..w {
+            dummy_png[y][x][0] = (y / 256) as u8;
+            dummy_png[y][x][1] = y as u8;
+            dummy_png[y][x][2] = (x / 256) as u8;
+            dummy_png[y][x][3] = x as u8;
+        }
+    }
+    let mut dummy_canvas = init_canvas.clone();
+    dummy_canvas.bitmap = dummy_png;
+    let _ = dummy_canvas.apply_all_safe(
+        program
+            .iter()
+            .filter(|p| match p {
+                Move::Color(_, _) => false,
+                _ => true,
+            })
+            .cloned(),
+    );
+    let mut png2 = png.clone();
+    for y in 0..h {
+        for x in 0..w {
+            let y2 =
+                dummy_canvas.bitmap[y][x][0] as usize * 256 + dummy_canvas.bitmap[y][x][1] as usize;
+            let x2 =
+                dummy_canvas.bitmap[y][x][2] as usize * 256 + dummy_canvas.bitmap[y][x][3] as usize;
+            png2[y2][x2] = png[y][x];
+        }
+    }
+    png2
 }
