@@ -88,7 +88,7 @@ impl TryFrom<InitialJson> for Canvas {
         let mut blocks = HashMap::new();
         let mut cost_type = Default::default();
         for (i, block) in ini.blocks.iter().enumerate() {
-            let id = block.block_id.parse::<BlockId>().unwrap(); // TODO: use `?`
+            let id = block.block_id.parse()?;
             if id != BlockId(vec![i as u32]) {
                 anyhow::bail!("id is not sorted. please fix me and fix `counter`")
             }
@@ -159,7 +159,10 @@ impl Canvas {
     pub fn apply_safe(&mut self, mov: &Move) -> anyhow::Result<f64> {
         let block_area = match mov {
             Move::LineCut(b, o, x) => {
-                let block = self.blocks.remove(&b).unwrap();
+                let block = self
+                    .blocks
+                    .remove(&b)
+                    .with_context(|| format!("bad block {b}"))?;
                 // NOTE: offset is absolute coordinate
                 let [bid0, bid1] = b.cut();
                 let block0;
@@ -173,7 +176,7 @@ impl Canvas {
                         block0 = Block(block.0, Point(block.1 .0, *x));
                         block1 = Block(Point(block.0 .0, *x), block.1);
                     }
-                    _ => panic!("bad orientation: {}", o),
+                    _ => anyhow::bail!("bad orientation: {}", o),
                 }
                 check_valid_block(&block0)?;
                 check_valid_block(&block1)?;
@@ -182,7 +185,10 @@ impl Canvas {
                 block.area()
             }
             Move::PointCut(b, x, y) => {
-                let block = self.blocks.remove(&b).unwrap();
+                let block = self
+                    .blocks
+                    .remove(&b)
+                    .with_context(|| format!("bad block {b}"))?;
                 // NOTE: offset is absolute coordinate
                 let bids = b.cut4();
                 let blocks = [
@@ -197,7 +203,7 @@ impl Canvas {
                 block.area()
             }
             Move::Color(b, c) => {
-                let block = &self.blocks[&b];
+                let block = self.blocks[&b];
                 for y in block.0 .1..block.1 .1 {
                     for x in block.0 .0..block.1 .0 {
                         self.bitmap[y as usize][x as usize] = *c;
@@ -206,13 +212,18 @@ impl Canvas {
                 block.area()
             }
             Move::Swap(b0, b1) => {
-                let block0 = self.blocks[&b0];
-                let block1 = self.blocks.insert(b1.clone(), block0).unwrap();
-                self.blocks.insert(b0.clone(), block1).unwrap();
+                let block0 = self
+                    .blocks
+                    .remove(b0)
+                    .with_context(|| format!("bad block {b0}"))?;
+                let block1 = self
+                    .blocks
+                    .insert(b1.clone(), block0)
+                    .with_context(|| format!("bad block {b1}"))?;
+                self.blocks.insert(b0.clone(), block1);
                 let size = block0.size();
 
                 // Check!
-                //assert_eq!(size, block1.size());
                 let size1 = block1.size();
                 if size != size1 {
                     anyhow::bail!(
@@ -244,8 +255,14 @@ impl Canvas {
                 if !self.blocks.contains_key(&b1) {
                     anyhow::bail!("block {} does not exist", *b1,)
                 }
-                let block0 = self.blocks.remove(&b0).unwrap();
-                let block1 = self.blocks.remove(&b1).unwrap();
+                let block0 = self
+                    .blocks
+                    .remove(&b0)
+                    .with_context(|| format!("bad block {b0}"))?;
+                let block1 = self
+                    .blocks
+                    .remove(&b1)
+                    .with_context(|| format!("bad block {b1}"))?;
 
                 check_merge_compatibility(&block0, &block1)?;
 

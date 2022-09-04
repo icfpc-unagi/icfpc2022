@@ -23,6 +23,7 @@ pub mod wata;
 use anyhow::Context;
 pub use canvas::*;
 pub use initial_json::InitialJson;
+use itertools::Itertools;
 #[cfg(target_arch = "wasm32")]
 pub use wasm::*;
 
@@ -165,12 +166,12 @@ pub struct BlockId(pub Vec<u32>);
 
 impl std::fmt::Display for BlockId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut it = self.0.iter();
-        f.write_fmt(format_args!("{}", it.next().unwrap()))?;
-        for x in it {
-            f.write_fmt(format_args!(".{}", x))?;
-        }
-        Ok(())
+        f.write_fmt(format_args!(
+            "{}",
+            self.0
+                .iter()
+                .format_with(".", |e, f| f(&format_args!("{}", e)))
+        ))
     }
 }
 
@@ -320,11 +321,11 @@ impl FromStr for Move {
 // Instruction Set
 pub type Program = Vec<Move>;
 
-pub fn read_isl<R: io::Read>(r: R) -> io::Result<Program> {
+pub fn read_isl<R: io::Read>(r: R) -> anyhow::Result<Program> {
     Ok(read_isl_with_comments(r)?.0)
 }
 
-pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<String>)> {
+pub fn read_isl_with_comments<R: io::Read>(r: R) -> anyhow::Result<(Program, Vec<String>)> {
     let r = io::BufReader::new(r);
     let mut program = Program::new();
     let mut comments = Vec::new();
@@ -338,7 +339,7 @@ pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<Str
         if line.is_empty() {
             continue;
         }
-        program.push(line.parse().unwrap());
+        program.push(line.parse()?);
     }
     Ok((program, comments))
 }
