@@ -7,6 +7,7 @@ import (
 	"html"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/icfpc-unagi/icfpc2022/go/internal/official"
 
@@ -182,7 +183,13 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 	}
 	fmt.Fprint(buf, `</td><td width="50%" style="vertical-align:top">`)
 	if record != nil && record.SubmissionSolution != "" {
-		fmt.Fprintf(buf, `<ul><li>提出ID: %d</li>`, record.SubmissionID)
+		comment := strings.SplitN(record.SubmissionSolution, "\n", 2)[0]
+		fmt.Fprintf(buf, `<ul>`)
+		if strings.HasPrefix(comment, "#") {
+			comment = strings.TrimSpace(strings.TrimPrefix(comment, "#"))
+			fmt.Fprintf(buf, `<li>提出情報: %s</li>`, html.EscapeString(comment))
+		}
+		fmt.Fprintf(buf, `<li>提出ID: %d</li>`, record.SubmissionID)
 		fmt.Fprintf(buf, `<li>スコア: %d (コスト: %d, 類似度: %d)</li>`,
 			resp.Cost+resp.Similarity, resp.Cost, resp.Similarity)
 		fmt.Fprintf(buf, "</ul>")

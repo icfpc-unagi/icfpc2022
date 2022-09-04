@@ -7,11 +7,4 @@ if [ "${version}" == '' ]; then
     exit 1
 fi
 
-pushd /work/src/bin
-targets=()
-for file in *.rs; do
-    targets+=("/work/target/release/${file//.rs}")
-done
-popd >/dev/null
-
-gsutil -m cp "${targets[@]}" gs://icfpc2022/${version}/
+gsutil -m cp -Z /usr/local/bin/* gs://icfpc2022/bin/${version}/
