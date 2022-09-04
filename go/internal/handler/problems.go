@@ -117,7 +117,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 		problem.ID, problem.ID, problem.Name)
 
 	resp := &api.EvaluateResponse{}
-	if record.SubmissionSolution != "" {
+	if record != nil && record.SubmissionSolution != "" {
 		var err error
 		resp, err = api.Evaluate(&api.EvaluateRequest{
 			ProblemID: problem.ID,
@@ -178,7 +178,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 		fmt.Fprintf(buf, `</table>`)
 	}
 	fmt.Fprint(buf, `</td><td width="50%" style="vertical-align:top">`)
-	if record.SubmissionSolution != "" {
+	if record != nil && record.SubmissionSolution != "" {
 		fmt.Fprintf(buf, `<ul><li>提出ID: %d</li>`, record.SubmissionID)
 		fmt.Fprintf(buf, `<li>スコア: %d (コスト: %d, 類似度: %d)</li>`,
 			resp.Cost+resp.Similarity, resp.Cost, resp.Similarity)
