@@ -1,11 +1,11 @@
-use std::fs::File;
+use std::{fs::File, io::Write};
 
-use icfpc2022::{read_isl, read_png, write_isl, Canvas, Move};
+use icfpc2022::{read_isl_with_comments, read_png, write_isl_with_comments, Canvas, Move};
 
 fn main1(problem_id: u32, submission_id: u32) -> anyhow::Result<()> {
     let mut f = File::open(format!("submissions/{submission_id}.isl"))?;
 
-    let mut program = read_isl(&mut f)?;
+    let (mut program, comments) = read_isl_with_comments(&mut f)?;
     if let Move::Color(_b, c) = &program[0] {
         eprintln!("First move is color {:?}", c);
         eprintln!("TODO: Consider removing `Move::Color(_, WHITE)`");
@@ -23,7 +23,8 @@ fn main1(problem_id: u32, submission_id: u32) -> anyhow::Result<()> {
     let answer = read_png(&format!("problems/{problem_id}.png"));
     let score = Canvas::new400().apply_all_and_score(program.clone(), &answer)?;
     let mut f_out = File::create(format!("out/opt_{}_{:06.0}", problem_id, score))?;
-    write_isl(&mut f_out, program)?;
+    f_out.write_fmt(format_args!("# trim_end"))?;
+    write_isl_with_comments(&mut f_out, program, &comments)?;
     Ok(())
 }
 

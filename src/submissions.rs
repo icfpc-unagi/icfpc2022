@@ -83,7 +83,7 @@ pub fn find_best_score(problem_id: u32) -> u32 {
 
 pub fn read_solution(
     submission_id: u32,
-) -> anyhow::Result<(Submission, Program, Canvas, Vec<Vec<crate::Color>>)> {
+) -> anyhow::Result<(Submission, Program, Vec<String>, Canvas, Vec<Vec<crate::Color>>)> {
     let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
         "submissions/{}.json",
         submission_id
@@ -91,10 +91,10 @@ pub fn read_solution(
     assert_eq!(sub.status, "SUCCEEDED");
 
     let (initial_canvas, image) = crate::load_problem(sub.problem_id);
-    let program = crate::read_isl(std::fs::File::open(format!(
+    let (program, comments) = crate::read_isl_with_comments(std::fs::File::open(format!(
         "submissions/{}.isl",
         submission_id
     ))?)?;
 
-    Ok((sub, program, initial_canvas, image))
+    Ok((sub, program, comments, initial_canvas, image))
 }

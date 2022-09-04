@@ -197,7 +197,7 @@ SET solution_isl = ?`,
 	}
 
 	var runID int
-	if err := db.Cell(ctx, &runID, "SELECT run_id FROM run_id WHERE run_signature = ? LIMIT 1", req.RunSignature); err != nil {
+	if err := db.Cell(ctx, &runID, "SELECT run_id FROM runs WHERE run_signature = ? LIMIT 1", req.RunSignature); err != nil {
 		return errors.Wrapf(err, "failed to get an run ID")
 	}
 

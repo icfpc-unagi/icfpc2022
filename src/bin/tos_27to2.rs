@@ -1,10 +1,10 @@
-use std::fs::File;
+use std::{fs::File, io::Write};
 
-use icfpc2022::{read_isl, write_isl, BlockId, Move};
+use icfpc2022::{read_isl_with_comments, write_isl_with_comments, BlockId, Move};
 
 fn main() -> anyhow::Result<()> {
     let n = 400;
-    let mut program = read_isl(File::open("submissions/26658.isl")?)?;
+    let (mut program, comments) = read_isl_with_comments(File::open("submissions/26658.isl")?)?;
     dbg!(program.len());
     let ok = program.drain(..n - 1).all(|m| matches!(m, Move::Merge(..)));
     assert!(ok);
@@ -22,6 +22,8 @@ fn main() -> anyhow::Result<()> {
             }
         }
     }
-    write_isl(File::create("out/tos2.isl")?, program)?;
+    let mut w = File::create("out/tos2.isl")?;
+    w.write_fmt(format_args!("# tos_27to2\n"))?;
+    write_isl_with_comments(w, program, &comments)?;
     Ok(())
 }

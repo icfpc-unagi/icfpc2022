@@ -2,6 +2,7 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead},
+    iter::empty,
     ops::{Add, Sub},
     panic,
     str::FromStr,
@@ -375,14 +376,17 @@ pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<Str
 }
 
 pub fn write_isl<W: io::Write>(w: W, program: Program) -> io::Result<()> {
-    write_isl_with_comments::<_, &str>(w, program, &[])
+    write_isl_with_comments(w, program, std::iter::empty::<&str>())
 }
 
-pub fn write_isl_with_comments<W: io::Write, S: fmt::Display>(
+pub fn write_isl_with_comments<W: io::Write, I: IntoIterator>(
     mut w: W,
     program: Program,
-    comments: &[S],
-) -> io::Result<()> {
+    comments: I,
+) -> io::Result<()>
+where
+    I::Item: fmt::Display,
+{
     for comment in comments {
         w.write_fmt(format_args!("# {}\n", comment))?
     }
