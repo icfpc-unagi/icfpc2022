@@ -68,13 +68,28 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
             0 => {
                 let mut id_tmp = if b == 0 {
                     block_ids[a][0].take().unwrap()
-                } else if r_prev == r {
+                } else if r_prev == r || a == 0 {
                     let [id0, id1] = id_b.cut();
                     push(cut_a(id_b.clone(), a + 1));
                     id_b = id1;
                     id0
                 } else {
-                    todo!()
+                    let (id0, id1, id2) = if a + 1 < h - a {
+                        let [id0, id12] = id_b.cut();
+                        push(cut_a(id_b.clone(), a));
+                        let [id1, id2] = id12.cut();
+                        push(cut_a(id_b.clone(), a + 1));
+                        (id0, id1, id2)
+                    } else {
+                        let [id01, id2] = id_b.cut();
+                        push(cut_a(id_b.clone(), a + 1));
+                        let [id0, id1] = id01.cut();
+                        push(cut_a(id_b.clone(), a));
+                        (id0, id1, id2)
+                    };
+                    push(Move::Merge(id0, mem::replace(&mut id_a, new_id())));
+                    id_b = id2;
+                    id1
                 };
                 for bb in b.max(1)..w {
                     push(Move::Merge(
