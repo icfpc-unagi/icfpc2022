@@ -24,7 +24,7 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas)
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
         if best > ret {
             best = ret;
-            //eprintln!("cnt:{}   score:{}    node:{}", i, best, list.len());
+            eprintln!("cnt:{}   score:{}    node:{}", i, best, list.len());
         }
         //eprintln!("cnt:{}   score:{}", cnt, best);
     }
@@ -252,7 +252,7 @@ fn search(
 
         div_pos.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-        list[now].target = 32;
+        list[now].target = 8;
         //list[now].target = 3;
         //while list[now].target * list[now].target < dx * dy / 50 {
         //    list[now].target += 1;
@@ -293,7 +293,7 @@ fn search(
         choice = list[now].cnt - 1;
         //list[now].target += 1;
     } else {
-        if list[now].cnt <= 10000000 {
+        if list[now].cnt >= 10000000 {
             choice = bit_count(list[now].cnt) % list[now].target;
         } else {
             choice = list[now].cnt % list[now].target;
