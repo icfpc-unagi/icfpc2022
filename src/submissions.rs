@@ -33,7 +33,11 @@ fn find_first_cut(program: &Program, orientation: char) -> Option<i32> {
 
     for mov in program {
         match mov {
-            Move::LineCut(_, ori, off) if *ori == orientation => return Some(*off),
+            Move::LineCut(_, ori, off)
+                if ori.to_ascii_lowercase() == orientation.to_ascii_lowercase() =>
+            {
+                return Some(*off)
+            }
             _ => {}
         }
     }
