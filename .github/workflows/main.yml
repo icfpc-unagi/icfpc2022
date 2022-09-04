@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up credentials
-        run: make secrets/service_account.json
+        run: pwd && ls -lA && cat Makefile && make secrets/service_account.json
       - name: Cache Docker layers
         uses: actions/cache@v2
         with:
@@ -58,17 +58,6 @@ jobs:
             ${{ github.ref }}
             refs/head/main
       - uses: docker/setup-buildx-action@v1
-      - name: Create a tag
-        run: |
-          SHA=${{ github.sha }}
-          TAG=${IMAGE}:$(TZ=UTC+9 date '+%Y%m')-${SHA:0:7}
-          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            LATEST=${IMAGE}:latest
-            echo "TAGS=$TAG,$LATEST" >> $GITHUB_ENV
-          else
-            echo "TAGS=$TAG" >> $GITHUB_ENV
-          fi
-          echo TAG $TAG
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
@@ -78,7 +67,6 @@ jobs:
           build-args: UNAGI_PASSWORD=${{ secrets.UNAGI_PASSWORD }}
           builder: ${{ steps.buildx.outputs.name }}
           push: false
-          tags: ${{ env.TAGS }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
 
@@ -106,18 +94,7 @@ jobs:
             refs/head/main
       - uses: docker/setup-buildx-action@v1
       - name: Set up credentials
-        run: pwd && make secrets/service_account.json
-      - name: Create a tag
-        run: |
-          SHA=${{ github.sha }}
-          TAG=${IMAGE}:$(TZ=UTC+9 date '+%Y%m')-${SHA:0:7}
-          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            LATEST=${IMAGE}:latest
-            echo "TAGS=$TAG,$LATEST" >> $GITHUB_ENV
-          else
-            echo "TAGS=$TAG" >> $GITHUB_ENV
-          fi
-          echo TAG $TAG
+        run: pwd && ls -lA && cat Makefile && make secrets/service_account.json
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
