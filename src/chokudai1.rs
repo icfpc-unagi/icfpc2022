@@ -157,8 +157,11 @@ pub fn solve_swap2(
 
     let (_, moves) = monte_solve2(png, init_canvas);
 
-    let mut blocks = vec![BlockId(vec![0])];
-    let mut id = 0;
+    let mut id = init_canvas.blocks.len() as u32 - 1;
+    let mut blocks = vec![BlockId(vec![])];
+    for i in 0..id {
+        blocks.push(BlockId(vec![i]));
+    }
 
     let mut ans: Vec<Move> = vec![];
 

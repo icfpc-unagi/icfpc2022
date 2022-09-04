@@ -45,6 +45,11 @@ fn main() {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
                 let mut png2 = png.clone();
                 let mut out = solve_swap2(&mut png2, 20.0, 8, &init_canvas);
+
+                //for mm in &out.1 {
+                //    println!("{}", mm);
+                //}
+
                 out.0 = init_canvas
                     .clone()
                     .apply_all_and_score(out.1.clone(), &png)
@@ -86,7 +91,7 @@ fn main() {
             best.0.round()
         );
     }
-    println!("# chokudai-swap 120sec");
+    println!("# chokudai-swap 300sec");
 
     for p in best.1 {
         println!("{}", p);

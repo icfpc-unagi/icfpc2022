@@ -18,7 +18,7 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, 
     let start = Instant::now();
     for i in 0..200000000 {
         let end = start.elapsed();
-        if end >= Duration::from_secs(60) {
+        if end >= Duration::from_secs(300) {
             break;
         }
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
