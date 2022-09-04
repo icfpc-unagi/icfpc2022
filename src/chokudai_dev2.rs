@@ -13,7 +13,7 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, 
     let mut map: HashMap<i64, usize> = HashMap::new();
     let mut list = vec![];
     let mut best = 999999999.0;
-    for i in 0..10000 {
+    for i in 0..200000 {
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
         if best > ret {
             best = ret;

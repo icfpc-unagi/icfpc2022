@@ -83,10 +83,8 @@ fn main() {
             best.0.round()
         );
     }
-    println!(
-        "# wata4, FLIP_ROTATE={}, FLIP_ROTATE_BEST_ONLY={}, MAX_WIDTH={}, MAX_AREA={}",
-        *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_AREA
-    );
+    println!("# chokudai no swap");
+
     for p in best.1 {
         println!("{}", p);
     }
