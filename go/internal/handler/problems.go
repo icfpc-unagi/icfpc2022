@@ -130,6 +130,9 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 				html.EscapeString(fmt.Sprintf("%+v", err)))
 		}
 	}
+	if resp.Image == "" {
+		resp.Image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQIHWP4DwABAQEANl9ngAAAAABJRU5ErkJggg=="
+	}
 
 	fmt.Fprintf(buf, `
 <table style="table-layout:fixed;width:100%%;margin-bottom: 2em;"><tr>
@@ -147,7 +150,7 @@ func showProblem(buf *bytes.Buffer, record *submissionsRecord, problem *Problem,
 <br>
 </td>
 </tr></table>`,
-		resp.ProblemID, resp.Image, resp.Image, resp.ProblemID)
+		problem.ID, resp.Image, resp.Image, problem.ID)
 	fmt.Fprint(buf, `<table style="table-layout:fixed; width:100%;"><tr><td width="50%" style="vertical-align:top">`)
 	if ranking != nil {
 		fmt.Fprint(buf, `<table style="width: 100%; table-layout: fixed">`)
