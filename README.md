@@ -31,3 +31,15 @@ make docker/tools
 docker run --rm -v $(pwd):/work -w /work icfpc-unagi/tools \
     ./bin/problems --logtostderr
 ```
+
+# サーバの更新
+
+```
+cd go && make push
+```
+
+# ランナーの更新
+
+```
+make push/runner
+```
