@@ -483,10 +483,18 @@ mod tests {
 
     #[test]
     fn test_load_problem() {
+        // v0
         let (canvas, _) = load_problem(25);
         assert_eq!(canvas.blocks.len(), 1);
 
+        // v1
         let (canvas, _) = load_problem(26);
         assert_eq!(canvas.blocks.len(), 100);
+
+        // v2
+        let (canvas, _) = load_problem(36);
+        assert_eq!(canvas.blocks.len(), 1);
+        // initial canvas of 36 == target of 10
+        assert_eq!(canvas.bitmap, read_png("problems/10.png"));
     }
 }

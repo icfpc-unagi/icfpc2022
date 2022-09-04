@@ -1,5 +1,8 @@
-use crate::*;
 use std::{collections::HashMap, panic};
+
+use anyhow::Context as _;
+
+use crate::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Canvas {
@@ -96,8 +99,18 @@ impl TryFrom<InitialJson> for Canvas {
                         bitmap[y as usize][x as usize] = color;
                     }
                 }
+            } else if let Some(source) = ini.source_png_p_n_g.as_ref() {
+                let problem_id = source
+                    .strip_prefix("https://cdn.robovinci.xyz/sourcepngs/")
+                    .with_context(|| "sourcePngPNG: bad prefix")?
+                    .strip_suffix(".source.png")
+                    .with_context(|| "sourcePngPNG: bad suffix")?;
+                let png = read_png(format!("problems/{problem_id}.initial.png"));
+                assert_eq!(block.png_bottom_left_point, Some(Point(0, 0)));
+                assert_eq!(rect, Block(Point(0, 0), Point(w as i32, h as i32)));
+                bitmap = png;
             } else {
-                todo!()
+                anyhow::bail!("missing value: `color` or `sourcePngPNG`")
             }
         }
         // let blocks = .map(|(i, block)| {
