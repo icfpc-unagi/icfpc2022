@@ -4,7 +4,6 @@ import pandas as pd
 
 path = sorted(Path("/Users/tos/Dropbox/ICFPC2022/scoreboard").glob("*.json"))[-1]
 print(path)
-
 j = json.load(open("/Users/tos/Dropbox/ICFPC2022/scoreboard/20220904-121252.json"))
 
 # ['user_id', 'team_name', 'results', 'total_cost', 'solved_problem_count']
@@ -23,7 +22,7 @@ def results_to_dict(results):
 
 users = j["users"]
 data = [results_to_dict(u["results"]) for u in users]
-index = [u["team_name"][:16] for u in users]
+index = [u["team_name"] for u in users]
 
 df = pd.DataFrame.from_records(data, index=index).astype("Int64")
 # print(df)
@@ -36,28 +35,33 @@ df = df.where(lambda v: v < 10 ** 6)
 # print(df)
 # exit()
 
+baseline = {
+    10: 2858,
+    16: 13636,
+    20: 28451,
+}
 cols = []
-for full, lite in [
-    # 10
-    (26, 5),
-    (28, 10),
-    (29, 18),
-    # 16
-    (31, 24),
-    (32, 9),
-    (33, 15),
-    (34, 7),
-    (35, 25),
-    # 20
-    (27, 2),
-    (30, 11),
+for size, full, lite in [
+    (10, 26, 5),
+    (10, 28, 10),
+    (10, 29, 18),
+    (16, 31, 24),
+    (16, 32, 9),
+    (16, 33, 15),
+    (16, 34, 7),
+    (16, 35, 25),
+    (20, 27, 2),
+    (20, 30, 11),
 ]:
-    s = df.loc[:, full] - df.loc[:, lite]
+    s = df.loc[:, full] - df.loc[:, lite] - baseline[size]
     s.name = f"{full}-{lite}"
     cols.append(s)
 
 df2 = pd.concat(cols, axis=1)
 
+df2.to_csv(f"out/{path.stem}.csv")
+
+df2.index = df2.index.map(lambda name: name[:16])
 with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
     print(df2)
 
