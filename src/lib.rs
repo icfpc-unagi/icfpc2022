@@ -351,17 +351,23 @@ impl FromStr for Move {
 pub type Program = Vec<Move>;
 
 pub fn read_isl<R: io::Read>(r: R) -> io::Result<Program> {
+    Ok(read_isl_with_comments(r)?.0)
+}
+
+pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<String>)> {
     let r = io::BufReader::new(r);
     let mut program = Program::new();
+    let mut comments = Vec::new();
     for line in r.lines() {
         let line = line?;
         let line = line.trim_start();
         if line.is_empty() || line.starts_with('#') {
+            comments.push(line[1..].into());
             continue;
         }
         program.push(line.parse().unwrap());
     }
-    Ok(program)
+    Ok((program, comments))
 }
 
 pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
