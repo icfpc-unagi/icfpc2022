@@ -13,7 +13,7 @@ macro_rules! log {
     }
 }
 
-const PNG: [&'static [u8]; 35] = [
+const PNG: [&'static [u8]; 40] = [
     include_bytes!("../../problems/1.png"),
     include_bytes!("../../problems/2.png"),
     include_bytes!("../../problems/3.png"),
@@ -49,9 +49,14 @@ const PNG: [&'static [u8]; 35] = [
     include_bytes!("../../problems/33.png"),
     include_bytes!("../../problems/34.png"),
     include_bytes!("../../problems/35.png"),
+    include_bytes!("../../problems/36.png"),
+    include_bytes!("../../problems/37.png"),
+    include_bytes!("../../problems/38.png"),
+    include_bytes!("../../problems/39.png"),
+    include_bytes!("../../problems/40.png"),
 ];
 
-const INIT_CANVAS: [Option<&'static [u8]>; 35] = [
+const INIT_CANVAS: [Option<&'static [u8]>; 40] = [
     None,
     None,
     None,
@@ -87,6 +92,54 @@ const INIT_CANVAS: [Option<&'static [u8]>; 35] = [
     Some(include_bytes!("../../problems/33.initial.json")),
     Some(include_bytes!("../../problems/34.initial.json")),
     Some(include_bytes!("../../problems/35.initial.json")),
+    Some(include_bytes!("../../problems/36.initial.json")),
+    Some(include_bytes!("../../problems/37.initial.json")),
+    Some(include_bytes!("../../problems/38.initial.json")),
+    Some(include_bytes!("../../problems/39.initial.json")),
+    Some(include_bytes!("../../problems/40.initial.json")),
+];
+
+const INIT_PNG: [&'static [u8]; 40] = [
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    &[],
+    include_bytes!("../../problems/36.initial.png"),
+    include_bytes!("../../problems/37.initial.png"),
+    include_bytes!("../../problems/38.initial.png"),
+    include_bytes!("../../problems/39.initial.png"),
+    include_bytes!("../../problems/40.initial.png"),
 ];
 
 #[wasm_bindgen]
@@ -122,18 +175,8 @@ fn base64(png: &Vec<Vec<[u8; 4]>>) -> String {
     base64::encode(writer)
 }
 
-#[wasm_bindgen]
-pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_diff: bool) -> Ret {
-    console_error_panic_hook::set_once();
-    let problem_id = problem_id.parse::<usize>().unwrap() - 1;
-    if problem_id >= PNG.len() {
-        return Ret {
-            score: String::new(),
-            error: "Illegal problem ID".to_owned(),
-            svg: String::new(),
-        };
-    }
-    let decoder = png::Decoder::new(PNG[problem_id]);
+fn read_png(data: &[u8]) -> Vec<Vec<[u8; 4]>> {
+    let decoder = png::Decoder::new(data);
     let mut reader = decoder.read_info().unwrap();
     let mut buf = vec![0; reader.output_buffer_size()];
     let info = reader.next_frame(&mut buf).unwrap();
@@ -147,6 +190,23 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
             }
         }
     }
+    png
+}
+
+#[wasm_bindgen]
+pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_diff: bool) -> Ret {
+    console_error_panic_hook::set_once();
+    let problem_id = problem_id.parse::<usize>().unwrap() - 1;
+    if problem_id >= PNG.len() {
+        return Ret {
+            score: String::new(),
+            error: "Illegal problem ID".to_owned(),
+            svg: String::new(),
+        };
+    }
+    let png = read_png(PNG[problem_id]);
+    let h = png.len();
+    let w = png[0].len();
     let mut cost = 0;
     let mut similarity = 0;
     let mut error = String::new();
@@ -171,8 +231,17 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
     match read_isl(output.into_bytes().as_slice()) {
         Ok(program) => {
             let mut canvas = if let Some(json) = INIT_CANVAS[problem_id] {
-                let json: InitialJson = serde_json::from_reader(json).unwrap();
-                Canvas::try_from(json).unwrap()
+                let mut json: InitialJson = serde_json::from_reader(json).unwrap();
+                if problem_id >= 35 {
+                    json.source_png_p_n_g = None;
+                    json.blocks[0].color = Some([0, 0, 0, 0]);
+                }
+                let mut canvas = Canvas::try_from(json).unwrap();
+                if problem_id >= 35 {
+                    canvas.bitmap = read_png(&INIT_PNG[problem_id]);
+                    canvas.cost_type = CostType::V2;
+                }
+                canvas
             } else {
                 Canvas::new(png[0].len(), png.len())
             };
