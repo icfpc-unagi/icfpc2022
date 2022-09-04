@@ -68,3 +68,14 @@ jobs:
           docker run --rm icfpc-unagi/builder \
               bash /work/scripts/deploy_binaries.sh \
               "$(git rev-parse --short HEAD)"
+
+  runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build binaries
+        run: |
+          make secrets/service_account.json && \
+          make docker/runner
