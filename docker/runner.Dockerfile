@@ -11,4 +11,8 @@ RUN gcloud auth activate-service-account icfpc2022@icfpc-primary.iam.gserviceacc
     && gcloud config set project icfpc-primary
 COPY ./scripts/exec.sh /usr/local/bin/exec.sh
 RUN chmod +x /usr/local/bin/exec.sh
+
+WORKDIR /work
+COPY ./problems /work/problems
+
 ENTRYPOINT ["/usr/local/bin/exec.sh"]
