@@ -54,6 +54,9 @@ INSERT INTO programs SET program_name = ?, program_code = ?
 			if err != nil {
 				glog.Errorf("Failed to insert a task: %+v", err)
 				failure++
+				if failure > 10 {
+					return resp, nil
+				}
 				continue
 			}
 			resp.RunIDs = append(resp.RunIDs, runResp.RunID)
