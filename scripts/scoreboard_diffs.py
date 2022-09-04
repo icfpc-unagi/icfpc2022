@@ -54,7 +54,7 @@ for size, full, lite in [
     (20, 30, 11),
 ]:
     s = df.loc[:, full] - df.loc[:, lite] - baseline[size]
-    s.name = f"{full}-{lite}"
+    s.name = f"{size} ({full}-{lite})"
     cols.append(s)
 
 df2 = pd.concat(cols, axis=1)
