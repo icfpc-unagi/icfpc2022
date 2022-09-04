@@ -1,5 +1,7 @@
 // local_optimization_allに引数はやしてそこに集約するわ
 
+fn main() {}
+
 // use icfpc2022;
 //
 // fn main() -> anyhow::Result<()> {

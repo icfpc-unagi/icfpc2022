@@ -1,5 +1,7 @@
 // initial canvas対応のためライブラリいじった際にコンパイル通らなくなったけど多分使ってない？気がするから一旦コメントアウトします by iwiwi
 
+fn main() {}
+
 // fn main_() -> anyhow::Result<()> {
 //     #[rustfmt::skip]
 //     let done = [
