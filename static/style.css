@@ -292,14 +292,10 @@ article pre {
 }
 
 article textarea {
-	border: 1px solid #ccc;
-	border-radius: 3px;
-	margin: 1ex 0;
 	width: 100%;
-	box-sizing: border-box;
-	padding: 1ex;
-	min-width: 100%;
-	max-width: 100%;
+	/* padding: 1ex; */
+	/* min-width: 100%;
+	max-width: calc(var(--main-right) - var(--main-left) - var(--padding) * 8); */
 }
 
 article input[type=submit] {

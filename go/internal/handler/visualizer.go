@@ -77,7 +77,7 @@ LIMIT 1
 	fmt.Fprintf(buf, `</select></div>`)
 	fmt.Fprintf(buf, `
       <div>
-        <textarea id="output" rows="4" data-gramm_editor="false" onchange="updateOutput()" placeholder="ISLコード">%s</textarea>
+        <textarea class="lined" id="output" rows="20" data-gramm_editor="false" onchange="updateOutput()" placeholder="ISLコード">%s</textarea>
       </div>
     <p style="display:flex;">
       <input type="button" id="play" value="▶" style="width:32px;height:32px;bottom:5px;position:relative;">&ensp;
@@ -104,6 +104,11 @@ LIMIT 1
     </div>
     <script src='/web/web.js'></script>
     <script>
+textarea_options = { selectedLine: -1 };
+$(function() {
+  $(".lined").linedtextarea(textarea_options);
+});
+
       const { gen, vis, get_max_turn } = wasm_bindgen;
       async function run() {
         await wasm_bindgen('./web_bg.wasm');
@@ -136,6 +141,9 @@ LIMIT 1
         document.getElementById("turn").value = new_turn;
         document.getElementById("t_bar").value = new_turn;
         visualize();
+		textarea_options.selectedLine = new_turn;
+		$(".lineno").removeClass("lineselect");
+		$("#line_" + new_turn).addClass("lineselect");
       }
 
       var prev = Date.now();
