@@ -2,16 +2,15 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/icfpc-unagi/icfpc2022/go/internal/util"
+	"github.com/icfpc-unagi/icfpc2022/go/internal/api"
 
-	"github.com/icfpc-unagi/icfpc2022/go/pkg/db"
+	"github.com/icfpc-unagi/icfpc2022/go/internal/util"
 
 	"github.com/icfpc-unagi/icfpc2022/go/internal/auth"
 )
@@ -42,26 +41,14 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(buf, "<h1>ビジュアライザ</h1>")
 
-	if id, _ := strconv.Atoi(r.URL.Query().Get("submission_id")); id != 0 {
-		row := struct {
-			ProblemID          int    `db:"problem_id"`
-			SubmissionSolution string `db:"submission_solution"`
-		}{}
-		if err := db.Row(context.Background(), &row, `
-SELECT
-	problem_id,
-	submission_solution
-FROM
-    submissions
-WHERE
-	submission_id = ?
-LIMIT 1
-	`, id); err != nil {
+	if id, _ := strconv.Atoi(r.URL.Query().Get("run_id")); id != 0 {
+		resp, err := api.ExportRun(id)
+		if err != nil {
 			fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
 				html.EscapeString(fmt.Sprintf("%+v", err)))
 		} else {
-			params.ProblemID = row.ProblemID
-			params.Solution = row.SubmissionSolution
+			params.ProblemID = resp.ProblemID
+			params.Solution = resp.ISL
 		}
 	}
 

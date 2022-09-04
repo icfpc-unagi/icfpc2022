@@ -24,6 +24,7 @@ type scoreboardRecord struct {
 	UserKey     string
 	UserName    string
 	IsInternal  bool
+	RunID       int
 	ProblemID   int
 	Score       int64
 	Updated     string
@@ -35,6 +36,12 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 	defer func() { Template(w, buf.Bytes()) }()
 
 	fmt.Fprintf(buf, "<h1>順位表</h1>")
+	records := getAllRecords(buf)
+	displayScoreboardByClass(buf, records)
+	displayScoreboard(buf, records)
+}
+
+func getAllRecords(buf *bytes.Buffer) []*scoreboardRecord {
 	r1, err := scoreboardToRecords()
 	if err != nil {
 		fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
@@ -52,8 +59,28 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 	records := append(r1, r2...)
 	records = append(records, r3...)
-	displayScoreboardByClass(buf, records)
-	displayScoreboard(buf, records)
+
+	sort.SliceStable(records, func(i, j int) bool {
+		if records[i].ProblemID != records[j].ProblemID {
+			return records[i].ProblemID < records[j].ProblemID
+		}
+		return records[i].Score < records[j].Score
+	})
+
+	count := 0
+	for i, r := range records {
+		if i == 0 || r.ProblemID != records[i-1].ProblemID {
+			count = 0
+		}
+		if count > 0 && r.Score == records[i-1].Score {
+			r.ProblemRank = records[i-1].ProblemRank
+		} else {
+			r.ProblemRank = count + 1
+		}
+		count++
+	}
+
+	return records
 }
 
 func scoreboardToRecords() ([]*scoreboardRecord, error) {
@@ -173,6 +200,7 @@ GROUP BY
 			UserKey:    r.RunName,
 			UserName:   name,
 			IsInternal: true,
+			RunID:      r.RunID,
 			ProblemID:  r.ProblemID,
 			Score:      int64(r.RunScore),
 			Updated:    ToElapsedTime(r.RunCreated),
@@ -314,29 +342,6 @@ func displayScoreboard(buf *bytes.Buffer, records []*scoreboardRecord) {
 		}
 		return teamScore[ranks[i]] < teamScore[ranks[j]]
 	})
-
-	for _, p := range problemIDs {
-		scores := make([]int64, 0)
-		for _, t := range teams {
-			if r, ok := t[p]; ok {
-				scores = append(scores, r.Score)
-			}
-		}
-		sort.SliceStable(scores, func(i, j int) bool {
-			return scores[i] < scores[j]
-		})
-		scoreToRank := map[int64]int{}
-		for i := range scores {
-			if i == 0 || scores[i] != scores[i-1] {
-				scoreToRank[scores[i]] = i + 1
-			}
-		}
-		for _, t := range teams {
-			if r, ok := t[p]; ok {
-				r.ProblemRank = scoreToRank[r.Score]
-			}
-		}
-	}
 
 	fmt.Fprintf(buf, "<h2>スコア詳細</h2>")
 	fmt.Fprint(buf,
