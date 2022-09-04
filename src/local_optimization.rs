@@ -144,12 +144,7 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     // (1) まず、Colorを全てユニークにしていく。
     for (i, m) in program.iter_mut().enumerate() {
         if let Move::Color(_, c) = m {
-            *c = [
-                (i % 256) as u8,
-                (i / 256 % 256) as u8,
-                (i / 256 / 256 % 256) as u8,
-                (i / 256 / 256 / 256) as u8,
-            ];
+            *c = (i as u32).to_le_bytes();
         }
     }
 
@@ -161,9 +156,8 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     let mut points = vec![vec![]; program.len()];
     for y in 0..canvas.bitmap.len() {
         for x in 0..canvas.bitmap[y].len() {
-            let c = &canvas.bitmap[y][x];
-            let i = c[0] as usize
-                + (c[1] as usize + (c[2] as usize + (c[3] as usize) * 256) * 256) * 256;
+            let c = canvas.bitmap[y][x];
+            let i = u32::from_le_bytes(c) as usize;
             points[i].push(image[y][x]);
         }
     }
