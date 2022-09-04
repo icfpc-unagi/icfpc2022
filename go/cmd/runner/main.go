@@ -12,6 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/icfpc-unagi/icfpc2022/go/internal/api"
+
 	"github.com/golang/glog"
 	"github.com/icfpc-unagi/icfpc2022/go/internal/client"
 )
@@ -83,12 +87,20 @@ func Loop() error {
 	stdout.Close()
 	stderr.Close()
 	exitCode := cmd.ProcessState.ExitCode()
-	result := client.RunFlushRequest{
+	logID := uuid.New().String()
+	result := api.RunFlushRequest{
 		RunSignature: resp.RunSignature,
 		RunCode:      int64(exitCode),
-		RunStdout:    Summary(path.Join(dir, "stdout")),
-		RunStderr:    Summary(path.Join(dir, "stderr")),
+		SolutionISL:  Summary(path.Join(dir, "stdout")),
 	}
+
+	cmd = exec.CommandContext(ctx,
+		"gsutil", "-m", "cp",
+		path.Join(dir, "stdout"), path.Join(dir, "stderr"),
+		"gs://icfpc2022/logs/"+logID+"/")
+	cmd.Dir = dir
+	cmd.Run()
+
 	return client.RunFlush(ctx, &result)
 }
 

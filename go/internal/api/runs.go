@@ -26,6 +26,7 @@ type RunFlushRequest struct {
 	RunSignature string `json:"run_signature" db:"run_signature"`
 	RunCode      int64  `json:"run_code" db:"run_code"`
 	SolutionISL  string `json:"solution_isl" db:"solution_isl"`
+	LogID        string `json:"log_id"`
 }
 
 type RunAddRequest struct {
@@ -190,12 +191,14 @@ SET
 	run_locked = NULL,
 	run_signature = NULL,
 	run_code = ?,
-	solution_id = ?
+	solution_id = ?,
+	log_id = ?
 WHERE run_signature = ?
 LIMIT 1
 `,
 		req.RunCode,
 		id,
+		req.LogID,
 		req.RunSignature)
 	if err != nil {
 		return errors.Wrapf(err, "failed to flush")
