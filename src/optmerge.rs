@@ -78,13 +78,13 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
                         let [id0, id12] = id_b.cut();
                         push(cut_a(id_b.clone(), a));
                         let [id1, id2] = id12.cut();
-                        push(cut_a(id_b.clone(), a + 1));
+                        push(cut_a(id12, a + 1));
                         (id0, id1, id2)
                     } else {
                         let [id01, id2] = id_b.cut();
                         push(cut_a(id_b.clone(), a + 1));
                         let [id0, id1] = id01.cut();
-                        push(cut_a(id_b.clone(), a));
+                        push(cut_a(id01, a));
                         (id0, id1, id2)
                     };
                     push(Move::Merge(id0, mem::replace(&mut id_a, new_id())));
@@ -102,14 +102,50 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
                 } else {
                     id_a = id_tmp;
                 }
-                // if r_prev == 1 {
-                //     let m = Move::LineCut
-                // }
+            }
+            1 => {
+                let mut id_tmp = if a == 0 {
+                    block_ids[0][b].take().unwrap()
+                } else if r_prev == r || b == 0 {
+                    let [id0, id1] = id_a.cut();
+                    push(cut_b(id_a.clone(), b + 1));
+                    id_a = id1;
+                    id0
+                } else {
+                    let (id0, id1, id2) = if b + 1 < w - b {
+                        let [id0, id12] = id_a.cut();
+                        push(cut_b(id_a.clone(), b));
+                        let [id1, id2] = id12.cut();
+                        push(cut_b(id12, b + 1));
+                        (id0, id1, id2)
+                    } else {
+                        let [id01, id2] = id_a.cut();
+                        push(cut_b(id_a.clone(), b + 1));
+                        let [id0, id1] = id01.cut();
+                        push(cut_b(id01, b));
+                        (id0, id1, id2)
+                    };
+                    push(Move::Merge(id0, mem::replace(&mut id_b, new_id())));
+                    id_a = id2;
+                    id1
+                };
+                for aa in a.max(1)..h {
+                    push(Move::Merge(
+                        mem::replace(&mut id_tmp, new_id()),
+                        block_ids[aa][b].take().unwrap(),
+                    ));
+                }
+                if b > 0 {
+                    push(Move::Merge(mem::replace(&mut id_b, new_id()), id_tmp));
+                } else {
+                    id_b = id_tmp;
+                }
             }
             _ => {
                 todo!()
             }
         }
+        r_prev = r;
     }
     // for ((a0, b0, r), (a1, b1, _)) in path.into_iter().tuple_windows() {
 
