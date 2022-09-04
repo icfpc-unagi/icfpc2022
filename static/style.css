@@ -292,6 +292,13 @@ article pre {
 }
 
 article textarea {
+	width: 100%;
+	/* padding: 1ex; */
+	/* min-width: 100%;
+	max-width: calc(var(--main-right) - var(--main-left) - var(--padding) * 8); */
+}
+
+article textarea.code {
 	border: 1px solid #ccc;
 	border-radius: 3px;
 	margin: 1ex 0;
