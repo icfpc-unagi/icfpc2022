@@ -1,10 +1,15 @@
-use super::{BlockId, Move};
+use super::{BlockId, Canvas, Move};
+use std::collections::HashMap;
 
 const WIDTH: i32 = 400;
 
 fn push(block_id: &BlockId, x: u32) -> BlockId {
     block_id.extended([x])
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Flip
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn flip_png(mut png: Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
     // 左右反転
@@ -17,9 +22,26 @@ pub fn flip_png(mut png: Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
 pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
     block_id_map.insert(BlockId(vec![0]), BlockId(vec![0]));
+    flip_program_with_initial_block_id_map(program, block_id_map, 0)
+}
+
+pub fn flip_program_with_initial_canvas(program: &Vec<Move>, canvas: &Canvas) -> Vec<Move> {
+    let block_id_map = canvas
+        .blocks
+        .keys()
+        .map(|block_id| (block_id.clone(), block_id.clone()))
+        .collect();
+    flip_program_with_initial_block_id_map(program, block_id_map, canvas.counter)
+}
+
+fn flip_program_with_initial_block_id_map(
+    program: &Vec<Move>,
+    mut block_id_map: HashMap<BlockId, BlockId>,
+    mut global_counter: u32,
+) -> Vec<Move> {
+    // global_counterは「今ある最大のやつ」（次できるやつではない）、Canvas.counterと仕様一致してるはず
 
     let mut flipped_program = vec![];
-    let mut n = 0;
     for mv in program {
         let flipped_mv;
         match mv {
@@ -56,8 +78,8 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
                 )
             }
             Move::Merge(block_id1, block_id2) => {
-                n += 1;
-                block_id_map.insert(BlockId(vec![n]), BlockId(vec![n]));
+                global_counter += 1;
+                block_id_map.insert(BlockId(vec![global_counter]), BlockId(vec![global_counter]));
 
                 flipped_mv = Move::Merge(
                     block_id_map.get(block_id1).unwrap().clone(),
@@ -72,30 +94,43 @@ pub fn flip_program(program: &Vec<Move>) -> Vec<Move> {
     return flipped_program;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Rotate
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 pub fn rotate_png(png: &Vec<Vec<[u8; 4]>>) -> Vec<Vec<[u8; 4]>> {
     let mut out = vec![vec![[0_u8; 4]; png.len()]; png[0].len()];
-
     for y in 0..png.len() {
         for x in 0..png[y].len() {
             out[png[0].len() - x - 1][y] = png[y][x];
         }
     }
-
     out
 }
 
 pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
     let mut block_id_map = std::collections::HashMap::<BlockId, BlockId>::new();
     block_id_map.insert(BlockId(vec![0]), BlockId(vec![0]));
+    rotate_program_with_initial_block_id_map(program, block_id_map, 0)
+}
 
+pub fn rotate_program_with_initial_canvas(program: &Vec<Move>, canvas: &Canvas) -> Vec<Move> {
+    let block_id_map = canvas
+        .blocks
+        .keys()
+        .map(|block_id| (block_id.clone(), block_id.clone()))
+        .collect();
+    rotate_program_with_initial_block_id_map(program, block_id_map, canvas.counter)
+}
+
+fn rotate_program_with_initial_block_id_map(
+    program: &Vec<Move>,
+    mut block_id_map: HashMap<BlockId, BlockId>,
+    mut global_counter: u32,
+) -> Vec<Move> {
     let mut flipped_program = vec![];
-    let mut n = 0;
     for mv in program {
         let flipped_mv;
-        // println!("\n\n\n");
-        // dbg!(&block_id_map);
-        // dbg!(&mv);
-
         match mv {
             Move::LineCut(bid_old, orientation, offset) => {
                 if *orientation == 'y' || *orientation == 'Y' {
@@ -133,8 +168,8 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
                 )
             }
             Move::Merge(block_id1, block_id2) => {
-                n += 1;
-                block_id_map.insert(BlockId(vec![n]), BlockId(vec![n]));
+                global_counter += 1;
+                block_id_map.insert(BlockId(vec![global_counter]), BlockId(vec![global_counter]));
                 // dbg!(&block_id1, block_id2);
 
                 flipped_mv = Move::Merge(
@@ -147,5 +182,5 @@ pub fn rotate_program(program: &Vec<Move>) -> Vec<Move> {
         flipped_program.push(flipped_mv);
     }
 
-    return flipped_program;
+    flipped_program
 }
