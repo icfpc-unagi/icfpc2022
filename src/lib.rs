@@ -247,6 +247,16 @@ impl Move {
     pub fn may_change_bitmap(&self) -> bool {
         matches!(self, Move::Color(_, _) | Move::Swap(_, _))
     }
+
+    pub fn inc_id(&mut self, a: u32) {
+        match self {
+            Move::LineCut(b, _, _) | Move::PointCut(b, _, _) | Move::Color(b, _) => b.0[0] += a,
+            Move::Swap(b1, b2) | Move::Merge(b1, b2) => {
+                b1.0[0] += a;
+                b2.0[0] += a;
+            }
+        }
+    }
 }
 
 impl fmt::Display for Move {

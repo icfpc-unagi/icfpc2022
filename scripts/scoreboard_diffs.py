@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 import pandas as pd
 
-path = sorted(Path("/Users/tos/Dropbox/ICFPC2022/scoreboard").glob("*.json"))[-1]
+path = sorted((Path.home() / "Dropbox/ICFPC2022/scoreboard").glob("*.json"))[-1]
 print(path)
-j = json.load(open("/Users/tos/Dropbox/ICFPC2022/scoreboard/20220904-121252.json"))
+j = json.load(open(path))
 
 # ['user_id', 'team_name', 'results', 'total_cost', 'solved_problem_count']
 # ['problem_id', 'problem_name', 'last_submitted_at', 'submission_count', 'min_cost', 'overall_best_cost']
