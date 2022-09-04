@@ -83,7 +83,13 @@ pub fn find_best_score(problem_id: u32) -> u32 {
 
 pub fn read_solution(
     submission_id: u32,
-) -> anyhow::Result<(Submission, Program, Vec<String>, Canvas, Vec<Vec<crate::Color>>)> {
+) -> anyhow::Result<(
+    Submission,
+    Program,
+    Vec<String>,
+    Canvas,
+    Vec<Vec<crate::Color>>,
+)> {
     let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
         "submissions/{}.json",
         submission_id
