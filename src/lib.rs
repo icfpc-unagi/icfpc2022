@@ -486,4 +486,12 @@ mod tests {
         // initial canvas of 36 == target of 10
         assert_eq!(canvas.bitmap, read_png("problems/10.png"));
     }
+
+    #[test]
+    fn test_submission() {
+        serde_json::from_reader::<_, Submission>(
+            std::fs::File::open("submissions/270.json").unwrap(),
+        )
+        .unwrap();
+    }
 }
