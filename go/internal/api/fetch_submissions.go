@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -65,5 +66,63 @@ func fetchSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
+	}
+	fmt.Fprintf(w, "%d submissions were fetched.\n", count)
+
+	if result, err := db.Execute(context.Background(), `
+INSERT IGNORE
+INTO runs(submission_id, program_id, problem_id, run_command, run_name, run_score, run_created)
+SELECT
+    submission_id,
+    0 AS program_id,
+    problem_id,
+    "" AS run_command,
+    CASE WHEN submission_solution LIKE "#%" THEN TRIM(
+        SUBSTRING(
+            SUBSTRING_INDEX(submission_solution, "\n", 1)
+        FROM
+            2
+        )
+    ) ELSE ""
+END AS run_name,
+submission_score AS run_score,
+submission_created AS run_created
+FROM
+    (
+        submissions
+    NATURAL JOIN(
+        SELECT
+            submission_id
+        FROM
+            (
+            SELECT
+                submissions.submission_id AS submission_id,
+                (t.submission_id IS NULL) AS flag
+            FROM
+                (
+                    submissions NATURAL LEFT
+                JOIN(
+                    SELECT
+                        submission_id
+                    FROM
+                        runs
+                    WHERE
+                        submission_id IS NOT NULL
+                ) t
+                )
+        ) t
+    WHERE
+        flag
+    ) t
+    )
+ORDER BY
+    submission_id
+DESC
+`); err != nil {
+		glog.Errorf("Failed to update runs from submissions: %+v", err)
+	} else if n, err := result.RowsAffected(); err != nil {
+		glog.Errorf("Failed to get # of affected rows: %+v", err)
+	} else {
+		fmt.Fprintf(w, "%d submissions have been merged into runs.\n", n)
 	}
 }
