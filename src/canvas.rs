@@ -82,10 +82,14 @@ impl TryFrom<InitialJson> for Canvas {
             }
             let rect = Block(block.bottom_left, block.top_right);
             blocks.insert(id, rect);
-            for y in rect.0 .1..rect.1 .1 {
-                for x in rect.0 .0..rect.1 .0 {
-                    bitmap[y as usize][x as usize] = block.color;
+            if let Some(color) = block.color {
+                for y in rect.0 .1..rect.1 .1 {
+                    for x in rect.0 .0..rect.1 .0 {
+                        bitmap[y as usize][x as usize] = color;
+                    }
                 }
+            } else {
+                todo!()
             }
         }
         // let blocks = .map(|(i, block)| {
