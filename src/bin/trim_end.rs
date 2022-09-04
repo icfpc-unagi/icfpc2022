@@ -1,11 +1,15 @@
 use std::fs::File;
 
-use icfpc2022::{read_isl, read_png, write_isl, Canvas};
+use icfpc2022::{read_isl, read_png, write_isl, Canvas, Move};
 
 fn main1(problem_id: u32, submission_id: u32) -> anyhow::Result<()> {
     let mut f = File::open(format!("submissions/{submission_id}.isl"))?;
 
     let mut program = read_isl(&mut f)?;
+    if let Move::Color(_b, c) = &program[0] {
+        eprintln!("First move is color {:?}", c);
+        eprintln!("TODO: Consider removing `Move::Color(_, WHITE)`");
+    }
     let mut changed = false;
     while !program.last().unwrap().may_change_bitmap() {
         changed = true;
