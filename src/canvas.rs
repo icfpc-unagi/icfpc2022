@@ -6,6 +6,14 @@ pub struct Canvas {
     pub bitmap: Vec<Vec<Color>>,
     pub blocks: HashMap<BlockId, Block>,
     pub counter: u32,
+    pub cost_type: CostType,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
+pub enum CostType {
+    #[default]
+    Basic,
+    V2,
 }
 
 fn check_valid_block(b: &Block) -> anyhow::Result<()> {
@@ -103,6 +111,7 @@ impl TryFrom<InitialJson> for Canvas {
             bitmap,
             blocks,
             counter: ini.blocks.len() as u32 - 1,
+            cost_type: CostType::Basic, // TODO
         })
     }
 }
@@ -116,6 +125,7 @@ impl Canvas {
                 Block(Point(0, 0), Point(w as i32, h as i32)),
             )]),
             counter: Default::default(),
+            cost_type: Default::default(),
         }
     }
     pub fn new400() -> Self {
@@ -234,7 +244,7 @@ impl Canvas {
         };
 
         anyhow::Ok(
-            (mov.base_cost() * (self.bitmap.len() * self.bitmap[0].len()) as f64
+            (self.base_cost(mov) * (self.bitmap.len() * self.bitmap[0].len()) as f64
                 / block_area as f64)
                 .round(),
         )
@@ -261,6 +271,25 @@ impl Canvas {
         let sim = similarity(&answer, &self.bitmap);
         anyhow::Ok(cost + sim)
     }
+
+    pub fn base_cost(&self, mov: &Move) -> f64 {
+        match self.cost_type {
+            CostType::Basic => match mov {
+                Move::LineCut(_, _, _) => 7.0,
+                Move::PointCut(_, _, _) => 10.0,
+                Move::Color(_, _) => 5.0,
+                Move::Swap(_, _) => 3.0,
+                Move::Merge(_, _) => 1.0,
+            },
+            CostType::V2 => match mov {
+                Move::LineCut(_, _, _) => 2.0,
+                Move::PointCut(_, _, _) => 3.0,
+                Move::Color(_, _) => 5.0,
+                Move::Swap(_, _) => 3.0,
+                Move::Merge(_, _) => 1.0,
+            },
+        }
+    }
 }
 
 // initial canvas
@@ -272,6 +301,7 @@ impl From<Vec<Vec<Color>>> for Canvas {
             bitmap,
             blocks: HashMap::from([(BlockId(vec![0]), Block(Point(0, 0), Point(w, h)))]),
             counter: Default::default(),
+            cost_type: CostType::V2,
         }
     }
 }

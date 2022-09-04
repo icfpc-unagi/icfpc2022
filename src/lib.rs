@@ -232,6 +232,7 @@ pub enum Move {
 }
 
 impl Move {
+    // Use Canvas::base_cost()
     #[deprecated]
     pub fn base_cost(&self) -> f64 {
         match self {
