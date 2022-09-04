@@ -26,6 +26,10 @@ COPY src/ /work/src/
 RUN find /work/src -print -exec touch "{}" \; \
     && cargo build --release --bins \
     && wasm-pack build --release --target web
+COPY web/ /work/web/
+COPY problems/ /work/problems/
+RUN cd /work/web \
+    && wasm-pack build --target no-modules
 
 FROM golang AS tini
 RUN wget -O /tini \
@@ -45,6 +49,8 @@ ENV UNAGI_PASSWORD $UNAGI_PASSWORD
 COPY --from=tini /tini /tini
 COPY --from=rust-builder /work/target/release/evaluate /usr/local/bin/evaluate
 COPY --from=rust-builder /work/pkg /work/static/pkg
+COPY --from=rust-builder /work/web/index.html /work/web/index.html
+COPY --from=rust-builder /work/web/pkg/*.js /work/web/pkg/*.wasm /work/web/
 COPY ./static /work/static
 COPY ./problems /work/problems
 COPY ./secrets/login.json /work/secrets/login.json

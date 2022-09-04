@@ -12,8 +12,9 @@
 
 # Added by cargo
 
-target
+/target
 /.cargo/
 /.vscode/
 /out/
 /tmp/
+/web/target
