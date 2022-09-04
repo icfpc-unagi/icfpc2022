@@ -1,6 +1,6 @@
 use std::{fs::File, io::Write};
 
-use icfpc2022::{read_isl_with_comments, write_isl, write_isl_with_comments, BlockId, Move};
+use icfpc2022::{read_isl_with_comments, write_isl_with_comments, BlockId, Move};
 use itertools::chain;
 
 fn main() -> anyhow::Result<()> {
