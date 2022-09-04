@@ -30,6 +30,7 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
         }
     }
 
+    eprintln!("sec: {}", sec);
     let start = Instant::now();
     for i in 0..200000000 {
         let end = start.elapsed();
@@ -40,7 +41,12 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
         let ret_score = ret.0;
         if best > ret_score {
             best = ret_score;
-            eprintln!("cnt:{}   score:{}    node:{}", i, best, list.len());
+            //eprintln!(
+            //    "time:{}   score:{}    node:{}",
+            //    end.as_millis(),
+            //    best,
+            //    list.len()
+            //);
         }
         //eprintln!("cnt:{}   score:{}", cnt, best);
     }
@@ -49,6 +55,8 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
     let (start_id, mv) = all_merge(&init_canvas);
     let mut moves = mv.clone();
     let mut blocks = vec![BlockId(vec![start_id])];
+
+    eprintln!("check");
 
     let _ = search2(
         0,
@@ -62,6 +70,8 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
         &mut blocks,
         start_id as usize,
     );
+
+    eprintln!("ok");
 
     return (0.0, moves);
     //for s in moves {
