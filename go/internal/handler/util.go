@@ -7,16 +7,13 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
-	"time"
+
+	"github.com/icfpc-unagi/icfpc2022/go/internal/util"
 )
 
 func ParseTimestamp(t string) int64 {
-	t = strings.Split(t, ".")[0]
-	t = strings.TrimSuffix(t, "Z")
-	x, _ := time.Parse("2006-01-02T15:04:05", t)
-	start, _ := time.Parse(
-		"2006-01-02T15:04:05", "2022-09-02T12:00:00")
+	x, _ := util.StrToTime(t)
+	start, _ := util.StrToTime("2022-09-02T12:00:00")
 	return x.Unix() - start.Unix()
 }
 

@@ -2,10 +2,16 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html"
 	"net/http"
 	"sort"
+	"strings"
+
+	"github.com/pkg/errors"
+
+	"github.com/icfpc-unagi/icfpc2022/go/pkg/db"
 
 	"github.com/icfpc-unagi/icfpc2022/go/internal/official"
 )
@@ -14,56 +20,202 @@ func init() {
 	http.HandleFunc("/scoreboard", scoreboardTemplate)
 }
 
+type scoreboardRecord struct {
+	UserKey     string
+	UserName    string
+	IsInternal  bool
+	ProblemID   int
+	Score       int64
+	Updated     string
+	ProblemRank int
+}
+
 func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 	buf := &bytes.Buffer{}
 	defer func() { Template(w, buf.Bytes()) }()
 
 	fmt.Fprintf(buf, "<h1>順位表</h1>")
+	r1, err := scoreboardToRecords()
+	if err != nil {
+		fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
+			html.EscapeString(fmt.Sprintf("%+v", err)))
+	}
+	r2, err := internalScoreboardToRecords()
+	if err != nil {
+		fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
+			html.EscapeString(fmt.Sprintf("%+v", err)))
+	}
+	records := append(r1, r2...)
+	displayScoreboardByClass(buf, records)
+	displayScoreboard(buf, records)
+}
 
+func scoreboardToRecords() ([]*scoreboardRecord, error) {
 	scoreboard, err := official.Scoreboard()
 	if err != nil {
-		fmt.Fprintf(buf, "<pre>%s</pre>",
-			html.EscapeString(fmt.Sprintf("%+v", err)))
-		return
+		return nil, err
+	}
+
+	results := make([]*scoreboardRecord, 0)
+	for _, u := range scoreboard.Users {
+		for _, r := range u.Results {
+			if r.MinCost == 0 {
+				continue
+			}
+			results = append(results, &scoreboardRecord{
+				UserKey:   fmt.Sprintf("USER_ID$$$%d", u.UserID),
+				UserName:  u.TeamName,
+				ProblemID: r.ProblemID,
+				Score:     int64(r.MinCost),
+				Updated:   ToElapsedTime(r.LastSubmittedAt),
+			})
+		}
+	}
+	return results, nil
+}
+
+func internalScoreboardToRecords() ([]*scoreboardRecord, error) {
+	type runRecord struct {
+		RunName    string `db:"run_name"`
+		ProblemID  int    `db:"problem_id"`
+		RunScore   int    `db:"run_score"`
+		RunID      int    `db:"run_id"`
+		RunCreated string `db:"run_created"`
+	}
+	records := make([]runRecord, 0)
+	if err := db.Select(context.Background(), &records, `
+SELECT
+    run_name,
+	problem_id,
+	run_score,
+	run_id,
+	run_created
+FROM
+    (
+    SELECT
+        run_name AS run_name,
+        problem_id,
+        run_score,
+        MIN(run_id) AS run_id,
+        MIN(run_created) AS run_created
+    FROM
+        (
+            runs
+        NATURAL JOIN(
+            SELECT
+                run_name,
+                problem_id,
+                MIN(run_score) AS run_score
+            FROM
+                runs
+            WHERE
+                run_name <> "" AND program_id = 0
+            GROUP BY
+                run_name,
+                problem_id
+        ) t
+        )
+    GROUP BY
+        run_name,
+        problem_id,
+        run_score
+    UNION
+SELECT
+    CONCAT(
+        CAST(program_id AS CHAR),
+        "$$$",
+        program_name
+    ) AS run_name,
+    problem_id,
+    run_score,
+    MIN(run_id) AS run_id,
+    MIN(run_created) AS run_created
+FROM
+    (
+        runs
+    NATURAL JOIN programs NATURAL JOIN(
+        SELECT
+            program_id,
+            problem_id,
+            MIN(run_score) AS run_score
+        FROM
+            runs
+        NATURAL JOIN programs WHERE run_score IS NOT NULL
+        GROUP BY
+            program_id,
+            problem_id
+    ) t
+    )
+GROUP BY
+    program_id,
+    problem_id,
+    run_score
+) t`); err != nil {
+		return nil, errors.Wrapf(err, "failed to fetch internal submissions")
+	}
+
+	results := make([]*scoreboardRecord, 0)
+	for _, r := range records {
+		name := r.RunName
+		if strings.Contains(name, "$$$") {
+			name = strings.SplitN(name, "$$$", 2)[1]
+		}
+		results = append(results, &scoreboardRecord{
+			UserKey:    r.RunName,
+			UserName:   name,
+			IsInternal: true,
+			ProblemID:  r.ProblemID,
+			Score:      int64(r.RunScore),
+			Updated:    ToElapsedTime(r.RunCreated),
+		})
+	}
+	return results, nil
+}
+
+func displayScoreboardByClass(buf *bytes.Buffer, records []*scoreboardRecord) {
+	type rankingRecord struct {
+		UserKey  string
+		UserName string
+		Rank     int
+		Solved   int
+		Score    int64
 	}
 
 	thresholds := []int{35, 30, 25, 20}
-	type rankingRecord struct {
-		TeamName string
-		Score    int
-	}
-	rankings := make([][]*rankingRecord, len(thresholds))
-
-	for _, u := range scoreboard.Users {
-		solved := map[int]int{}
-		for _, r := range u.Results {
-			if r.SubmissionCount != 0 {
-				solved[r.ProblemID] = r.MinCost
+	thresholdRanks := make([][]*rankingRecord, 0)
+	for _, t := range thresholds {
+		teams := map[string]*rankingRecord{}
+		for _, r := range records {
+			if r.ProblemID > t {
+				continue
 			}
-		}
-
-		for tIndex, t := range thresholds {
-			score := 0
-			for i := 1; i <= t; i++ {
-				if s, ok := solved[i]; ok {
-					score = score + s
-					continue
+			if _, ok := teams[r.UserKey]; !ok {
+				teams[r.UserKey] = &rankingRecord{
+					UserKey:  r.UserKey,
+					UserName: r.UserName,
 				}
-				score = -1
-				break
 			}
-			if score > 0 {
-				rankings[tIndex] = append(rankings[tIndex], &rankingRecord{
-					TeamName: u.TeamName,
-					Score:    score,
-				})
+			t := teams[r.UserKey]
+			t.Score += r.Score
+			t.Solved++
+		}
+		ranks := make([]*rankingRecord, 0)
+		for _, r := range teams {
+			ranks = append(ranks, r)
+		}
+		sort.SliceStable(ranks, func(i, j int) bool {
+			if ranks[i].Solved != ranks[j].Solved {
+				return ranks[i].Solved > ranks[j].Solved
+			}
+			return ranks[i].Score < ranks[j].Score
+		})
+		for i := range ranks {
+			ranks[i].Rank = i + 1
+			if i != 0 && ranks[i].Score == ranks[i-1].Score {
+				ranks[i].Rank = ranks[i-1].Rank
 			}
 		}
-	}
-	for _, r := range rankings {
-		sort.SliceStable(r, func(i, j int) bool {
-			return r[i].Score < r[j].Score
-		})
+		thresholdRanks = append(thresholdRanks, ranks)
 	}
 
 	fmt.Fprintf(buf, "<h2>レベル別ランキング</h2>")
@@ -77,38 +229,75 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(buf, `<tr><td>%d 位</td>`, i+1)
 		for t := range thresholds {
 			style := "overflow: hidden;"
-			if rankings[t][i].TeamName == "Unagi" {
+			if thresholdRanks[t][i].UserName == "Unagi" {
 				style += "background: #cdf; color: red; font-weight: bold;"
 			}
-			fmt.Fprintf(buf, `<td style="%s">%s</td>`, style, html.EscapeString(rankings[t][i].TeamName))
-			fmt.Fprintf(buf, `<td style="%s; text-align: right">%d</td>`, style, rankings[t][i].Score)
+			fmt.Fprintf(buf, `<td style="%s">%s</td>`, style, html.EscapeString(thresholdRanks[t][i].UserName))
+			fmt.Fprintf(buf, `<td style="%s; text-align: right">%d</td>`, style, thresholdRanks[t][i].Score)
 		}
 		fmt.Fprintf(buf, "</tr>")
 	}
 	fmt.Fprintf(buf, "</table>")
+}
 
-	problems := []int{}
-	problemCosts := map[int][]int{}
-	for _, user := range scoreboard.Users {
-		for _, result := range user.Results {
-			if _, ok := problemCosts[result.ProblemID]; !ok {
-				problems = append(problems, result.ProblemID)
-				problemCosts[result.ProblemID] = nil
-			}
-			if result.SubmissionCount > 0 {
-				problemCosts[result.ProblemID] = append(
-					problemCosts[result.ProblemID], result.MinCost)
+func displayScoreboard(buf *bytes.Buffer, records []*scoreboardRecord) {
+	problemIDs := func() []int {
+		m := map[int]struct{}{}
+		for _, r := range records {
+			m[r.ProblemID] = struct{}{}
+		}
+		ids := make([]int, 0)
+		for i := range m {
+			ids = append(ids, i)
+		}
+		sort.Ints(ids)
+		return ids
+	}()
+
+	// teams[UserKey][ProblemID]
+	teams := map[string]map[int]*scoreboardRecord{}
+	teamScore := map[string]int64{}
+	teamNames := map[string]string{}
+	for _, r := range records {
+		if _, ok := teams[r.UserKey]; !ok {
+			teams[r.UserKey] = map[int]*scoreboardRecord{}
+		}
+		teams[r.UserKey][r.ProblemID] = r
+		teamScore[r.UserKey] = teamScore[r.UserKey] + r.Score
+		teamNames[r.UserKey] = r.UserName
+	}
+
+	ranks := make([]string, 0)
+	for k := range teams {
+		ranks = append(ranks, k)
+	}
+	sort.SliceStable(ranks, func(i, j int) bool {
+		solvedI, solvedJ := len(teams[ranks[i]]), len(teams[ranks[j]])
+		if solvedI != solvedJ {
+			return solvedI > solvedJ
+		}
+		return teamScore[ranks[i]] < teamScore[ranks[j]]
+	})
+
+	for _, p := range problemIDs {
+		scores := make([]int64, 0)
+		for _, t := range teams {
+			if r, ok := t[p]; ok {
+				scores = append(scores, r.Score)
 			}
 		}
-	}
-	sort.Ints(problems)
-	problemRanks := map[int]map[int]int{}
-	for _, problem := range problems {
-		problemRanks[problem] = map[int]int{}
-		sort.Ints(problemCosts[problem])
-		for index, cost := range problemCosts[problem] {
-			if _, ok := problemRanks[problem][cost]; !ok {
-				problemRanks[problem][cost] = index + 1
+		sort.SliceStable(scores, func(i, j int) bool {
+			return scores[i] < scores[j]
+		})
+		scoreToRank := map[int64]int{}
+		for i := range scores {
+			if i == 0 || scores[i] != scores[i-1] {
+				scoreToRank[scores[i]] = i + 1
+			}
+		}
+		for _, t := range teams {
+			if r, ok := t[p]; ok {
+				r.ProblemRank = scoreToRank[r.Score]
 			}
 		}
 	}
@@ -121,38 +310,31 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 			` <span>その他</span><br><br>`)
 	fmt.Fprint(buf, `<div style="overflow-x:scroll;width:100%;">`)
 	fmt.Fprint(buf, `<table style="font-size:50%;"><tr><th>Team</th>`)
-	for _, problem := range problems {
-		fmt.Fprintf(buf, "<th>問%d</th>", problem)
+	for _, p := range problemIDs {
+		fmt.Fprintf(buf, "<th>問%d</th>", p)
 	}
 	fmt.Fprintf(buf, "</tr>")
 
-	for _, user := range scoreboard.Users {
+	for _, k := range ranks {
 		fmt.Fprintf(buf, "<tr><td>%s</td>",
-			html.EscapeString(user.TeamName))
-		results := map[int]official.ScoreboardResult{}
-		for _, result := range user.Results {
-			if result.SubmissionCount > 0 {
-				results[result.ProblemID] = result
-			}
-		}
-		for _, problem := range problems {
-			if result, ok := results[problem]; ok {
-				rank := problemRanks[problem][result.MinCost]
+			html.EscapeString(teamNames[k]))
+		for _, p := range problemIDs {
+			if r, ok := teams[k][p]; ok {
 				costStr := "&gt;1e6"
-				if result.MinCost < 1000000 {
-					costStr = fmt.Sprintf("%d", result.MinCost)
+				if r.Score < 1000000 {
+					costStr = fmt.Sprintf("%d", r.Score)
 				}
 				style := ""
-				if rank == 1 {
+				if r.ProblemRank == 1 {
 					style = "color:red; font-weight: bold;"
-				} else if rank < 5 {
+				} else if r.ProblemRank < 5 {
 					style = "color: #880; font-weight: bold;"
-				} else if rank < 10 {
+				} else if r.ProblemRank < 10 {
 					style = "font-weight: bold;"
 				}
 				fmt.Fprintf(buf,
 					`<td style="text-align:right;%s">%s<br>%s</td>`,
-					style, costStr, ToElapsedTime(result.LastSubmittedAt))
+					style, costStr, r.Updated)
 			} else {
 				fmt.Fprintf(buf, "<td>-</td>")
 			}
