@@ -342,6 +342,11 @@ UPDATE runs SET run_score = ? WHERE run_id = ? LIMIT 1
 		glog.Errorf("Failed to update run_score: %d", n)
 	}
 
+	//if _, err := http.Get(fmt.Sprintf(
+	//	"https://eoiu3fomuutxetv.m.pipedream.net/?run_id=%d", resp.RunID)); err != nil {
+	//	glog.Errorf("Failed to trigger Pipedream: %+v", err)
+	//}
+
 	return resp, nil
 }
 
