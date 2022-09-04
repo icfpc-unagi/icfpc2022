@@ -15,24 +15,7 @@ import (
 
 var apiHost = flag.String("host", "https://icfpc.sx9.jp/"+api.PATH_PREFIX, "")
 
-type RunAcquireResponse struct {
-	RunID        int64  `json:"run_id" db:"run_id"`
-	RunCommand   string `json:"run_command" db:"run_command"`
-	RunSignature string `json:"run_signature" db:"run_signature"`
-}
-
-type RunExtendRequest struct {
-	RunSignature string `json:"run_signature" db:"run_signature"`
-}
-
-type RunFlushRequest struct {
-	RunSignature string `json:"run_signature" db:"run_signature"`
-	RunCode      int64  `json:"run_code" db:"run_code"`
-	RunStdout    string `json:"run_stdout" db:"run_stdout"`
-	RunStderr    string `json:"run_stderr" db:"run_stderr"`
-}
-
-func RunAcquire(ctx context.Context) (*RunAcquireResponse, error) {
+func RunAcquire(ctx context.Context) (*api.RunAcquireResponse, error) {
 	req, err := http.NewRequest("POST", *apiHost+"/run/acquire", nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create a request")
@@ -50,7 +33,7 @@ func RunAcquire(ctx context.Context) (*RunAcquireResponse, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read body")
 	}
-	var apiResp RunAcquireResponse
+	var apiResp api.RunAcquireResponse
 	if err := json.Unmarshal(buf, &apiResp); err != nil {
 		return nil, errors.Wrapf(err, "failed to parse a response")
 	}
@@ -58,7 +41,7 @@ func RunAcquire(ctx context.Context) (*RunAcquireResponse, error) {
 }
 
 func RunExtend(ctx context.Context, signature string) error {
-	var apiReq RunExtendRequest
+	var apiReq api.RunExtendRequest
 	apiReq.RunSignature = signature
 	buf, err := json.Marshal(apiReq)
 	if err != nil {
@@ -85,7 +68,7 @@ func RunExtend(ctx context.Context, signature string) error {
 	return nil
 }
 
-func RunFlush(ctx context.Context, req *RunFlushRequest) error {
+func RunFlush(ctx context.Context, req *api.RunFlushRequest) error {
 	buf, err := json.Marshal(req)
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal request")

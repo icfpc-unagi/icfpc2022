@@ -34,7 +34,7 @@ func programsHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
 				html.EscapeString(fmt.Sprintf("%+v", err)))
 		} else {
-			fmt.Fprintf(buf, `<div class="alert-success">ジョブを %d 件追加しました</div>`, len(resp.TaskIDs))
+			fmt.Fprintf(buf, `<div class="alert-success">ジョブを %d 件追加しました</div>`, len(resp.RunIDs))
 		}
 	} else if r.Method != "GET" {
 		fmt.Fprintf(buf, `<div class="alert-danger">プログラム名、コード両方とも必須です</div>`)
