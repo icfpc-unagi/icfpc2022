@@ -42,7 +42,7 @@ func programsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(buf, `
 <form action="?" method="POST">
 <div>プログラム名 (必須): <input type="text" name="program_name" style="width:50%%"></div>
-<div><textarea name="program_code" style="width:100%%; height: 200px;">%s</textarea><br>
+<div><textarea name="program_code" style="width:100%%; height: 200px;" class="code">%s</textarea><br>
 ※ 問題は <code>/work/problems/${PROBLEM_ID}.png</code> から取得できます。出力は標準出力へ。</div>
 <input type="submit" value="実行開始" class="primary">
 </form>
