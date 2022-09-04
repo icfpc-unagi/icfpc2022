@@ -133,7 +133,7 @@ fn search(
         list.push(Node {
             cnt: 0,
             best: 0.0,
-            def: best_color(png, lx, rx, ly, ry).1 * 0.005
+            def: median_color(png, lx, rx, ly, ry).1 * 0.005
                 + 5.0 * 400.0 * 400.0 / (400.00001 - ly as f64) / (400.00001 - lx as f64),
             target: 0,
             next: vec![],
