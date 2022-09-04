@@ -373,7 +373,18 @@ pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<Str
     Ok((program, comments))
 }
 
-pub fn write_isl<W: io::Write>(mut w: W, program: Program) -> io::Result<()> {
+pub fn write_isl<W: io::Write>(w: W, program: Program) -> io::Result<()> {
+    write_isl_with_comments::<_, &str>(w, program, &[])
+}
+
+pub fn write_isl_with_comments<W: io::Write, S: fmt::Display>(
+    mut w: W,
+    program: Program,
+    comments: &[S],
+) -> io::Result<()> {
+    for comment in comments {
+        w.write_fmt(format_args!("# {}\n", comment))?
+    }
     for mov in program {
         w.write_fmt(format_args!("{}\n", mov))?
     }
