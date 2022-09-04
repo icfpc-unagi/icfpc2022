@@ -403,7 +403,7 @@ mod tests {
 
         let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
 
-        for _ in 0..1000 {
+        for _ in 0..100 {
             let (lx, rx) = minmax(rng.gen::<usize>() % w, rng.gen::<usize>() % w);
             let rx = rx + 1;
 
