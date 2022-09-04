@@ -15,13 +15,28 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas)
     let mut map: HashMap<i64, usize> = HashMap::new();
     let mut list = vec![];
     let mut best = 999999999.0;
+    let mcs = MedianColorSelector::new(png);
+    let mut xdp = vec![vec![0.0; 401]; 400];
+    let mut ydp = vec![vec![0.0; 401]; 400];
+    for i in 1..400 {
+        for j in 0..400 {
+            ydp[i][j + 1] = color_dist(png[i][j], png[i - 1][j]);
+            xdp[i][j + 1] = color_dist(png[j][i], png[j][i - 1]);
+        }
+
+        for j in 0..400 {
+            ydp[i][j + 1] += ydp[i][j];
+            xdp[i][j + 1] += xdp[i][j];
+        }
+    }
+
     let start = Instant::now();
     for i in 0..200000000 {
         let end = start.elapsed();
         if end >= Duration::from_secs(sec as u64) {
             break;
         }
-        let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
+        let ret = search(0, 400, 0, 400, &mut map, &mut list, &png, &mcs, &ydp, &xdp);
         let ret_score = ret.0;
         if best > ret_score {
             best = ret_score;
@@ -52,6 +67,15 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas)
     //for s in moves {
     //    println!("{}", s);
     //}
+}
+
+fn color_dist(a: [u8; 4], b: [u8; 4]) -> f64 {
+    let mut sum = 0.0;
+    for i in 0..4 {
+        let c = (a[i] as f64) - (b[i] as f64);
+        sum = sum + c * c;
+    }
+    return sum.sqrt();
 }
 
 fn search2(
@@ -140,6 +164,9 @@ fn search(
     map: &mut HashMap<i64, usize>,
     list: &mut Vec<Node>,
     png: &Vec<Vec<[u8; 4]>>,
+    mcs: &MedianColorSelector,
+    ydp: &Vec<Vec<f64>>,
+    xdp: &Vec<Vec<f64>>,
 ) -> (f64, bool) {
     let hash = (((ly * 65536 + ry) as i64) << 31) + (lx * 65536 + rx) as i64;
     if !map.contains_key(&hash) {
@@ -147,7 +174,9 @@ fn search(
         list.push(Node {
             cnt: 0,
             best: 0.0,
-            def: median_color(png, lx, rx, ly, ry).1 * 0.005
+            //def: median_color(png, lx, rx, ly, ry).1 * 0.005
+            //    + 5.0 * 400.0 * 400.0 / (400.00001 - ly as f64) / (400.00001 - lx as f64),
+            def: mcs.query(lx, rx, ly, ry).1 as f64 * 0.005 * 0.66
                 + 5.0 * 400.0 * 400.0 / (400.00001 - ly as f64) / (400.00001 - lx as f64),
             target: 0,
             used: false,
@@ -185,29 +214,31 @@ fn search(
         if minimum_cost < list[now].def {
             if dx >= (1 << p) * 2 {
                 for i in lx + (1 << p)..rx - (1 << p) + 1 {
-                    let mut score = 0.00001;
-                    for j in ly..ry {
-                        let mut over = [0.0, 0.0, 0.0, 0.0];
-                        let mut under = [0.0, 0.0, 0.0, 0.0];
-                        let mut q = 1;
-                        for k in 0..(1 << p) {
-                            for c in 0..4 {
-                                over[c] += png[j][i + k][c] as f64;
-                                under[c] += png[j][i - 1 - k][c] as f64;
-                            }
-                            if k == q - 1 {
-                                let mut tmp = 0.0;
-                                for c in 0..4 {
-                                    tmp += (over[c] - under[c]) * (over[c] - under[c]);
-                                }
-                                if k == 0 {
-                                    tmp *= 25.0;
-                                }
-                                q *= 2;
-                                score += tmp.sqrt();
-                            }
-                        }
-                    }
+                    let mut score = xdp[i][ry] - xdp[i][ly]; //0.00001;
+                                                             /*
+                                                             for j in ly..ry {
+                                                                 let mut over = [0.0, 0.0, 0.0, 0.0];
+                                                                 let mut under = [0.0, 0.0, 0.0, 0.0];
+                                                                 let mut q = 1;
+                                                                 for k in 0..(1 << p) {
+                                                                     for c in 0..4 {
+                                                                         over[c] += png[j][i + k][c] as f64;
+                                                                         under[c] += png[j][i - 1 - k][c] as f64;
+                                                                     }
+                                                                     if k == q - 1 {
+                                                                         let mut tmp = 0.0;
+                                                                         for c in 0..4 {
+                                                                             tmp += (over[c] - under[c]) * (over[c] - under[c]);
+                                                                         }
+                                                                         if k == 0 {
+                                                                             tmp *= 25.0;
+                                                                         }
+                                                                         q *= 2;
+                                                                         score += tmp.sqrt();
+                                                                     }
+                                                                 }
+                                                             }
+                                                             */
                     //if rx - i < i - lx {
                     //    score *= (rx - i) as f64;
                     //} else {
@@ -221,7 +252,8 @@ fn search(
             }
             if dy >= (1 << p) * 2 {
                 for i in ly + (1 << p)..ry - (1 << p) + 1 {
-                    let mut score = 0.00001;
+                    let mut score = ydp[i][rx] - xdp[i][lx];
+                    /*
                     for j in lx..rx {
                         let mut over = [0.0, 0.0, 0.0, 0.0];
                         let mut under = [0.0, 0.0, 0.0, 0.0];
@@ -245,7 +277,7 @@ fn search(
                             }
                         }
                     }
-
+                    */
                     //if ry - i < i - ly {
                     //    score *= (ry - i) as f64;
                     //} else {
@@ -308,7 +340,7 @@ fn search(
             choice = list[now].cnt % list[now].target;
         }
     }
-    for i in 0..list[now].target {
+    for _ in 0..list[now].target {
         if list[now].next[choice].1 .0 && list[now].next[choice].2 .0 {
             choice += 1;
             choice %= list[now].target;
@@ -318,9 +350,11 @@ fn search(
     let left = list[now].next[choice].1;
     let right = list[now].next[choice].2;
 
-    let leftret = search(left.1[0], left.1[1], left.1[2], left.1[3], map, list, png);
+    let leftret = search(
+        left.1[0], left.1[1], left.1[2], left.1[3], map, list, png, mcs, ydp, xdp,
+    );
     let rightret = search(
-        right.1[0], right.1[1], right.1[2], right.1[3], map, list, png,
+        right.1[0], right.1[1], right.1[2], right.1[3], map, list, png, mcs, ydp, xdp,
     );
     let leftret_score = leftret.0;
     let rightret_score = rightret.0;
