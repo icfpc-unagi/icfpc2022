@@ -9,17 +9,18 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
-    let window = web_sys::window().unwrap();
+    let window = window().unwrap();
     let document = window.document().unwrap();
+
     let canvases = document.query_selector_all("canvas[isl]")?;
     for i in 0..canvases.length() {
-        let canvas = JsValue::from(canvases.get(i));
-        let isl = Element::from(canvas.clone()).get_attribute("isl").unwrap();
-        let mut managed = ManagedCanvas::new(canvas.into());
+        let el_canvas: HtmlCanvasElement = JsValue::from(canvases.get(i)).into();
+        let isl = el_canvas.get_attribute("isl").unwrap();
+        let mut managed = ManagedCanvas::new(&el_canvas);
         managed.apply(&isl)?;
-        managed.render()?;
     }
-    console::log_1(&JsValue::from("wasm initialized!!"));
+
+    console::log_1(&JsValue::from("wasm initialized!"));
     Ok(())
 }
 
@@ -27,16 +28,23 @@ pub fn main() -> Result<(), JsValue> {
 pub struct ManagedCanvas {
     ctx: CanvasRenderingContext2d,
     model: Canvas,
+    cost: f64,
 }
 
 #[wasm_bindgen]
 impl ManagedCanvas {
     #[wasm_bindgen(constructor)]
-    pub fn new(el_canvas: HtmlCanvasElement) -> Self {
+    pub fn new(el_canvas: &HtmlCanvasElement) -> Self {
         Self {
             ctx: JsValue::from(el_canvas.get_context("2d").unwrap()).into(),
             model: Canvas::new400(),
+            cost: Default::default(),
         }
+    }
+
+    #[wasm_bindgen(readonly)]
+    pub fn cost(&self) -> f64 {
+        self.cost
     }
 
     pub fn render(&self) -> Result<(), JsValue> {
@@ -44,10 +52,23 @@ impl ManagedCanvas {
         render_bitmap(&self.ctx, &self.model.bitmap)
     }
 
-    pub fn apply(&mut self, isl: &str) -> Result<(), JsValue> {
+    pub fn apply(&mut self, isl: &str) -> Result<f64, JsValue> {
         let isl = read_isl(isl.as_bytes()).unwrap();
-        self.model.apply_all(isl);
-        self.render()
+        for mov in isl {
+            match self.model.apply_safe(&mov) {
+                Ok(cost) => self.cost += cost,
+                Err(e) => return Err(JsValue::from_str(&e.to_string())),
+            }
+        }
+        self.render()?;
+        Ok(self.cost)
+    }
+
+    pub fn clear(&mut self) -> Result<f64, JsValue> {
+        self.model = Canvas::new400();
+        self.cost = Default::default();
+        self.render()?;
+        Ok(self.cost)
     }
 }
 

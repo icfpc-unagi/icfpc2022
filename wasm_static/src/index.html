@@ -8,8 +8,8 @@
 
 <body>
   <h1>Hello, World!</h1>
-  <canvas width="400" height="400" isl="
-cut [0] [y] [1]
+  <input id="problem_id1" value="1"><br>
+  <textarea id="isl1" rows="20" cols="40">cut [0] [y] [1]
 color [0.0] [0,0,0,0]
 color [0.0] [0,0,0,0]
 color [0.0] [0,0,0,0]
@@ -310,10 +310,30 @@ cut [90] [x] [357]
 color [90.1] [0,74,173,255]
 cut [90.1] [x] [360]
 color [90.1.1] [0,74,173,255]
-"></canvas>
+  </textarea>
+  <canvas id="canvas1" width="400" height="400"></canvas>
+  <div>
+    cost: <span id="cost1"></span>
+  </div>
 </body>
 <script type="module">
-  import init from '../../pkg/icfpc2022.js'
-  init()
+  import init, * as icfpc2022 from "../../pkg/icfpc2022.js?3"
+  (async () => {
+    await init()
+    window.icfpc2022 = icfpc2022
+
+    const isl1 = document.getElementById('isl1')
+    const canvas1 = document.getElementById('canvas1')
+    const cost1 = document.getElementById('cost1')
+    
+    function update() {
+      let managed = new icfpc2022.ManagedCanvas(canvas1)
+      managed.clear();
+      managed.apply(isl1.value)
+      cost1.innerText = managed.cost()
+    }
+    update()
+    isl1.addEventListener('input', e => update())
+})()
 </script>
 </html>

@@ -167,14 +167,7 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
             similarity = icfpc2022::similarity(&png, &canvas.bitmap).round() as i64;
             doc = doc.add(Image::new().set("x", 0).set("y", 0).set("width", w * 2).set("height", h * 2).set("xlink:href", format!("data:image/png;base64,{}",base64(&canvas.bitmap))));
             if show_diff {
-                let mut diff = mat![[255; 4]; h; w];
-                for y in 0..h {
-                    for x in 0..w {
-                        let d = (pixel_distance(&png[y][x], &canvas.bitmap[y][x]) / 2.0).round().min(255.0) as u8;
-                        diff[y][x] = [d, d, d, 255];
-                        
-                    }
-                }
+                let diff = pixel_distance_bitmap(&png, &canvas.bitmap);
                 doc = doc.add(Image::new().set("x", w * 2 + 50).set("y", 0).set("width", w * 2).set("height", h * 2).set("xlink:href", format!("data:image/png;base64,{}",base64(&diff))));
             }
             if show_blocks {

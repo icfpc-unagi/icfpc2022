@@ -4,12 +4,13 @@
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
   </head>
   <body>
-    <p>
+    <form onsubmit="loadSubmission(problem_id.value);return false">
       <label>
         Problem ID:
         <input type="number" id="problem_id" value="1" min="1" max="18446744073709551615" onchange="updateOutput()"/>
       </label>
-    </p>
+      <input type="submit" value="Load submission">
+    </form>
     <p>
       <label>
         Output:<br>
@@ -29,11 +30,11 @@
       </label>
     </p>
     <p>
-      <input type="checkbox" id="show_blocks" onchange="visualize()">show blocks&emsp;
-      <input type="checkbox" id="show_diff" onchange="visualize()">show diff
+      <input type="checkbox" id="show_blocks" onchange="visualize()"><label for="show_blocks">show blocks</label>&emsp;
+      <input type="checkbox" id="show_diff" onchange="visualize()"><label for="show_diff">show diff</label>
     </p>
     <p>
-      <input type="range" id="t_bar" min="0" max="0" value="0" style="width:780px;" onchange="update_t(this.value)" oninput="update_t(this.value)">
+      <input type="range" id="t_bar" min="0" max="0" value="0" style="width:780px;" oninput="update_t(this.value)">
     </p>
     <hr>
     <p id="score"></p>
@@ -124,6 +125,13 @@
         requestAnimationFrame(autoplay);
       }
       autoplay();
+
+      async function loadSubmission(problemId) {
+        let resp = await fetch(`https://icfpc.sx9.jp/scvzcaae/submission?problem_id=${problemId}`)
+        let json = await resp.json()
+        document.getElementById("output").value = json.SubmissionSolution
+        updateOutput()
+      }
     </script>
   </body>
 </html>

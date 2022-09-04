@@ -40,10 +40,6 @@ func Template(w http.ResponseWriter, body []byte) {
 </article>
 </main>
 </body>
-<script type="module">
-	import init, * as icfpc2022 from "/static/pkg/icfpc2022.js"
-	init()
-</script>
 </html>
 `)
 }
