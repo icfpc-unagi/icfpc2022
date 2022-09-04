@@ -50,11 +50,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ github.ref }}-${{ github.sha }}
+          key: server-${{ github.ref }}-${{ github.sha }}
           restore-keys: |
-            ${{ github.ref }}-${{ github.sha }}
-            ${{ github.ref }}
-            refs/head/main
+            server-${{ github.ref }}-${{ github.sha }}
+            server-${{ github.ref }}
+            server-refs/head/main
       - uses: docker/setup-buildx-action@v1
       - name: Set up credentials
         run: make secrets
@@ -88,11 +88,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ github.ref }}-${{ github.sha }}
+          key: builder-${{ github.ref }}-${{ github.sha }}
           restore-keys: |
-            ${{ github.ref }}-${{ github.sha }}
-            ${{ github.ref }}
-            refs/head/main
+            builder-${{ github.ref }}-${{ github.sha }}
+            builder-${{ github.ref }}
+            builder-refs/head/main
       - uses: docker/setup-buildx-action@v1
       - name: Set up credentials
         run: make secrets
