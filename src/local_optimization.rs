@@ -1,5 +1,6 @@
 use super::{Color, Program};
 use crate::{score, BlockId, Canvas, Move, WHITE};
+use rand::prelude::*;
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -108,6 +109,145 @@ pub fn optimize_step_parallel(
     return None;
 }
 
+pub fn optimize_coord_two(
+    program: &Program,
+    initial_canvas: &Canvas,
+    image: &Vec<Vec<Color>>,
+    diff_step: i32,
+    n_candidates: usize,
+) -> Option<(Program, f64)> {
+    let original_score = score(&program, initial_canvas, image).unwrap();
+
+    let cut_steps: Vec<_> = program
+        .iter()
+        .enumerate()
+        .filter_map(|(i, mov)| {
+            if matches!(mov, Move::LineCut(_, _, _)) {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let mut modifications = vec![];
+    for i in 0..cut_steps.len() {
+        for j in 0..i {
+            for si in [-1, 1] {
+                for sj in [-1, 1] {
+                    modifications.push((cut_steps[j], cut_steps[i], sj * diff_step, si * diff_step))
+                }
+            }
+        }
+    }
+    let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
+    modifications.shuffle(&mut rng);
+
+    let bar = indicatif::ProgressBar::new(modifications.len() as u64);
+    bar.set_style(indicatif::ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({eta})")
+        .progress_chars("#>-"));
+
+    let mut results = vec![];
+    modifications
+        .into_par_iter()
+        .map(|(step1, step2, diff1, diff2)| {
+            bar.inc(1);
+            let mut new_program = program.clone();
+            if let Move::LineCut(bid1, ori1, off1) = &program[step1] {
+                if let Move::LineCut(bid2, ori2, off2) = &program[step2] {
+                    new_program[step1] = Move::LineCut(bid1.clone(), *ori1, *off1 + diff1);
+                    new_program[step2] = Move::LineCut(bid2.clone(), *ori2, *off2 + diff2);
+
+                    if score(&new_program, initial_canvas, image).is_err() {
+                        return None;
+                    }
+                    let new_program = optimize_color(new_program, initial_canvas, image);
+                    let new_score = score(&new_program, initial_canvas, image).unwrap();
+                    // dbg!(new_score);
+                    return Some((new_program, new_score));
+                } else {
+                    panic!()
+                }
+                // new_program[step1]
+            } else {
+                panic!()
+            }
+            None
+        })
+        .collect_into_vec(&mut results);
+
+    if let Some((best_program, best_score)) = results
+        .into_iter()
+        .filter_map(|option| option)
+        .min_by_key(|(_, score)| ordered_float::OrderedFloat(*score))
+    {
+        eprintln!("Coord^2: {} -> {}", original_score, best_score);
+        if best_score < original_score {
+            return Some((best_program, best_score));
+        }
+    }
+    return None;
+
+    /*
+    let mut tmp = vec![];
+    (0..program.len())
+        .into_par_iter()
+        .map(|i| {
+            let mut result = None;
+            if let Move::LineCut(bid, ori, offset) = &program[i] {
+                for d in diff_steps {
+                    if 0 < offset + *d && offset + *d < WIDTH {
+                        let mut new_program = program.clone();
+                        new_program[i] = Move::LineCut(bid.clone(), *ori, offset + d);
+                        if let Ok(new_score) = score(&new_program, initial_canvas, image) {
+                            if new_score < original_score {
+                                //eprintln!("Improve: {} -> {}", original_score, new_score);
+                                result = Some((new_program.clone(), new_score));
+
+                                // ついでに色やる
+                                let new_program2 =
+                                    optimize_color(new_program.clone(), initial_canvas, image);
+                                if let Ok(new_score2) = score(&new_program2, initial_canvas, image)
+                                {
+                                    // eprintln!(
+                                    //     "Improve: {} -> {} -> {}",
+                                    //     original_score, new_score, new_score2
+                                    // );
+                                    if new_score2 < new_score {
+                                        result = Some((new_program2, new_score2));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            result
+        })
+        .collect_into_vec(&mut tmp);
+
+    // for result in tmp {
+    //     if result.is_some() {
+    //         return result;
+    //     }
+    // }
+
+    if let Some((best_program, best_score)) = tmp
+        .into_iter()
+        .filter_map(|option| option)
+        .min_by_key(|(_, score)| ordered_float::OrderedFloat(*score))
+    {
+        // eprintln!("Color: {} -> {}", original_score, best_score);
+        if best_score < original_score {
+            return Some((best_program, best_score));
+        }
+    }
+
+    return None;
+     */
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // 色関連
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -147,7 +287,7 @@ pub fn optimize_color(
         if let Move::Color(_, c) = m {
             let points_u8 = &points[i];
             if points_u8.is_empty() {
-                eprintln!("Color epmty: {}", i);
+                // eprintln!("Color epmty: {}", i);
                 continue;
             }
             let points_f64: Vec<_> = points_u8.iter().map(|cs| cs.map(|c| c as f64)).collect();

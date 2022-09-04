@@ -47,11 +47,16 @@ fn main() -> anyhow::Result<()> {
         let (submission, program, comments, initial_canvas, image) =
             submissions::read_submission_program_problem(submission.id)?;
 
+        dbg!(program.len());
+
         let (new_program, new_score) = if args.dryrun {
             (program.clone(), submission.cost as f64)
         } else {
             local_optimization::optimize(program, &initial_canvas, &image, 10, true)
         };
+
+        local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 1, 0);
+        local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 2, 0);
 
         println!(
             "{:6} {:7} {:20} {:6} {:6} {:6}",
