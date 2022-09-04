@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
 
         let mut w =
             std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score))?;
-        w.write_fmt(format_args!("# optimize"))?;
+        w.write_fmt(format_args!("# optimize\n"))?;
         write_isl_with_comments(w, program, &comments)?;
     }
 

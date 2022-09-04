@@ -28,7 +28,7 @@ fn main() -> anyhow::Result<()> {
     }
     program_full.extend(program_lite);
     let mut w = File::create("out/tos27.isl")?;
-    w.write_fmt(format_args!("# tos_2to27"))?;
+    w.write_fmt(format_args!("# tos_2to27\n"))?;
     write_isl_with_comments(w, program_full, chain!(comments1, comments2))?;
     Ok(())
 }
