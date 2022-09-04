@@ -413,7 +413,7 @@ pub fn pixel_distance_bitmap(a: &Vec<Vec<Color>>, b: &Vec<Vec<Color>>) -> Vec<Ve
                 .zip(b)
                 .map(|(a, b)| {
                     let d = pixel_distance(a, b).round().clamp(0.0, 255.0) as u8;
-                    [d; 4]
+                    [d, d, d, 255]
                 })
                 .collect()
         })

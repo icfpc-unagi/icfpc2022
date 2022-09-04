@@ -1,6 +1,7 @@
 .PHONY: all release run test clean
 
 all:
+	npm install
 	npm run build
 
 release:
