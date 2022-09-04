@@ -6,14 +6,15 @@ use serde::{Deserialize, Serialize};
 fn main() {
     let problem_id = std::env::args()
         .nth(1)
-        .expect("Problem ID must be specified in the first argument.");
+        .expect("Problem ID must be specified in the first argument.")
+        .parse::<u32>()
+        .expect("Problem ID must be an integer");
     let isl_path = std::env::args()
         .nth(2)
         .expect("Path to ISL must be specified in the second argument.");
 
     let isl = read_isl(File::open(isl_path).unwrap()).unwrap();
-    let png = read_png(&format!("problems/{}.png", problem_id));
-    let mut canvas = Canvas::new400();
+    let (mut canvas, png) = load_problem(problem_id);
     let cost = canvas.apply_all(isl).round() as u64;
     let similarity = similarity(&png, &canvas.bitmap).round() as u64;
 
@@ -44,7 +45,7 @@ fn main() {
     println!(
         "{}",
         serde_json::to_string(&Response {
-            problem_id: problem_id.parse().unwrap(),
+            problem_id: problem_id,
             cost: cost,
             similarity: similarity,
             image: base64::encode(image),
