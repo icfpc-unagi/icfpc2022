@@ -1,5 +1,5 @@
 use super::{Color, Program, Submission};
-use crate::{BlockId, Canvas, Move, WHITE};
+use crate::{Canvas, Move, WHITE};
 use rayon::prelude::*;
 use std::collections::HashSet;
 

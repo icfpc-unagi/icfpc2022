@@ -10,8 +10,10 @@ fn main() -> anyhow::Result<()> {
 
         let (submission, program, image) =
             icfpc2022::local_optimization::read_submission(submission.id)?;
+
         //println!("{}", submission.id);
-        let score = icfpc2022::canvas::score(&program, &image)?;
+        // let score = icfpc2022::canvas::score(&program, &image)?;
+
         let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
 
         // let (program, score) =

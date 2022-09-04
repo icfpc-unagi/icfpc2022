@@ -283,7 +283,7 @@ mod tests {
         assert_eq!(point, [19, 19, 30, 31]);
 
         let png = vec![vec![b, a, b, a], vec![a, a, a, c]];
-        let (point, cost) = best_color2(&png, 0, 4, 0, 2);
+        let (point, _cost) = best_color2(&png, 0, 4, 0, 2);
         assert_eq!(point, a); // mode
     }
 }
