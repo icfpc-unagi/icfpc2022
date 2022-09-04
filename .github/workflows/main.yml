@@ -13,6 +13,7 @@ on:
 
 env:
   UNAGI_PASSWORD: ${{ secrets.UNAGI_PASSWORD }}
+  DOCKER_BUILDKIT: 1
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -53,19 +54,14 @@ jobs:
       - name: Run tests
         run: make test/secrets
 
-  builder:
+  server:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v1
-      - name: Build binaries
-        run: |
-          make secrets/service_account.json && \
-          make docker/builder && \
-          docker run --rm icfpc-unagi/builder \
-              bash /work/scripts/deploy_binaries.sh \
-              "$(git rev-parse --short HEAD)"
+      - name: Build an image
+        run: make docker/server
 
   runner:
     runs-on: ubuntu-latest
@@ -73,7 +69,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v1
+      - name: Set up credentials
+        run: make secrets/service_account.json
       - name: Build an image
+        run: make docker/runner
+
+  builder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v1
+      - name: Set up credentials
+        run: make secrets/service_account.json
+      - name: Build an image
+        run: make docker/builder
+      - name: Deploy binaries
         run: |
-          make secrets/service_account.json && \
-          make docker/runner
+          docker run --rm icfpc-unagi/builder \
+              bash /work/scripts/deploy_binaries.sh \
+              "$(git rev-parse --short HEAD)"
