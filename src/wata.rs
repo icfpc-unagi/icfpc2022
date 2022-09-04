@@ -658,7 +658,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
             bar.inc(1);
             let mut cand = vec![];
             for x in 0..w - dx {
-                for y in 0..w - dy {
+                for y in 0..h - dy {
                     cand.push((x, y));
                 }
             }
@@ -733,21 +733,25 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
             for uy in (1..=h).rev() {
                 let mut median = vec![Median::new(); 4];
                 for ly in (0..uy).rev() {
-                    if uy < h && (uy - ly) * (ux - lx) > A {
+                    if uy - ly > D && ux < w && uy < h && (uy - ly) * (ux - lx) > A {
                         break;
-                    }
-                    for x in lx..ux {
-                        for c in 0..4 {
-                            median[c].push(png[ly][x][c]);
-                        }
                     }
                     // sqrt(r^2+g^2+b^2+a^2)を(|r|+|g|+|b|+|a|)/2に近似
                     let mut color = [0; 4];
                     let mut cost1 = 0;
-                    for c in 0..4 {
-                        let (a, diff) = median[c].get();
-                        color[c] = a;
-                        cost1 += diff;
+                    if ux - lx > D || ux == w || uy == h || D * (ux - lx) <= A {
+                        for x in lx..ux {
+                            for c in 0..4 {
+                                median[c].push(png[ly][x][c]);
+                            }
+                        }
+                        for c in 0..4 {
+                            let (a, diff) = median[c].get();
+                            color[c] = a;
+                            cost1 += diff;
+                        }
+                    } else {
+                        cost1 = 1000000000;
                     }
                     let mut cost = cost1 as f64 * 0.005 * MUL
                         + (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
@@ -789,21 +793,25 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
             for ux in (1..=w).rev() {
                 let mut median = vec![Median::new(); 4];
                 for lx in (0..ux).rev() {
-                    if ux < w && (uy - ly) * (ux - lx) > A {
+                    if ux - lx > D && ux < w && uy < h && (uy - ly) * (ux - lx) > A {
                         break;
-                    }
-                    for y in ly..uy {
-                        for c in 0..4 {
-                            median[c].push(png[y][lx][c]);
-                        }
                     }
                     // sqrt(r^2+g^2+b^2+a^2)を(|r|+|g|+|b|+|a|)/2に近似
                     let mut color = [0; 4];
                     let mut cost1 = 0;
-                    for c in 0..4 {
-                        let (a, diff) = median[c].get();
-                        color[c] = a;
-                        cost1 += diff;
+                    if uy - ly > D || ux == w || uy == h || D * (uy - ly) <= A {
+                        for y in ly..uy {
+                            for c in 0..4 {
+                                median[c].push(png[y][lx][c]);
+                            }
+                        }
+                        for c in 0..4 {
+                            let (a, diff) = median[c].get();
+                            color[c] = a;
+                            cost1 += diff;
+                        }
+                    } else {
+                        cost1 = 1000000000;
                     }
                     let mut cost = cost1 as f64 * 0.005 * MUL
                         + (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
@@ -819,7 +827,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     if ux != w {
                         cost += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
                         if uy < h {
-                            let dx = (ux - lx).max(h - ux);
+                            let dx = (ux - lx).max(w - ux);
                             cost += (1.0 * (w * h) as f64 / ((h - ly) * dx) as f64).round();
                         }
                     }
