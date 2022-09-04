@@ -1,7 +1,10 @@
 use icfpc2022::*;
 use std::convert::TryFrom;
+use svg::node::{
+    element::{Group, Image, Rectangle, Title},
+    Text,
+};
 use wasm_bindgen::prelude::*;
-use svg::node::{element::{Group, Title, Rectangle, Image}, Text};
 
 #[allow(unused)]
 macro_rules! log {
@@ -111,7 +114,11 @@ fn base64(png: &Vec<Vec<[u8; 4]>>) -> String {
             }
         }
     }
-    encoder.write_header().unwrap().write_image_data(&data).unwrap();
+    encoder
+        .write_header()
+        .unwrap()
+        .write_image_data(&data)
+        .unwrap();
     base64::encode(writer)
 }
 
@@ -123,7 +130,7 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
         return Ret {
             score: String::new(),
             error: "Illegal problem ID".to_owned(),
-            svg: String::new()
+            svg: String::new(),
         };
     }
     let decoder = png::Decoder::new(PNG[problem_id]);
@@ -143,55 +150,124 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
     let mut cost = 0;
     let mut similarity = 0;
     let mut error = String::new();
-    let mut doc = svg::Document::new().set("id", "vis").set("viewBox", (-5, -5, w * 4 + 10 + 50, h * 2 + 10)).set("width", w * 4 + 10 + 50).set("height", h * 2 + 10);
+    let mut doc = svg::Document::new()
+        .set("id", "vis")
+        .set("viewBox", (-5, -5, w * 4 + 10 + 50, h * 2 + 10))
+        .set("width", w * 4 + 10 + 50)
+        .set("height", h * 2 + 10);
     if !show_diff {
-        doc = doc.add(Image::new().set("x", w * 2 + 50).set("y", 0).set("width", w * 2).set("height", h * 2).set("xlink:href", format!("data:image/png;base64,{}",base64(&png))));
+        doc = doc.add(
+            Image::new()
+                .set("x", w * 2 + 50)
+                .set("y", 0)
+                .set("width", w * 2)
+                .set("height", h * 2)
+                .set(
+                    "xlink:href",
+                    format!("data:image/png;base64,{}", base64(&png)),
+                ),
+        );
     }
     match read_isl(output.into_bytes().as_slice()) {
         Ok(program) => {
-            let mut canvas =
-            if let Some(json) = INIT_CANVAS[problem_id] {
+            let mut canvas = if let Some(json) = INIT_CANVAS[problem_id] {
                 let json: InitialJson = serde_json::from_reader(json).unwrap();
                 Canvas::try_from(json).unwrap()
             } else {
                 Canvas::new(png[0].len(), png.len())
             };
             match canvas.apply_all_safe(program[0..t as usize].iter().cloned()) {
-                Ok(s) => {
-                    cost = s.round() as i64
-                },
+                Ok(s) => cost = s.round() as i64,
                 Err(e) => {
                     error = e.to_string();
                 }
             }
             similarity = icfpc2022::similarity(&png, &canvas.bitmap).round() as i64;
-            doc = doc.add(Image::new().set("x", 0).set("y", 0).set("width", w * 2).set("height", h * 2).set("xlink:href", format!("data:image/png;base64,{}",base64(&canvas.bitmap))));
+            doc = doc.add(
+                Image::new()
+                    .set("x", 0)
+                    .set("y", 0)
+                    .set("width", w * 2)
+                    .set("height", h * 2)
+                    .set(
+                        "xlink:href",
+                        format!("data:image/png;base64,{}", base64(&canvas.bitmap)),
+                    ),
+            );
             if show_diff {
                 let diff = pixel_distance_bitmap(&png, &canvas.bitmap);
-                doc = doc.add(Image::new().set("x", w * 2 + 50).set("y", 0).set("width", w * 2).set("height", h * 2).set("xlink:href", format!("data:image/png;base64,{}",base64(&diff))));
+                doc = doc.add(
+                    Image::new()
+                        .set("x", w * 2 + 50)
+                        .set("y", 0)
+                        .set("width", w * 2)
+                        .set("height", h * 2)
+                        .set(
+                            "xlink:href",
+                            format!("data:image/png;base64,{}", base64(&diff)),
+                        ),
+                );
             }
             if show_blocks {
                 for (id, block) in canvas.blocks.iter() {
                     let mut cost = 0.0;
-                    for y in block.0.1..block.1.1 {
-                        for x in block.0.0..block.1.0 {
-                            cost += pixel_distance(&png[y as usize][x as usize], &canvas.bitmap[y as usize][x as usize]);
+                    for y in block.0 .1..block.1 .1 {
+                        for x in block.0 .0..block.1 .0 {
+                            cost += pixel_distance(
+                                &png[y as usize][x as usize],
+                                &canvas.bitmap[y as usize][x as usize],
+                            );
                         }
                     }
                     cost = (cost * 0.005).round();
-                    doc = doc.add(Group::new().add(Title::new().add(Text::new(format!("block [{}]\n({}, {}) - ({}, {})\ndiff = {}", id, block.0.0, block.0.1, block.1.0, block.1.1, cost)))).add(Rectangle::new().set("x", block.0.0 * 2).set("y", 2 * h as i32 - block.1.1 * 2).set("width", 2 * (block.1.0 - block.0.0)).set("height", 2 * (block.1.1 - block.0.1)).set("fill", "#00000000").set("stroke-width", 2).set("stroke", "red")));
-                    doc = doc.add(Group::new().add(Title::new().add(Text::new(format!("block [{}]\n({}, {}) - ({}, {})\ndiff = {}", id, block.0.0, block.0.1, block.1.0, block.1.1, cost)))).add(Rectangle::new().set("x", w as i32 * 2 + 50 + block.0.0 * 2).set("y", 2 * h as i32 - block.1.1 * 2).set("width", 2 * (block.1.0 - block.0.0)).set("height", 2 * (block.1.1 - block.0.1)).set("fill", "#00000000").set("stroke-width", 2).set("stroke", "red")));
+                    doc = doc.add(
+                        Group::new()
+                            .add(Title::new().add(Text::new(format!(
+                                "block [{}]\n({}, {}) - ({}, {})\ndiff = {}",
+                                id, block.0 .0, block.0 .1, block.1 .0, block.1 .1, cost
+                            ))))
+                            .add(
+                                Rectangle::new()
+                                    .set("x", block.0 .0 * 2)
+                                    .set("y", 2 * h as i32 - block.1 .1 * 2)
+                                    .set("width", 2 * (block.1 .0 - block.0 .0))
+                                    .set("height", 2 * (block.1 .1 - block.0 .1))
+                                    .set("fill", "#00000000")
+                                    .set("stroke-width", 2)
+                                    .set("stroke", "red"),
+                            ),
+                    );
+                    doc = doc.add(
+                        Group::new()
+                            .add(Title::new().add(Text::new(format!(
+                                "block [{}]\n({}, {}) - ({}, {})\ndiff = {}",
+                                id, block.0 .0, block.0 .1, block.1 .0, block.1 .1, cost
+                            ))))
+                            .add(
+                                Rectangle::new()
+                                    .set("x", w as i32 * 2 + 50 + block.0 .0 * 2)
+                                    .set("y", 2 * h as i32 - block.1 .1 * 2)
+                                    .set("width", 2 * (block.1 .0 - block.0 .0))
+                                    .set("height", 2 * (block.1 .1 - block.0 .1))
+                                    .set("fill", "#00000000")
+                                    .set("stroke-width", 2)
+                                    .set("stroke", "red"),
+                            ),
+                    );
                 }
             }
-        },
-        Err(err) => {
-            error = err.to_string()
         }
+        Err(err) => error = err.to_string(),
     }
     Ret {
-        score: format!("{} (コスト: {}, 類似度: {})", cost + similarity, cost, similarity),
+        score: format!(
+            "{} (コスト: {}, 類似度: {})",
+            cost + similarity,
+            cost,
+            similarity
+        ),
         error,
-        svg: doc.to_string()
+        svg: doc.to_string(),
     }
 }
 
