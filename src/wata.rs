@@ -58,7 +58,7 @@ pub static MAX_WIDTH: Lazy<usize> = Lazy::new(|| {
 });
 pub static MAX_AREA: Lazy<usize> = Lazy::new(|| {
     std::env::var("MAX_AREA")
-        .unwrap_or("100000".to_owned())
+        .unwrap_or("5000".to_owned())
         .parse()
         .unwrap()
 });
@@ -595,6 +595,8 @@ pub fn all_merge(canvas: &Canvas) -> (u32, Vec<Move>) {
     (id, out)
 }
 
+const MUL: f64 = 0.666;
+
 pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
     let D = *MAX_WIDTH;
     let h = png.len();
@@ -638,7 +640,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         cost1 += diff;
                     }
                     let cost2 = (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
-                    dp[ly][uy - ly] = (cost1 as f64 * 0.005 * 0.5 + cost2, (2, color));
+                    dp[ly][uy - ly] = (cost1 as f64 * 0.005 * MUL + cost2, (2, color));
                 }
             }
             (lx, dx, dp)
@@ -731,7 +733,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
             for uy in (1..=h).rev() {
                 let mut median = vec![Median::new(); 4];
                 for ly in (0..uy).rev() {
-                    if (uy - ly) * (ux - lx) > A {
+                    if uy < h && (uy - ly) * (ux - lx) > A {
                         break;
                     }
                     for x in lx..ux {
@@ -747,7 +749,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         color[c] = a;
                         cost1 += diff;
                     }
-                    let mut cost = cost1 as f64 * 0.005 * 0.5
+                    let mut cost = cost1 as f64 * 0.005 * MUL
                         + (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
                     let color = if ux - lx <= D
                         && uy - ly <= D
@@ -787,7 +789,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
             for ux in (1..=w).rev() {
                 let mut median = vec![Median::new(); 4];
                 for lx in (0..ux).rev() {
-                    if (uy - ly) * (ux - lx) > A {
+                    if ux < w && (uy - ly) * (ux - lx) > A {
                         break;
                     }
                     for y in ly..uy {
@@ -803,7 +805,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                         color[c] = a;
                         cost1 += diff;
                     }
-                    let mut cost = cost1 as f64 * 0.005 * 0.5
+                    let mut cost = cost1 as f64 * 0.005 * MUL
                         + (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
                     let color = if ux - lx <= D
                         && uy - ly <= D
@@ -981,7 +983,7 @@ pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
     for y in 0..h {
         for x in 0..w {
             for c in 0..4 {
-                expected += png[y][x][c].abs_diff(canvas.bitmap[y][x][c]) as f64 * 0.005 * 0.5;
+                expected += png[y][x][c].abs_diff(canvas.bitmap[y][x][c]) as f64 * 0.005 * MUL;
             }
         }
     }
@@ -1005,7 +1007,7 @@ fn rec(
 ) {
     match dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .0 {
         0 => {
-            eprintln!("{:?}", (lx, ux, ly, uy));
+            // eprintln!("{:?}", (lx, ux, ly, uy));
             let x = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1 as usize;
             rec(lx, x, ly, uy, w, h, dp, id, blocks, out);
             let block = blocks.pop().unwrap();
@@ -1021,7 +1023,7 @@ fn rec(
             }
         }
         1 => {
-            eprintln!("{:?}", (lx, ux, ly, uy));
+            // eprintln!("{:?}", (lx, ux, ly, uy));
             let y = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1 as usize;
             rec(lx, ux, ly, y, w, h, dp, id, blocks, out);
             let block = blocks.pop().unwrap();

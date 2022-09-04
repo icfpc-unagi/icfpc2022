@@ -61,3 +61,11 @@ pub fn find_best_flip(problem_id: u32) -> anyhow::Result<(bool, bool)> {
 
     Ok((flip_x, flip_y))
 }
+
+pub fn find_best_score(problem_id: u32) -> u32 {
+    if let Ok(s) = find_best_submission(problem_id) {
+        s.cost
+    } else {
+        u32::MAX
+    }
+}

@@ -1,4 +1,4 @@
-use icfpc2022::*;
+use icfpc2022::{submissions::find_best_score, *};
 use once_cell::sync::Lazy;
 
 pub static FLIP_ROTATE: Lazy<i32> = Lazy::new(|| {
@@ -16,20 +16,13 @@ pub static FLIP_ROTATE_BEST_ONLY: Lazy<i32> = Lazy::new(|| {
 });
 
 fn main() {
-    let problem_id = std::env::args().nth(1).unwrap();
-    // let mut png = read_png(&format!("problems/{}.png", problem_id));
-    // let init_canvas =
-    //     if std::path::Path::new(&format!("problems/{}.initial.json", problem_id)).exists() {
-    //         Canvas::from_initial_json(&format!("problems/{}.initial.json", problem_id))
-    //     } else {
-    //         Canvas::new(png[0].len(), png.len())
-    //     };
-    let (init_canvas, mut png) = load_problem(problem_id.parse::<u32>().unwrap());
+    let problem_id = std::env::args().nth(1).unwrap().parse::<u32>().unwrap();
+    let (init_canvas, mut png) = load_problem(problem_id);
     let mut best = (wata::INF, vec![]);
 
     let best_flips;
     if *FLIP_ROTATE_BEST_ONLY != 0 {
-        best_flips = Some(submissions::find_best_flip(problem_id.parse().unwrap()).unwrap());
+        best_flips = Some(submissions::find_best_flip(problem_id).unwrap());
         eprintln!(
             "Best flip only mode ON, best flips: x={} y={}",
             best_flips.unwrap().0,
@@ -54,9 +47,9 @@ fn main() {
             if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 0 {
                 break;
             }
-            best.1 = rotate::rotate_program(&best.1);
+            best.1 = rotate::rotate_program_with_initial_canvas(&best.1, &init_canvas);
             png = rotate::rotate_png(&png);
-            best.1 = rotate::rotate_program(&best.1);
+            best.1 = rotate::rotate_program_with_initial_canvas(&best.1, &init_canvas);
             png = rotate::rotate_png(&png);
             flip_x = !flip_x;
             flip_y = !flip_y;
@@ -64,7 +57,7 @@ fn main() {
         if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 0 {
             break;
         }
-        best.1 = rotate::flip_program(&best.1);
+        best.1 = rotate::flip_program_with_initial_canvas(&best.1, &init_canvas);
         png = rotate::flip_png(png);
         flip_x = !flip_x;
     }
@@ -72,6 +65,14 @@ fn main() {
     let mut canvas = init_canvas;
     eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
     eprintln!("diff cost = {}", similarity(&png, &canvas.bitmap));
+    let best_score = find_best_score(problem_id);
+    if best_score > best.0.round() as u32 {
+        eprintln!(
+            "!!!!!!!!!!!!!!!!!!!! improved !!!!!!!!!!!!!!!!!!!!\n{} -> {}",
+            best_score,
+            best.0.round()
+        );
+    }
     for p in best.1 {
         println!("{}", p);
     }
