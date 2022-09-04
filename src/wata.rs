@@ -1070,6 +1070,10 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
     let D = *MAX_WIDTH;
     let h = png.len();
     let w = png[0].len();
+    let CUT = match init_canvas.cost_type {
+        CostType::Basic => 7.0,
+        CostType::V2 => 2.0,
+    };
 
     // 小さな矩形の処理
     // (cost, prev_type (0:x, 1:y, 2:一色で塗る), prev_val)
@@ -1137,7 +1141,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     let mut ret = (INF, (0u32, 0u32));
                     for x2 in x + 1..=x + dx {
                         let mut cost = dp[x][x2 - x - 1][y][dy].0 + dp[x2][x + dx - x2][y][dy].0;
-                        cost += (7.0 * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
+                        cost += (CUT * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
                         if x + dx + 1 < w || y + dy + 1 < h {
                             cost += (1.0 * (w * h) as f64
                                 / ((w - x2).max(x2 - x) * (h - y)) as f64)
@@ -1149,7 +1153,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     }
                     for y2 in y + 1..=y + dy {
                         let mut cost = dp[x][dx][y][y2 - y - 1].0 + dp[x][dx][y2][y + dy - y2].0;
-                        cost += (7.0 * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
+                        cost += (CUT * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
                         if x + dx + 1 < w || y + dy + 1 < h {
                             cost += (1.0 * (w * h) as f64
                                 / ((h - y2).max(y2 - y) * (w - x)) as f64)
@@ -1309,7 +1313,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     for mx in lx + 1..ux {
                         let mut cost = dp2[lx][mx][ly][uy].0 + dp2[mx][ux][ly][uy].0;
                         cost +=
-                            (7.0 * (w * h) as f64 / ((w - xs[lx]) * (h - ys[ly])) as f64).round();
+                            (CUT * (w * h) as f64 / ((w - xs[lx]) * (h - ys[ly])) as f64).round();
                         if ux + 1 < xs.len() || uy + 1 < ys.len() {
                             cost += (1.0 * (w * h) as f64
                                 / ((w - xs[mx]).max(xs[mx] - xs[lx]) * (h - ys[ly])) as f64)
@@ -1322,7 +1326,7 @@ pub fn solve5(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
                     for my in ly + 1..uy {
                         let mut cost = dp2[lx][ux][ly][my].0 + dp2[lx][ux][my][uy].0;
                         cost +=
-                            (7.0 * (w * h) as f64 / ((w - xs[lx]) * (h - ys[ly])) as f64).round();
+                            (CUT * (w * h) as f64 / ((w - xs[lx]) * (h - ys[ly])) as f64).round();
                         if ux + 1 < xs.len() || uy + 1 < ys.len() {
                             cost += (1.0 * (w * h) as f64
                                 / ((h - ys[my]).max(ys[my] - ys[ly]) * (w - xs[lx])) as f64)
