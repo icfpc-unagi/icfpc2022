@@ -44,7 +44,7 @@ pub fn optimize_step(
 }
  */
 
-pub fn optimize_step_parallel(
+pub fn optimize_step_parallel_old(
     program: Program,
     initial_canvas: &Canvas,
     image: &Vec<Vec<Color>>,
@@ -109,6 +109,41 @@ pub fn optimize_step_parallel(
     return None;
 }
 
+pub fn optimize_step_parallel(
+    program: Program,
+    initial_canvas: &Canvas,
+    image: &Vec<Vec<Color>>,
+    diff_steps: &[i32],
+) -> Option<(Program, f64)> {
+    let original_score = score(&program, initial_canvas, image).unwrap();
+
+    let ret = (0..program.len()).into_par_iter().find_map_any(|i| {
+        if let Move::LineCut(bid, ori, offset) = &program[i] {
+            for d in diff_steps {
+                if 0 < offset + *d && offset + *d < WIDTH {
+                    let mut new_program = program.clone();
+                    new_program[i] = Move::LineCut(bid.clone(), *ori, offset + d);
+                    if score(&new_program, initial_canvas, image).is_err() {
+                        return None;
+                    }
+                    let new_program = optimize_color(new_program.clone(), initial_canvas, image);
+                    let new_score = score(&new_program, initial_canvas, image);
+                    if new_score.is_err() {
+                        return None;
+                    }
+                    let new_score = new_score.unwrap();
+                    if new_score < original_score {
+                        return Some((new_program, new_score));
+                    }
+                }
+            }
+        }
+        None
+    });
+
+    ret
+}
+
 pub fn optimize_coord_two(
     program: &Program,
     initial_canvas: &Canvas,
@@ -144,10 +179,10 @@ pub fn optimize_coord_two(
 
     let bar = indicatif::ProgressBar::new(modifications.len() as u64);
 
-    let mut results = vec![];
-    modifications
+    // let mut results = vec![];
+    let ret = modifications
         .into_par_iter()
-        .map(|(step1, step2, diff1, diff2)| {
+        .find_map_any(|(step1, step2, diff1, diff2)| {
             bar.inc(1);
             let mut new_program = program.clone();
             if let Move::LineCut(bid1, ori1, off1) = &program[step1] {
@@ -161,7 +196,12 @@ pub fn optimize_coord_two(
                     let new_program = optimize_color(new_program, initial_canvas, image);
                     let new_score = score(&new_program, initial_canvas, image).unwrap();
                     // dbg!(new_score);
-                    return Some((new_program, new_score));
+
+                    if new_score < original_score {
+                        return Some((new_program, new_score));
+                    } else {
+                        return None;
+                    }
                 } else {
                     panic!()
                 }
@@ -169,20 +209,29 @@ pub fn optimize_coord_two(
             } else {
                 panic!()
             }
-        })
-        .collect_into_vec(&mut results);
+        });
 
-    if let Some((best_program, best_score)) = results
-        .into_iter()
-        .filter_map(|option| option)
-        .min_by_key(|(_, score)| ordered_float::OrderedFloat(*score))
-    {
+    if let Some((best_program, best_score)) = ret {
         eprintln!("Coord^2: {} -> {}", original_score, best_score);
         if best_score < original_score {
             return Some((best_program, best_score));
         }
     }
     return None;
+
+    //.collect_into_vec(&mut results);
+
+    // if let Some((best_program, best_score)) = results
+    //     .into_iter()
+    //     .filter_map(|option| option)
+    //     .min_by_key(|(_, score)| ordered_float::OrderedFloat(*score))
+    // {
+    //     eprintln!("Coord^2: {} -> {}", original_score, best_score);
+    //     if best_score < original_score {
+    //         return Some((best_program, best_score));
+    //     }
+    // }
+    // return None;
 
     /*
     let mut tmp = vec![];
@@ -298,7 +347,7 @@ pub fn optimize_color(
     program
 }
 
-pub fn try_removing_color_op(
+pub fn try_removing_color_op_best(
     program: Program,
     initial_canvas: &Canvas,
     image: &Vec<Vec<Color>>,
@@ -337,6 +386,34 @@ pub fn try_removing_color_op(
         }
     }
     return (program, original_score);
+}
+
+pub fn try_removing_color_op_any(
+    program: Program,
+    initial_canvas: &Canvas,
+    image: &Vec<Vec<Color>>,
+) -> (Program, f64) {
+    let original_score = score(&program, initial_canvas, image).unwrap();
+
+    let ret = (0..program.len()).into_par_iter().find_map_any(|i| {
+        if let Move::Color(_, _) = program[i] {
+            let mut candidate_program = program.clone();
+            candidate_program.remove(i);
+            let candidate_program = optimize_color(candidate_program, initial_canvas, image);
+            let candidate_score = score(&candidate_program, initial_canvas, image).unwrap();
+
+            let candidate_program2 = remove_unnecessary_operations(&candidate_program);
+            let candidate_score2 = score(&candidate_program2, initial_canvas, image).unwrap();
+            assert!(candidate_score2 <= candidate_score);
+
+            if candidate_score2 < original_score {
+                return Some((candidate_program, candidate_score));
+            }
+        }
+        None
+    });
+
+    ret.unwrap_or((program, original_score))
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -491,7 +568,7 @@ pub fn optimize(
         // (1) Try color improvement
         if diff_step == 1 {
             let (new_program, new_score) =
-                try_removing_color_op(best_program.clone(), initial_canvas, &image);
+                try_removing_color_op_best(best_program.clone(), initial_canvas, &image);
             if new_score < best_score {
                 eprintln!("Improvement - Color: {} -> {}", best_score, new_score);
                 best_program = new_program;
