@@ -247,3 +247,25 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::load_problem;
+
+    #[test]
+    fn test_merge_all() {
+        let (mut canvas, _) = load_problem(26);
+        merge_all(&mut canvas);
+    }
+
+    #[test]
+    fn test_internal_cost_only() {
+        // これより小さいコストにできたら答えの方を修正してね
+        assert_eq!(merge_all_internal(10, 10).0, 2426);
+        assert_eq!(merge_all_internal(20, 20).0, 17571);
+        // 一応正方形以外も動くことだけ確認
+        assert_eq!(merge_all_internal(10, 30).0, 10176);
+        assert_eq!(merge_all_internal(40, 10).0, 14617);
+    }
+}
