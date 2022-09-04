@@ -35,10 +35,8 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-
-      # Runs tests
+      - uses: docker/setup-buildx-action@v1
       - name: Run tests
         run: make test/go
 
@@ -60,7 +58,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
+      - uses: docker/setup-buildx-action@v1
       - name: Build binaries
         run: |
           make secrets/service_account.json && \
@@ -74,7 +72,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
+      - uses: docker/setup-buildx-action@v1
       - name: Build an image
         run: |
           make secrets/service_account.json && \
