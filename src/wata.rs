@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use crate::*;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
@@ -51,6 +53,12 @@ pub const INF: f64 = 1e10;
 pub static MAX_WIDTH: Lazy<usize> = Lazy::new(|| {
     std::env::var("MAX_WIDTH")
         .unwrap_or("40".to_owned())
+        .parse()
+        .unwrap()
+});
+pub static MAX_AREA: Lazy<usize> = Lazy::new(|| {
+    std::env::var("MAX_AREA")
+        .unwrap_or("100000".to_owned())
         .parse()
         .unwrap()
 });
@@ -585,4 +593,459 @@ pub fn all_merge(canvas: &Canvas) -> (u32, Vec<Move>) {
     }
     assert_eq!(stack.len(), 1);
     (id, out)
+}
+
+pub fn solve4(png: &Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
+    let D = *MAX_WIDTH;
+    let h = png.len();
+    let w = png[0].len();
+
+    // 小さな矩形の処理
+    // (cost, prev_type (0:x, 1:y, 2:一色で塗る), prev_val)
+    // dp[x][dx][y][dy] := [x,w)×[y,h)をキャンバスとして、閉区間[x,x+dx]×[y,y+dy]を塗り、かつmergeで後処理をする最小コスト
+    let mut dp = mat![(INF, (0u32, 0u32)); w; D; h; D];
+
+    // 一色で塗る場合の計算: O(whD^3)
+    let mut cand = vec![];
+    for x in 0..w {
+        for dx in 0..D {
+            if x + dx < w {
+                cand.push((x, dx));
+            }
+        }
+    }
+    let bar = indicatif::ProgressBar::new(cand.len() as u64);
+    let mut tmp = vec![];
+    cand.into_par_iter()
+        .map(|(lx, dx)| {
+            bar.inc(1);
+            let ux = lx + dx + 1;
+            let mut dp = mat![(INF, (0u32, 0u32)); h; D];
+            for ly in 0..h {
+                let mut median = vec![Median::new(); 4];
+                for uy in ly..h.min(ly + D) {
+                    for x in lx..ux {
+                        for c in 0..4 {
+                            median[c].push(png[uy][x][c]);
+                        }
+                    }
+                    // sqrt(r^2+g^2+b^2+a^2)を(|r|+|g|+|b|+|a|)/2に近似
+                    let mut color = 0;
+                    let mut cost1 = 0;
+                    for c in 0..4 {
+                        let (a, diff) = median[c].get();
+                        color |= (a as u32) << (c * 8);
+                        cost1 += diff;
+                    }
+                    let cost2 = (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                    dp[ly][uy - ly] = (cost1 as f64 * 0.005 * 0.5 + cost2, (2, color));
+                }
+            }
+            (lx, dx, dp)
+        })
+        .collect_into_vec(&mut tmp);
+    bar.finish();
+    for (lx, dx, ret) in tmp {
+        dp[lx][dx] = ret;
+    }
+
+    // 分割する場合: O(whD^3)
+    let bar = indicatif::ProgressBar::new((D * D) as u64);
+    for dx in 0..D {
+        for dy in 0..D {
+            bar.inc(1);
+            let mut cand = vec![];
+            for x in 0..w - dx {
+                for y in 0..w - dy {
+                    cand.push((x, y));
+                }
+            }
+            let mut tmp = vec![];
+            cand.par_iter()
+                .map(|&(x, y)| {
+                    let mut ret = (INF, (0u32, 0u32));
+                    for x2 in x + 1..=x + dx {
+                        let mut cost = dp[x][x2 - x - 1][y][dy].0 + dp[x2][x + dx - x2][y][dy].0;
+                        cost += (7.0 * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
+                        if y + dy + 1 < h {
+                            cost += (1.0 * (w * h) as f64
+                                / ((w - x2).max(x2 - x) * (h - y)) as f64)
+                                .round();
+                        }
+                        if ret.0.setmin(cost) {
+                            ret.1 = (0, x2 as u32);
+                        }
+                    }
+                    for y2 in y + 1..=y + dy {
+                        let mut cost = dp[x][dx][y][y2 - y - 1].0 + dp[x][dx][y2][y + dy - y2].0;
+                        cost += (7.0 * (w * h) as f64 / ((w - x) * (h - y)) as f64).round();
+                        if x + dx + 1 < w {
+                            cost += (1.0 * (w * h) as f64
+                                / ((h - y2).max(y2 - y) * (w - x)) as f64)
+                                .round();
+                        }
+                        if ret.0.setmin(cost) {
+                            ret.1 = (1, y2 as u32);
+                        }
+                    }
+                    ret
+                })
+                .collect_into_vec(&mut tmp);
+            for ((x, y), ret) in cand.into_iter().zip(tmp) {
+                dp[x][dx][y][dy].setmin(ret);
+            }
+        }
+    }
+    bar.finish();
+
+    // 右端がw or 上端がhで固定の細長い矩形の処理
+    // dp_x[ly][uy][lx] := [lx,w)×[ly,h)をキャンバスとして、[lx,w)×[ly,uy)を塗り、かつmergeで後処理をする最小コスト
+    // dp_y[lx][ux][ly] := [lx,w)×[ly,h)をキャンバスとして、[lx,ux)×[ly,h)を塗り、かつmergeで後処理をする最小コスト
+    let mut dp_x = mat![vec![]; h; h + 1];
+    let mut dp_y = mat![vec![]; w; w + 1];
+    let mut cand_x = vec![];
+    for lx in 0..w {
+        for ux in lx + 1..=w {
+            if ux - lx <= 100 && (ux == 0 || ux - lx <= *MAX_WIDTH || ux == w) {
+                cand_x.push((lx, ux));
+            }
+        }
+    }
+    let mut cand_y = vec![];
+    for ly in 0..h {
+        for uy in ly + 1..=h {
+            if uy - ly <= 100 && (uy == 0 || uy - ly <= *MAX_WIDTH || uy == h) {
+                cand_y.push((ly, uy));
+            }
+        }
+    }
+    let bar = indicatif::ProgressBar::new(cand_x.len() as u64 + cand_y.len() as u64);
+    let mut tmp = vec![];
+    let A = *MAX_AREA;
+    cand_x
+        .into_par_iter()
+        .map(|(lx, ux)| {
+            bar.inc(1);
+            let mut ret = vec![(INF, !0, None); h + 1];
+            ret[h].0 = 0.0;
+            for uy in (1..=h).rev() {
+                let mut median = vec![Median::new(); 4];
+                for ly in (0..uy).rev() {
+                    if (uy - ly) * (ux - lx) > A {
+                        break;
+                    }
+                    for x in lx..ux {
+                        for c in 0..4 {
+                            median[c].push(png[ly][x][c]);
+                        }
+                    }
+                    // sqrt(r^2+g^2+b^2+a^2)を(|r|+|g|+|b|+|a|)/2に近似
+                    let mut color = [0; 4];
+                    let mut cost1 = 0;
+                    for c in 0..4 {
+                        let (a, diff) = median[c].get();
+                        color[c] = a;
+                        cost1 += diff;
+                    }
+                    let mut cost = cost1 as f64 * 0.005 * 0.5
+                        + (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                    let color = if ux - lx <= D
+                        && uy - ly <= D
+                        && cost.setmin(dp[lx][ux - lx - 1][ly][uy - ly - 1].0 as f64)
+                    {
+                        None
+                    } else {
+                        Some(color)
+                    };
+                    cost += ret[uy].0;
+                    if uy != h {
+                        cost += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                        if ux < w {
+                            let dy = (uy - ly).max(h - uy);
+                            cost += (1.0 * (w * h) as f64 / ((w - lx) * dy) as f64).round();
+                        }
+                    }
+                    if ret[ly].0.setmin(cost) {
+                        ret[ly].1 = uy;
+                        ret[ly].2 = color;
+                    }
+                }
+            }
+            (lx, ux, ret)
+        })
+        .collect_into_vec(&mut tmp);
+    for (lx, ux, ret) in tmp {
+        dp_y[lx][ux] = ret;
+    }
+    let mut tmp = vec![];
+    cand_y
+        .into_par_iter()
+        .map(|(ly, uy)| {
+            bar.inc(1);
+            let mut ret = vec![(INF, !0, None); w + 1];
+            ret[w].0 = 0.0;
+            for ux in (1..=w).rev() {
+                let mut median = vec![Median::new(); 4];
+                for lx in (0..ux).rev() {
+                    if (uy - ly) * (ux - lx) > A {
+                        break;
+                    }
+                    for y in ly..uy {
+                        for c in 0..4 {
+                            median[c].push(png[y][lx][c]);
+                        }
+                    }
+                    // sqrt(r^2+g^2+b^2+a^2)を(|r|+|g|+|b|+|a|)/2に近似
+                    let mut color = [0; 4];
+                    let mut cost1 = 0;
+                    for c in 0..4 {
+                        let (a, diff) = median[c].get();
+                        color[c] = a;
+                        cost1 += diff;
+                    }
+                    let mut cost = cost1 as f64 * 0.005 * 0.5
+                        + (5.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                    let color = if ux - lx <= D
+                        && uy - ly <= D
+                        && cost.setmin(dp[lx][ux - lx - 1][ly][uy - ly - 1].0 as f64)
+                    {
+                        None
+                    } else {
+                        Some(color)
+                    };
+                    cost += ret[ux].0;
+                    if ux != w {
+                        cost += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                        if uy < h {
+                            let dx = (ux - lx).max(h - ux);
+                            cost += (1.0 * (w * h) as f64 / ((h - ly) * dx) as f64).round();
+                        }
+                    }
+                    if ret[lx].0.setmin(cost) {
+                        ret[lx].1 = ux;
+                        ret[lx].2 = color;
+                    }
+                }
+            }
+            (ly, uy, ret)
+        })
+        .collect_into_vec(&mut tmp);
+    bar.finish();
+    for (ly, uy, ret) in tmp {
+        dp_x[ly][uy] = ret;
+    }
+
+    // dp_xy[x][y] := [x,w)×[y,h)をキャンバスとして全体を塗る最小コスト
+    let mut dp_xy = mat![(INF, (!0, !0)); h + 1; w + 1];
+    dp_xy[0][0].0 = 0.0;
+    for lx in 0..w {
+        for ly in 0..h {
+            for ux in lx + 1..=w {
+                if dp_y[lx][ux].len() > 0 {
+                    let mut cost = dp_xy[lx][ly].0 + dp_y[lx][ux][ly].0;
+                    if ux < w {
+                        cost += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                    }
+                    if dp_xy[ux][ly].0.setmin(cost) {
+                        dp_xy[ux][ly].1 = (lx, ly);
+                    }
+                }
+            }
+            for uy in ly + 1..=h {
+                if dp_x[ly][uy].len() > 0 {
+                    let mut cost = dp_xy[lx][ly].0 + dp_x[ly][uy][lx].0;
+                    if uy < h {
+                        cost += (7.0 * (w * h) as f64 / ((w - lx) * (h - ly)) as f64).round();
+                    }
+                    if dp_xy[lx][uy].0.setmin(cost) {
+                        dp_xy[lx][uy].1 = (lx, ly);
+                    }
+                }
+            }
+        }
+    }
+    let mut tx = w;
+    let mut ty = h;
+    for x in 0..=w {
+        if dp_xy[tx][ty] > dp_xy[x][h] {
+            tx = x;
+            ty = h;
+        }
+    }
+    for y in 0..=h {
+        if dp_xy[tx][ty] > dp_xy[w][y] {
+            tx = w;
+            ty = y;
+        }
+    }
+    eprintln!("cost = {}", dp_xy[tx][ty].0);
+    let mut xys = vec![];
+    {
+        let mut x = tx;
+        let mut y = ty;
+        while x > 0 || y > 0 {
+            xys.push((x, y));
+            let (x2, y2) = dp_xy[x][y].1;
+            x = x2;
+            y = y2;
+        }
+        xys.push((0, 0));
+        xys.reverse();
+    }
+    let (mut id, mut out) = all_merge(&init_canvas);
+    let mut blocks = vec![BlockId(vec![id])];
+    for i in 0..xys.len() - 1 {
+        let (lx, ly) = xys[i];
+        let (ux, uy) = xys[i + 1];
+        if ly == uy {
+            let mut y = ly;
+            while y < h {
+                if let Some(color) = dp_y[lx][ux][y].2 {
+                    out.push(Move::Color(blocks.last().unwrap().clone(), color));
+                } else {
+                    rec(
+                        lx,
+                        ux,
+                        y,
+                        dp_y[lx][ux][y].1,
+                        w,
+                        h,
+                        &dp,
+                        &mut id,
+                        &mut blocks,
+                        &mut out,
+                    );
+                }
+                y = dp_y[lx][ux][y].1;
+                if y < h {
+                    let block = blocks.pop().unwrap();
+                    out.push(Move::LineCut(block.clone(), 'y', y as i32));
+                    blocks.extend(block.cut());
+                }
+            }
+            if ux < w {
+                while blocks.len() > 1 {
+                    let b1 = blocks.pop().unwrap();
+                    let b2 = blocks.pop().unwrap();
+                    out.push(Move::Merge(b1, b2));
+                    id += 1;
+                    blocks.push(BlockId(vec![id]));
+                }
+                let block = blocks.pop().unwrap();
+                out.push(Move::LineCut(block.clone(), 'x', ux as i32));
+                blocks.push(block.cut()[1].clone());
+            }
+        } else {
+            let mut x = lx;
+            while x < w {
+                if let Some(color) = dp_x[ly][uy][x].2 {
+                    out.push(Move::Color(blocks.last().unwrap().clone(), color));
+                } else {
+                    rec(
+                        x,
+                        dp_x[ly][uy][x].1,
+                        ly,
+                        uy,
+                        w,
+                        h,
+                        &dp,
+                        &mut id,
+                        &mut blocks,
+                        &mut out,
+                    );
+                }
+                x = dp_x[ly][uy][x].1;
+                if x < w {
+                    let block = blocks.pop().unwrap();
+                    out.push(Move::LineCut(block.clone(), 'x', x as i32));
+                    blocks.extend(block.cut());
+                }
+            }
+            if uy < h {
+                while blocks.len() > 1 {
+                    let b1 = blocks.pop().unwrap();
+                    let b2 = blocks.pop().unwrap();
+                    out.push(Move::Merge(b1, b2));
+                    id += 1;
+                    blocks.push(BlockId(vec![id]));
+                }
+                let block = blocks.pop().unwrap();
+                out.push(Move::LineCut(block.clone(), 'y', uy as i32));
+                blocks.push(block.cut()[1].clone());
+            }
+        }
+    }
+    let mut canvas = init_canvas.clone();
+    let mut cost = canvas.apply_all(out.clone());
+    let mut expected = cost;
+    for y in 0..h {
+        for x in 0..w {
+            for c in 0..4 {
+                expected += png[y][x][c].abs_diff(canvas.bitmap[y][x][c]) as f64 * 0.005 * 0.5;
+            }
+        }
+    }
+    cost += similarity(png, &canvas.bitmap);
+    eprintln!("expected = {}", expected);
+    eprintln!("actual = {}", cost);
+    (cost, out)
+}
+
+fn rec(
+    lx: usize,
+    ux: usize,
+    ly: usize,
+    uy: usize,
+    w: usize,
+    h: usize,
+    dp: &Vec<Vec<Vec<Vec<(f64, (u32, u32))>>>>,
+    id: &mut u32,
+    blocks: &mut Vec<BlockId>,
+    out: &mut Vec<Move>,
+) {
+    match dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .0 {
+        0 => {
+            eprintln!("{:?}", (lx, ux, ly, uy));
+            let x = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1 as usize;
+            rec(lx, x, ly, uy, w, h, dp, id, blocks, out);
+            let block = blocks.pop().unwrap();
+            out.push(Move::LineCut(block.clone(), 'x', x as i32));
+            blocks.extend(block.cut());
+            rec(x, ux, ly, uy, w, h, dp, id, blocks, out);
+            if uy != h {
+                let b2 = blocks.pop().unwrap();
+                let b1 = blocks.pop().unwrap();
+                out.push(Move::Merge(b1, b2));
+                *id += 1;
+                blocks.push(BlockId(vec![*id]));
+            }
+        }
+        1 => {
+            eprintln!("{:?}", (lx, ux, ly, uy));
+            let y = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1 as usize;
+            rec(lx, ux, ly, y, w, h, dp, id, blocks, out);
+            let block = blocks.pop().unwrap();
+            out.push(Move::LineCut(block.clone(), 'y', y as i32));
+            blocks.extend(block.cut());
+            rec(lx, ux, y, uy, w, h, dp, id, blocks, out);
+            if ux != w {
+                let b2 = blocks.pop().unwrap();
+                let b1 = blocks.pop().unwrap();
+                out.push(Move::Merge(b1, b2));
+                *id += 1;
+                blocks.push(BlockId(vec![*id]));
+            }
+        }
+        2 => {
+            let c = dp[lx][ux - lx - 1][ly][uy - ly - 1].1 .1;
+            let color = [
+                (c >> 0) as u8,
+                (c >> 8) as u8,
+                (c >> 16) as u8,
+                (c >> 24) as u8,
+            ];
+            out.push(Move::Color(blocks.last().unwrap().clone(), color));
+        }
+        _ => unreachable!(),
+    }
 }

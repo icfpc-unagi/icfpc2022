@@ -169,8 +169,15 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
             }
             if show_blocks {
                 for (id, block) in canvas.blocks.iter() {
-                    doc = doc.add(Group::new().add(Title::new().add(Text::new(format!("block {}\n({}, {}) - ({}, {})", id, block.0.0, block.0.1, block.1.0, block.1.1)))).add(Rectangle::new().set("x", block.0.0 * 2).set("y", 2 * h as i32 - block.1.1 * 2).set("width", 2 * (block.1.0 - block.0.0)).set("height", 2 * (block.1.1 - block.0.1)).set("fill", "#00000000").set("stroke-width", 2).set("stroke", "red")));
-                    doc = doc.add(Group::new().add(Title::new().add(Text::new(format!("block {}\n({}, {}) - ({}, {})", id, block.0.0, block.0.1, block.1.0, block.1.1)))).add(Rectangle::new().set("x", w as i32 * 2 + 50 + block.0.0 * 2).set("y", 2 * h as i32 - block.1.1 * 2).set("width", 2 * (block.1.0 - block.0.0)).set("height", 2 * (block.1.1 - block.0.1)).set("fill", "#00000000").set("stroke-width", 2).set("stroke", "red")));
+                    let mut cost = 0.0;
+                    for y in block.0.1..block.1.1 {
+                        for x in block.0.0..block.1.0 {
+                            cost += pixel_distance(&png[y as usize][x as usize], &canvas.bitmap[y as usize][x as usize]);
+                        }
+                    }
+                    cost = (cost * 0.005).round();
+                    doc = doc.add(Group::new().add(Title::new().add(Text::new(format!("block [{}]\n({}, {}) - ({}, {})\ndiff = {}", id, block.0.0, block.0.1, block.1.0, block.1.1, cost)))).add(Rectangle::new().set("x", block.0.0 * 2).set("y", 2 * h as i32 - block.1.1 * 2).set("width", 2 * (block.1.0 - block.0.0)).set("height", 2 * (block.1.1 - block.0.1)).set("fill", "#00000000").set("stroke-width", 2).set("stroke", "red")));
+                    doc = doc.add(Group::new().add(Title::new().add(Text::new(format!("block [{}]\n({}, {}) - ({}, {})\ndiff = {}", id, block.0.0, block.0.1, block.1.0, block.1.1, cost)))).add(Rectangle::new().set("x", w as i32 * 2 + 50 + block.0.0 * 2).set("y", 2 * h as i32 - block.1.1 * 2).set("width", 2 * (block.1.0 - block.0.0)).set("height", 2 * (block.1.1 - block.0.1)).set("fill", "#00000000").set("stroke-width", 2).set("stroke", "red")));
                 }
             }
         },
