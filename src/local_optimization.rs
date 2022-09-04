@@ -164,7 +164,7 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
             if c == &WHITE {
                 continue;
             }
-            let i = u32::from_le_bytes(c) as usize;
+            let i = u32::from_le_bytes(*c) as usize;
             points[i].push(image[y][x]);
         }
     }
