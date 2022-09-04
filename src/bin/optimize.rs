@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use clap::Parser;
 use icfpc2022::*;
 
@@ -49,7 +51,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut gain = 0.0;
     for submission in submissions {
-        let (submission, program, initial_canvas, image) =
+        let (submission, program, comments, initial_canvas, image) =
             submissions::read_solution(submission.id)?;
 
         let (program, score) =
@@ -67,10 +69,10 @@ fn main() -> anyhow::Result<()> {
         );
         gain += submission.cost as f64 - score;
 
-        write_isl(
-            std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score))?,
-            program,
-        )?;
+        let mut w =
+            std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score))?;
+        w.write_fmt(format_args!("# optimize"))?;
+        write_isl_with_comments(w, program, &comments)?;
     }
 
     println!("Total gain: {}", gain);
