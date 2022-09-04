@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::pixel_distance;
 
+#[deprecated]
 pub fn best_color(
     png: &Vec<Vec<[u8; 4]>>,
     lx: usize,
