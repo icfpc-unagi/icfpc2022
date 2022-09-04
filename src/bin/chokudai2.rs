@@ -21,13 +21,20 @@ pub static FLIP_ROTATE_BEST_ONLY: Lazy<i32> = Lazy::new(|| {
         .unwrap()
 });
 
+pub static TIMEOUT: Lazy<i32> = Lazy::new(|| {
+    std::env::var("TIMEOUT")
+        .unwrap_or("120".to_owned())
+        .parse()
+        .unwrap()
+});
+
 fn main() {
     let problem_id = std::env::args().nth(1).unwrap().parse::<u32>().unwrap();
     let (init_canvas, mut png) = load_problem(problem_id);
     let mut best = (wata::INF, vec![]);
 
     //TODO 引数で時間が弄れるようにする
-    let sec = 120;
+    let sec = *TIMEOUT;
 
     let best_flips;
     if *FLIP_ROTATE_BEST_ONLY != 0 {
