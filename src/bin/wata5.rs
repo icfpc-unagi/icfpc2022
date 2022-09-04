@@ -57,14 +57,36 @@ fn main() {
             best_flips.unwrap().0,
             best_flips.unwrap().1
         );
+    } else if *FLIP_X + *FLIP_Y > 0 {
+        best_flips = Some((*FLIP_X > 0, *FLIP_Y > 0));
     } else {
         best_flips = None;
     }
 
     let swap = if SWAP_FILE.len() > 0 {
         let swap = read_isl(std::fs::File::open(&*SWAP_FILE).unwrap()).unwrap();
-        png = get_swapped_png(&png, &swap, &init_canvas);
-        Some(swap)
+        let mut canvas = init_canvas.clone();
+        let mut start = 0;
+        for p in 0..swap.len() {
+            if canvas.blocks.len() == 1 {
+                start = p;
+            }
+            if let Move::Swap(_, _) = &swap[p] {
+                break;
+            }
+            canvas.apply(&swap[p]);
+        }
+        let mut canvas = init_canvas.clone();
+        canvas.apply_all(swap[0..start].iter().cloned());
+        let id = canvas.counter;
+        let mut swap2 = vec![];
+        for p in swap[start..].iter() {
+            let mut p = p.clone();
+            p.inc_id(!id + 1);
+            swap2.push(p);
+        }
+        png = get_swapped_png(&png, &swap2, &init_canvas);
+        Some(swap2)
     } else {
         None
     };
@@ -101,7 +123,7 @@ fn main() {
                 }
             }
 
-            if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 0 {
+            if best_flips.is_none() && *FLIP_ROTATE == 0 {
                 break;
             }
             best.1 = rotate::rotate_program_with_initial_canvas(&best.1, &init_canvas);
@@ -111,7 +133,7 @@ fn main() {
             flip_x = !flip_x;
             flip_y = !flip_y;
         }
-        if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 0 {
+        if best_flips.is_none() && *FLIP_ROTATE == 0 {
             break;
         }
         best.1 = rotate::flip_program_with_initial_canvas(&best.1, &init_canvas);
