@@ -350,3 +350,6 @@ article #vis {
 	width: 100%;
 	height: calc((var(--main-right) - var(--main-left)) / 2);
 }
+
+/* For visualizer */
+rect:hover { fill: #ffff0066; }
