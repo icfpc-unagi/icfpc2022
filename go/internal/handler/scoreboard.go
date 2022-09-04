@@ -45,7 +45,13 @@ func scoreboardTemplate(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
 			html.EscapeString(fmt.Sprintf("%+v", err)))
 	}
+	r3, err := generateMergedRecords(r2)
+	if err != nil {
+		fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
+			html.EscapeString(fmt.Sprintf("%+v", err)))
+	}
 	records := append(r1, r2...)
+	records = append(records, r3...)
 	displayScoreboardByClass(buf, records)
 	displayScoreboard(buf, records)
 }
@@ -109,7 +115,7 @@ FROM
             FROM
                 runs
             WHERE
-                run_name <> "" AND program_id = 0
+                program_id = 0
             GROUP BY
                 run_name,
                 problem_id
@@ -156,6 +162,9 @@ GROUP BY
 
 	results := make([]*scoreboardRecord, 0)
 	for _, r := range records {
+		if r.RunName == "" {
+			r.RunName = "unknown-solver"
+		}
 		name := r.RunName
 		if strings.Contains(name, "$$$") {
 			name = strings.SplitN(name, "$$$", 2)[1]
@@ -172,13 +181,35 @@ GROUP BY
 	return results, nil
 }
 
+func generateMergedRecords(records []*scoreboardRecord) ([]*scoreboardRecord, error) {
+	best := map[int]*scoreboardRecord{}
+	for _, r := range records {
+		if !r.IsInternal && r.UserName != "Unagi" {
+			continue
+		}
+		if best[r.ProblemID] == nil || r.Score < best[r.ProblemID].Score {
+			best[r.ProblemID] = r
+		}
+	}
+	result := make([]*scoreboardRecord, 0)
+	for _, r := range best {
+		rc := *r
+		rc.UserKey = "BEST_RECORD"
+		rc.UserName = "Unagi (internal)"
+		rc.IsInternal = true
+		result = append(result, &rc)
+	}
+	return result, nil
+}
+
 func displayScoreboardByClass(buf *bytes.Buffer, records []*scoreboardRecord) {
 	type rankingRecord struct {
-		UserKey  string
-		UserName string
-		Rank     int
-		Solved   int
-		Score    int64
+		UserKey    string
+		UserName   string
+		Rank       int
+		Solved     int
+		Score      int64
+		IsInternal bool
 	}
 
 	thresholds := []int{35, 30, 25, 20}
@@ -191,8 +222,9 @@ func displayScoreboardByClass(buf *bytes.Buffer, records []*scoreboardRecord) {
 			}
 			if _, ok := teams[r.UserKey]; !ok {
 				teams[r.UserKey] = &rankingRecord{
-					UserKey:  r.UserKey,
-					UserName: r.UserName,
+					UserKey:    r.UserKey,
+					UserName:   r.UserName,
+					IsInternal: r.IsInternal,
 				}
 			}
 			t := teams[r.UserKey]
@@ -231,6 +263,10 @@ func displayScoreboardByClass(buf *bytes.Buffer, records []*scoreboardRecord) {
 			style := "overflow: hidden;"
 			if thresholdRanks[t][i].UserName == "Unagi" {
 				style += "background: #cdf; color: red; font-weight: bold;"
+			} else if thresholdRanks[t][i].UserName == "Unagi (internal)" {
+				style += "background: #fdc; color: red; font-weight: bold;"
+			} else if thresholdRanks[t][i].IsInternal {
+				style += "font-weight: bold;"
 			}
 			fmt.Fprintf(buf, `<td style="%s">%s</td>`, style, html.EscapeString(thresholdRanks[t][i].UserName))
 			fmt.Fprintf(buf, `<td style="%s; text-align: right">%d</td>`, style, thresholdRanks[t][i].Score)
@@ -257,14 +293,14 @@ func displayScoreboard(buf *bytes.Buffer, records []*scoreboardRecord) {
 	// teams[UserKey][ProblemID]
 	teams := map[string]map[int]*scoreboardRecord{}
 	teamScore := map[string]int64{}
-	teamNames := map[string]string{}
+	teamNames := map[string]*scoreboardRecord{}
 	for _, r := range records {
 		if _, ok := teams[r.UserKey]; !ok {
 			teams[r.UserKey] = map[int]*scoreboardRecord{}
 		}
 		teams[r.UserKey][r.ProblemID] = r
 		teamScore[r.UserKey] = teamScore[r.UserKey] + r.Score
-		teamNames[r.UserKey] = r.UserName
+		teamNames[r.UserKey] = r
 	}
 
 	ranks := make([]string, 0)
@@ -316,8 +352,17 @@ func displayScoreboard(buf *bytes.Buffer, records []*scoreboardRecord) {
 	fmt.Fprintf(buf, "</tr>")
 
 	for _, k := range ranks {
-		fmt.Fprintf(buf, "<tr><td>%s</td>",
-			html.EscapeString(teamNames[k]))
+		style := ""
+		if teamNames[k].UserName == "Unagi" {
+			style += "background: #cdf;"
+		} else if teamNames[k].UserName == "Unagi (internal)" {
+			style += "background: #fdc;"
+		} else if teamNames[k].IsInternal {
+			style += "background: #dfc;"
+		}
+		fmt.Fprintf(buf, `<tr style="%s"><td>%s</td>`,
+			style,
+			html.EscapeString(teamNames[k].UserName))
 		for _, p := range problemIDs {
 			if r, ok := teams[k][p]; ok {
 				costStr := "&gt;1e6"
