@@ -77,10 +77,12 @@ pub fn median_color(
 }
 
 fn median_bucket(b: [usize; 256], n: usize) -> u8 {
+    assert!(n >= 1);
+    let k = (n - 1) / 2;
     let mut s = 0;
     for i in 0..256 {
         s += b[i];
-        if s >= n / 2 {
+        if s > k {
             return i as u8;
         }
     }
@@ -104,7 +106,6 @@ pub fn median_color_by_bucketing(
     }
 
     let n = (rx - lx) * (ry - ly);
-
     buckets.map(|b| median_bucket(b, n))
 }
 
@@ -113,7 +114,7 @@ fn median_array(mut a: Vec<u8>) -> u8 {
     let n = a.len();
     assert!(n >= 1);
     // TODO: そのうち暇な時、偶数の時にあれする
-    return a[n / 2];
+    return a[(n - 1) / 2];
 }
 
 pub fn median_color_by_sort(
@@ -309,6 +310,7 @@ pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
 
 #[cfg(test)]
 mod tests {
+    use rand::Rng;
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
@@ -387,5 +389,30 @@ mod tests {
         let png = vec![vec![b, a, b, a], vec![a, a, a, c]];
         let (point, _cost) = best_color2(&png, 0, 4, 0, 2);
         assert_eq!(point, a); // mode
+    }
+
+    fn minmax(a: usize, b: usize) -> (usize, usize) {
+        (a.min(b), a.max(b))
+    }
+
+    #[test]
+    fn test_median_color() {
+        let image = crate::read_png("problems/16.png");
+        let h = image.len();
+        let w = image[0].len();
+
+        let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
+
+        for _ in 0..1000 {
+            let (lx, rx) = minmax(rng.gen::<usize>() % w, rng.gen::<usize>() % w);
+            let rx = rx + 1;
+
+            let (ly, ry) = minmax(rng.gen::<usize>() % h, rng.gen::<usize>() % h);
+            let ry = ry + 1;
+
+            let c1 = median_color_by_bucketing(&image, lx, rx, ly, ry);
+            let c2 = median_color_by_sort(&image, lx, rx, ly, ry);
+            assert_eq!(c1, c2);
+        }
     }
 }
