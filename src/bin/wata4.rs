@@ -1,4 +1,8 @@
-use icfpc2022::{submissions::find_best_score, *};
+use icfpc2022::{
+    submissions::find_best_score,
+    wata::{MAX_AREA, MAX_WIDTH},
+    *,
+};
 use once_cell::sync::Lazy;
 
 pub static FLIP_ROTATE: Lazy<i32> = Lazy::new(|| {
@@ -73,6 +77,10 @@ fn main() {
             best.0.round()
         );
     }
+    println!(
+        "# wata4, FLIP_ROTATE={}, FLIP_ROTATE_BEST_ONLY={}, MAX_WIDTH={}, MAX_AREA={}",
+        *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_AREA
+    );
     for p in best.1 {
         println!("{}", p);
     }
