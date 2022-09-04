@@ -1,5 +1,6 @@
 use icfpc2022::{
-    chokudai_dev2::monte_solve2,
+    //chokudai_dev2::monte_solve2,
+    chokudai1::solve_swap2,
     submissions::find_best_score,
     wata::{MAX_AREA, MAX_WIDTH},
     *,
@@ -43,13 +44,15 @@ fn main() {
         for _ in 0..2 {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
                 let mut png2 = png.clone();
-                let mut out = monte_solve2(&mut png2, &init_canvas);
+                let mut out = solve_swap2(&mut png2, 20.0, 8, &init_canvas);
                 out.0 = init_canvas
                     .clone()
                     .apply_all_and_score(out.1.clone(), &png)
                     .unwrap();
+
+                eprintln!("realScore : {}", out.0);
                 if best.0.setmin(out.0) {
-                    eprintln!("{}", best.0);
+                    eprintln!("best: {}", best.0);
                     best.1 = out.1;
                 }
             }
@@ -83,7 +86,7 @@ fn main() {
             best.0.round()
         );
     }
-    println!("# chokudai no swap");
+    println!("# chokudai-swap 120sec");
 
     for p in best.1 {
         println!("{}", p);

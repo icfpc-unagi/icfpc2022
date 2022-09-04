@@ -8,10 +8,15 @@ use crate::{BlockId, Move};
 //border    1行のエラーの合計許容値。3~10くらいがおススメ
 //combo     連続何行でswap対象になるか。10くらいがお勧め
 pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f64, Program) {
-    return solve_swap(png, border, combo);
+    return solve_swap2(png, border, combo, &Canvas::new(png[0].len(), png.len()));
 }
 
-pub fn solve_swap2(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f64, Program) {
+pub fn solve_swap2(
+    png: &mut Vec<Vec<[u8; 4]>>,
+    border: f64,
+    combo: usize,
+    init_canvas: &Canvas,
+) -> (f64, Program) {
     let campus_size = 400 as usize;
 
     let mut target_color_x = [[0, 0, 0, 0]; 400];
@@ -150,7 +155,7 @@ pub fn solve_swap2(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f
 
     eprintln!("xswap:{}, yswap:{}", xlist.len(), ylist.len());
 
-    let (_, moves) = monte_solve(png);
+    let (_, moves) = monte_solve2(png, init_canvas);
 
     let mut blocks = vec![BlockId(vec![0])];
     let mut id = 0;
@@ -168,8 +173,12 @@ pub fn solve_swap2(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f
                 blocks.extend(block.cut());
             }
             Move::Merge(_, _) => {
-                let _ = blocks.pop().unwrap();
-                let _ = blocks.pop().unwrap();
+                if blocks.len() != 0 {
+                    let _ = blocks.pop().unwrap();
+                }
+                if blocks.len() != 0 {
+                    let _ = blocks.pop().unwrap();
+                }
                 id += 1;
                 blocks.push(BlockId(vec![id]));
             }

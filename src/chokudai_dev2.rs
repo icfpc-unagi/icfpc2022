@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use crate::color::*;
 use crate::wata::*;
 use crate::*;
+use std::time::{Duration, Instant};
+
 //use std::collections::HashMap;
 
 pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>) -> (f64, Program) {
@@ -13,11 +15,16 @@ pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, 
     let mut map: HashMap<i64, usize> = HashMap::new();
     let mut list = vec![];
     let mut best = 999999999.0;
-    for i in 0..200000 {
+    let start = Instant::now();
+    for i in 0..200000000 {
+        let end = start.elapsed();
+        if end >= Duration::from_secs(60) {
+            break;
+        }
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
         if best > ret {
             best = ret;
-            eprintln!("cnt:{}   score:{}    node:{}", i, best, list.len());
+            //eprintln!("cnt:{}   score:{}    node:{}", i, best, list.len());
         }
         //eprintln!("cnt:{}   score:{}", cnt, best);
     }
@@ -245,7 +252,11 @@ fn search(
 
         div_pos.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-        list[now].target = 8;
+        list[now].target = 16;
+        //list[now].target = 3;
+        //while list[now].target * list[now].target < dx * dy / 50 {
+        //    list[now].target += 1;
+        //}
         if list[now].target > div_pos.len() {
             list[now].target = div_pos.len();
         }
@@ -278,12 +289,15 @@ fn search(
 
     let choice;
     list[now].cnt += 1;
-    if list[now].target != list[now].next.len() {
-        choice = list[now].target;
-        list[now].target += 1;
+    if list[now].target > list[now].cnt - 1 {
+        choice = list[now].cnt - 1;
+        //list[now].target += 1;
     } else {
-        //choice = bit_count(list[now].cnt) % list[now].target;
-        choice = list[now].cnt % list[now].target;
+        if list[now].cnt <= 10000000 {
+            choice = bit_count(list[now].cnt) % list[now].target;
+        } else {
+            choice = list[now].cnt % list[now].target;
+        }
     }
 
     let left = list[now].next[choice].1;
@@ -346,7 +360,6 @@ fn search(
     return list[now].best;
 }
 
-/*
 fn bit_count(a: usize) -> usize {
     if a % 2 == 0 {
         return 0;
@@ -354,7 +367,6 @@ fn bit_count(a: usize) -> usize {
         return bit_count(a / 2) + 1;
     }
 }
-*/
 
 #[derive(Clone, Debug)]
 struct Node {
