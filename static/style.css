@@ -275,7 +275,7 @@ article a[name] {
 	top: calc(var(--nav-height) * -1);
 }
 
-article input[type=text] {
+article input[type=text], article select {
 	border: 1px solid #ccc;
 	border-radius: 3px;
 	margin: 0 1ex;
@@ -298,6 +298,8 @@ article textarea {
 	width: 100%;
 	box-sizing: border-box;
 	padding: 1ex;
+	min-width: 100%;
+	max-width: 100%;
 }
 
 article input[type=submit] {
