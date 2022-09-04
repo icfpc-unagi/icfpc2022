@@ -17,7 +17,7 @@ type InsertProgramRequest struct {
 
 type InsertProgramResponse struct {
 	ProgramID int   `json:"program_id"`
-	TaskIDs   []int `json:"task_ids"`
+	RunIDs    []int `json:"run_ids"`
 }
 
 func InsertProgram(req *InsertProgramRequest) (*InsertProgramResponse, error) {
@@ -46,16 +46,17 @@ INSERT INTO programs SET program_name = ?, program_code = ?
 	failure := 0
 	for _, p := range util.Problems() {
 		for i := 0; i < 3; i++ {
-			iResp, err := InsertTask(&InsertTaskRequest{
-				ProblemID: p.ID,
-				ProgramID: resp.ProgramID,
+			runResp, err := RunAdd(context.Background(), &RunAddRequest{
+				ProblemID:  p.ID,
+				ProgramID:  resp.ProgramID,
+				RunCommand: req.ProgramCode,
 			})
 			if err != nil {
 				glog.Errorf("Failed to insert a task: %+v", err)
 				failure++
 				continue
 			}
-			resp.TaskIDs = append(resp.TaskIDs, iResp.TaskID)
+			resp.RunIDs = append(resp.RunIDs, runResp.RunID)
 			break
 		}
 	}

@@ -28,10 +28,23 @@ type RunFlushRequest struct {
 	SolutionISL  string `json:"solution_isl" db:"solution_isl"`
 }
 
+type RunAddRequest struct {
+	ProblemID   int    `json:"problem_id"`
+	ProgramID   int    `json:"program_id"`
+	SolutionISL string `json:"solution_isl"`
+	RunName     string `json:"run_name"`
+	RunCommand  string `json:"run_command"`
+}
+
+type RunAddResponse struct {
+	RunID int `json:"run_id"`
+}
+
 func init() {
 	http.HandleFunc("/"+PATH_PREFIX+"/run/acquire", handleRunAcquire)
 	http.HandleFunc("/"+PATH_PREFIX+"/run/extend", handleRunExtend)
 	http.HandleFunc("/"+PATH_PREFIX+"/run/flush", handleRunFlush)
+	http.HandleFunc("/"+PATH_PREFIX+"/run/add", handleRunAdd)
 }
 
 func handleRunAcquire(w http.ResponseWriter, r *http.Request) {
@@ -195,4 +208,97 @@ LIMIT 1
 		return errors.New("no run to flush")
 	}
 	return nil
+}
+
+func handleRunAdd(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Body == nil {
+		w.WriteHeader(400)
+		return
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	var req RunAddRequest
+	if err := json.Unmarshal(buf, &req); err != nil {
+		glog.Errorf("Failed to parse a rqeuest: %+v", req)
+		w.WriteHeader(400)
+		return
+	}
+	resp, err := RunAdd(ctx, &req)
+	if err != nil {
+		glog.Errorf("Failed to extend the lock: %+v", err)
+		w.WriteHeader(500)
+		return
+	}
+	buf, err = json.Marshal(resp)
+	if err != nil {
+		glog.Errorf("Failed to marshal a response: %+v", err)
+		w.WriteHeader(500)
+		return
+	}
+	if _, err := w.Write(buf); err != nil {
+		glog.Errorf("Failed to write buffer: %+v", err)
+		w.WriteHeader(500)
+		return
+	}
+}
+
+func RunAdd(ctx context.Context, req *RunAddRequest) (*RunAddResponse, error) {
+	if req.SolutionISL != "" {
+		return doRunAddWithSolution(ctx, req)
+	}
+	result, err := db.Execute(ctx, `
+INSERT runs
+SET
+	problem_id = ?,
+	program_id = ?,
+	run_name = ?,
+	run_command = ?
+	run_locked = CURRENT_TIMESTAMP() - INTERVAL (1 + RAND()) * 3600 * 24 SECOND
+`, req.ProblemID, req.ProgramID, req.RunName, req.RunCommand)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to add a run")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get an insert ID")
+	}
+	return &RunAddResponse{RunID: int(id)}, nil
+}
+
+func doRunAddWithSolution(ctx context.Context, req *RunAddRequest) (*RunAddResponse, error) {
+	result, err := db.Execute(ctx, `
+INSERT INTO solutions
+SET solution_isl = ?
+`, req.SolutionISL)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to add a solution")
+	}
+	solutionID, err := result.LastInsertId()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get an insert ID")
+	}
+
+	result, err = db.Execute(ctx, `
+INSERT INTO runs
+SET
+	problem_id = ?,
+	program_id = ?,
+	solution_id = ?,
+	run_name = ?,
+	run_command = ?
+	run_locked = CURRENT_TIMESTAMP() - INTERVAL (1 + RAND()) * 3600 * 24 SECOND
+`, req.ProblemID, req.ProgramID, solutionID, req.RunName, req.RunCommand)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to add a run")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get an insert ID")
+	}
+	return &RunAddResponse{RunID: int(id)}, nil
 }
