@@ -26,8 +26,10 @@ func internalSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		name := strings.SplitN(isl, "\n", 2)[0]
 		if !strings.HasPrefix(name, "#") {
 			name = ""
+		} else {
+			name = strings.TrimPrefix(name, "#")
 		}
-		name = strings.TrimSpace(name)
+		name = strings.SplitN(strings.TrimSpace(name), " ", 2)[0]
 
 		return RunAdd(context.Background(), &RunAddRequest{
 			ProblemID:   problemID,
