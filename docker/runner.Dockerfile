@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS rust-builder
+FROM ubuntu:22.04
 RUN apt-get update -qy && apt-get install -qy apt-transport-https ca-certificates gnupg curl
 RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
