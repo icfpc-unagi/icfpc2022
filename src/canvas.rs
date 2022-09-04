@@ -342,7 +342,7 @@ mod tests {
             let sub: Submission =
                 serde_json::from_reader(File::open(format!("submissions/{}.json", id)).unwrap())
                     .unwrap();
-            assert_eq!(sub.status, "SUCCEEDED");
+            assert_eq!(sub.status.unwrap(), "SUCCEEDED");
             let isl = read_isl(File::open(format!("submissions/{}.isl", id)).unwrap()).unwrap();
             let png = read_png(&format!("problems/{}.png", sub.problem_id));
             let mut canvas = Canvas::new400();

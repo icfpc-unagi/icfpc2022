@@ -5,25 +5,25 @@ use std::io::Write;
 #[derive(Parser, Debug)]
 #[clap(author, version)]
 struct Args {
-    #[clap(short, long)]
+    #[clap(long)]
     latest: Option<usize>,
 
-    #[clap(short, long)]
+    #[clap(long)]
     problem_ids: Option<String>,
 
-    #[clap(short, long)]
+    #[clap(long)]
     submission_ids: Option<String>,
 
-    #[clap(short, long)]
+    #[clap(long)]
     submission_id_min: Option<u32>,
 
-    #[clap(short, long)]
+    #[clap(long)]
     program_name: Option<String>,
 
-    #[clap(short, long)]
+    #[clap(long)]
     allow_not_best: bool,
 
-    #[clap(short, long)]
+    #[clap(long)]
     dryrun: bool,
 }
 
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
         let (submission, program, comments, initial_canvas, image) =
             submissions::read_submission_program_problem(submission.id)?;
 
-        dbg!(program.len());
+        // dbg!(program.len());
 
         let (new_program, new_score) = if args.dryrun {
             (program.clone(), submission.cost as f64)
@@ -55,8 +55,8 @@ fn main() -> anyhow::Result<()> {
             local_optimization::optimize(program, &initial_canvas, &image, 10, true)
         };
 
-        local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 1, 0);
-        local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 2, 0);
+        // local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 1, 0);
+        // local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 2, 0);
 
         println!(
             "{:6} {:7} {:20} {:6} {:6} {:6}",

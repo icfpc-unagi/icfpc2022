@@ -439,7 +439,7 @@ pub fn load_problem(problem_id: u32) -> (Canvas, Vec<Vec<Color>>) {
 pub struct Submission {
     pub id: u32,
     pub problem_id: u32,
-    pub status: String,
+    pub status: Option<String>,
     pub cost: u32,
 }
 

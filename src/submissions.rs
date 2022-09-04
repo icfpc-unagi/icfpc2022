@@ -1,21 +1,23 @@
 use crate::{Canvas, Move, Program, Submission};
+use anyhow::Context;
+use once_cell::sync::Lazy;
 use std::collections::HashSet;
 
+pub static SUBMISSIONS_DIR: Lazy<String> =
+    Lazy::new(|| std::env::var("SUBMISSIONS_DIR").unwrap_or("./submissions".to_owned()));
+
 pub fn find_all_submission_ids() -> anyhow::Result<Vec<u32>> {
-    let paths = glob::glob("submissions/*.json")?;
+    let paths = glob::glob(&format!("{}/*.json", &*SUBMISSIONS_DIR))?;
     let paths = paths
         .map(|path| path.map_err(anyhow::Error::from))
         .collect::<anyhow::Result<Vec<_>>>()?;
     let mut submission_ids = paths
         .into_iter()
         .map(|path| {
-            path.to_str()
+            path.with_extension("")
+                .file_name()
                 .unwrap()
-                .split('/')
-                .nth(1)
-                .unwrap()
-                .split('.')
-                .nth(0)
+                .to_str()
                 .unwrap()
                 .parse::<u32>()
                 .map_err(anyhow::Error::from)
@@ -35,11 +37,11 @@ pub fn estimate_program_name(comment: &Vec<String>) -> String {
 
 pub fn read_submission(submission_id: u32) -> anyhow::Result<Submission> {
     let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
-        "submissions/{}.json",
-        submission_id
+        "{}/{}.json",
+        &*SUBMISSIONS_DIR, submission_id
     ))?)?;
-    if sub.status != "SUCCEEDED" {
-        anyhow::bail!("Submission status si not SUCCEEDED {:?}", &sub);
+    if sub.status.as_ref().map_or(false, |s| s != "SUCCEEDED") {
+        anyhow::bail!("Submission status is not SUCCEEDED {:?}", &sub);
     }
     anyhow::Ok(sub)
 }
@@ -58,7 +60,7 @@ pub fn read_all_submissions_and_programs() -> anyhow::Result<Vec<(Submission, Pr
 pub fn find_best_submissions() -> anyhow::Result<std::collections::BTreeMap<u32, Submission>> {
     let mut best_submissions = std::collections::BTreeMap::<u32, Submission>::new();
 
-    for json_path in glob::glob("submissions/*.json")? {
+    for json_path in glob::glob(&format!("{}/*.json", &*SUBMISSIONS_DIR))? {
         let submission: Submission = serde_json::from_reader(std::fs::File::open(json_path?)?)?;
 
         best_submissions
@@ -104,8 +106,8 @@ fn find_first_cut(program: &Program, orientation: char) -> Option<i32> {
 pub fn find_best_flip(problem_id: u32) -> anyhow::Result<(bool, bool)> {
     let submission = find_best_submission(problem_id)?;
     let program = crate::read_isl(std::fs::File::open(format!(
-        "submissions/{}.isl",
-        submission.id
+        "{}/{}.isl",
+        &*SUBMISSIONS_DIR, submission.id
     ))?)?;
 
     let x = find_first_cut(&program, 'x').ok_or_else(|| anyhow::anyhow!("No cut found for x"))?;
@@ -129,13 +131,21 @@ pub fn read_submission_program(
     submission_id: u32,
 ) -> anyhow::Result<(Submission, Program, Vec<String>)> {
     let submission: Submission = serde_json::from_reader(std::fs::File::open(format!(
-        "submissions/{}.json",
-        submission_id
-    ))?)?;
-    assert_eq!(submission.status, "SUCCEEDED");
+        "{}/{}.json",
+        &*SUBMISSIONS_DIR, submission_id
+    ))?)
+    .with_context(|| format!("Error parsing {}.json", submission_id))?;
+    if submission
+        .status
+        .as_ref()
+        .map_or(false, |s| s != "SUCCEEDED")
+    {
+        anyhow::bail!("Submission status is not SUCCEEDED {:?}", &submission);
+    }
+    // dbg!(submission_id);
     let (program, comments) = crate::read_isl_with_comments(std::fs::File::open(format!(
-        "submissions/{}.isl",
-        submission_id
+        "{}/{}.isl",
+        &*SUBMISSIONS_DIR, submission_id
     ))?)?;
 
     Ok((submission, program, comments))
