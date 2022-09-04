@@ -252,7 +252,7 @@ fn search(
 
         div_pos.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-        list[now].target = 16;
+        list[now].target = 32;
         //list[now].target = 3;
         //while list[now].target * list[now].target < dx * dy / 50 {
         //    list[now].target += 1;
