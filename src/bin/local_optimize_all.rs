@@ -6,7 +6,10 @@ fn main() -> anyhow::Result<()> {
     for (problem_id, submission) in best_submissions.iter() {
         let (submission, program, image) =
             icfpc2022::local_optimization::read_submission(submission.id)?;
-        let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
+        //let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
+
+        let (program, score) =
+            icfpc2022::local_optimization::try_removing_color_op(program, &image);
 
         //let program = icfpc2022::local_optimization::optimize_color(program.clone(), &image);
         //let score = icfpc2022::Canvas::new400().apply_all_and_score(program.clone(), &image)?;

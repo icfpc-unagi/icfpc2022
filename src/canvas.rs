@@ -272,6 +272,10 @@ impl From<Vec<Vec<Color>>> for Canvas {
     }
 }
 
+pub fn score(program: &Program, image: &Vec<Vec<Color>>) -> anyhow::Result<f64> {
+    Canvas::new400().apply_all_and_score(program.clone(), image)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;

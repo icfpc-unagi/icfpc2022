@@ -1,6 +1,7 @@
 use super::{Color, Program, Submission};
-use crate::{Canvas, Move};
+use crate::{Canvas, Move, WHITE};
 use rayon::prelude::*;
+use std::collections::HashSet;
 
 const WIDTH: i32 = 400;
 
@@ -155,6 +156,8 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
 
     // (2) 次に色を決めていく
     let mut canvas = Canvas::new400();
+    // TODO: initial canvas対応した際にここ気をつけること！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+    canvas.bitmap.iter_mut().for_each(|row| row.fill(WHITE));
     canvas.apply_all(program.clone());
 
     // (3) 各Color命令が実際に塗るピクセルの色を集めていく
@@ -162,6 +165,10 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     for y in 0..canvas.bitmap.len() {
         for x in 0..canvas.bitmap[y].len() {
             let c = &canvas.bitmap[y][x];
+            // TODO: ここも！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+            if c == &WHITE {
+                continue;
+            }
             let i = c[0] as usize
                 + (c[1] as usize + (c[2] as usize + (c[3] as usize) * 256) * 256) * 256;
             points[i].push(image[y][x]);
@@ -188,6 +195,54 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
 
     program
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub fn try_removing_color_op(program: Program, image: &Vec<Vec<Color>>) -> (Program, f64) {
+    let mut tmp = vec![];
+    (0..program.len())
+        .into_par_iter()
+        .map(|i| {
+            if let Move::Color(_, _) = program[i] {
+                let mut candidate_program = program.clone();
+                candidate_program.remove(i);
+                let candidate_program = optimize_color(candidate_program, image);
+                // TODO: remove unnecessary cut
+                let candidate_score = super::canvas::score(&candidate_program, image).unwrap();
+                Some((candidate_score, candidate_program))
+            } else {
+                None
+            }
+        })
+        .collect_into_vec(&mut tmp);
+
+    let original_score = super::canvas::score(&program, image).unwrap();
+    if let Some((best_score, best_program)) = tmp
+        .into_iter()
+        .filter_map(|option| option)
+        .min_by_key(|(score, _)| ordered_float::OrderedFloat(*score))
+    {
+        eprintln!("Color: {} -> {}", original_score, best_score);
+        if best_score < original_score {
+            return (best_program, best_score);
+        }
+    }
+    return (program, original_score);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// pub fn remove_unused_cuts(program: Program) -> Program {
+//     let used_block_ids = HashSet::new();
+//     let mut removable = vec![false; program.len()];
+//
+//     for mov in program.iter().enumerate().rev() {
+//         match mov {
+//             Move::LineCut(block_id, _, _) | Move::PointCut(block_id, _, _) | Move::Color(=> {}
+//         }
+//     }
+//     todo!()
+// }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
