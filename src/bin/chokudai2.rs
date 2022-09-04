@@ -54,7 +54,7 @@ fn main() {
                 }
             }
 
-            if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 0 {
+            if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 100 {
                 break;
             }
             best.1 = rotate::rotate_program_with_initial_canvas(&best.1, &init_canvas);
@@ -64,7 +64,7 @@ fn main() {
             flip_x = !flip_x;
             flip_y = !flip_y;
         }
-        if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 0 {
+        if *FLIP_ROTATE_BEST_ONLY == 0 && *FLIP_ROTATE == 100 {
             break;
         }
         best.1 = rotate::flip_program_with_initial_canvas(&best.1, &init_canvas);

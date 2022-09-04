@@ -8,6 +8,10 @@ use crate::{BlockId, Move};
 //border    1行のエラーの合計許容値。3~10くらいがおススメ
 //combo     連続何行でswap対象になるか。10くらいがお勧め
 pub fn solve_swap(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f64, Program) {
+    return solve_swap(png, border, combo);
+}
+
+pub fn solve_swap2(png: &mut Vec<Vec<[u8; 4]>>, border: f64, combo: usize) -> (f64, Program) {
     let campus_size = 400 as usize;
 
     let mut target_color_x = [[0, 0, 0, 0]; 400];
