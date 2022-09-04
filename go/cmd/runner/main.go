@@ -33,6 +33,8 @@ func main() {
 
 func Loop() error {
 	ctx := context.Background()
+
+	glog.Info("Acquiring a new run...")
 	resp, err := client.RunAcquire(ctx)
 	if err != nil {
 		return err
@@ -56,6 +58,8 @@ func Loop() error {
 	stderr, err := os.Create(path.Join(dir, "stderr"))
 	cmd.Stderr = stderr
 	cmd.Start()
+
+	glog.Infof("Start running run_id=%d...", resp.RunID)
 
 	c := make(chan struct{})
 	go func() {
@@ -86,21 +90,27 @@ func Loop() error {
 	close(c)
 	stdout.Close()
 	stderr.Close()
+
+	glog.Infof("A process stopped: run_id=%d", resp.RunID)
+
 	exitCode := cmd.ProcessState.ExitCode()
 	logID := uuid.New().String()
 	result := api.RunFlushRequest{
 		RunSignature: resp.RunSignature,
 		RunCode:      int64(exitCode),
 		SolutionISL:  Summary(path.Join(dir, "stdout")),
+		LogID:        logID,
 	}
 
+	glog.Infof("Exporting log files: %s", logID)
 	cmd = exec.CommandContext(ctx,
-		"gsutil", "-m", "cp",
+		"gsutil", "-m", "cp", "-Z",
 		path.Join(dir, "stdout"), path.Join(dir, "stderr"),
 		"gs://icfpc2022/log/"+logID+"/")
 	cmd.Dir = dir
 	cmd.Run()
 
+	glog.Infof("Flushing a run: run_id=%d", resp.RunID)
 	return client.RunFlush(ctx, &result)
 }
 
