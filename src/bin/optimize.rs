@@ -25,6 +25,9 @@ struct Args {
 
     #[clap(long)]
     dryrun: bool,
+
+    #[clap(long, default_value_t = 0)]
+    max_pair_perturb: i32,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -52,7 +55,14 @@ fn main() -> anyhow::Result<()> {
         let (new_program, new_score) = if args.dryrun {
             (program.clone(), submission.cost as f64)
         } else {
-            local_optimization::optimize(program, &initial_canvas, &image, 10, true)
+            local_optimization::optimize(
+                program,
+                &initial_canvas,
+                &image,
+                10,
+                true,
+                args.max_pair_perturb,
+            )
         };
 
         // local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 1, 0);

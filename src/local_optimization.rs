@@ -479,6 +479,7 @@ pub fn optimize(
     image: &Vec<Vec<Color>>,
     max_diff_step: i32,
     parallel: bool,
+    max_pair_perturb: i32,
 ) -> (Program, f64) {
     let mut best_score = super::canvas::score(&best_program, initial_canvas, image).unwrap();
     if best_program.is_empty() {
@@ -487,7 +488,7 @@ pub fn optimize(
 
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
-        // Try color improvement
+        // (1) Try color improvement
         if diff_step == 1 {
             let (new_program, new_score) =
                 try_removing_color_op(best_program.clone(), initial_canvas, &image);
@@ -499,7 +500,7 @@ pub fn optimize(
             }
         }
 
-        // Try coordinate improvement
+        // (2) Try coordinate improvement
         let ret = if parallel {
             optimize_step_parallel(
                 best_program.clone(),
@@ -521,13 +522,29 @@ pub fn optimize(
                 continue;
             }
         }
-
         eprintln!(
             "(Improvement failed, increasing step: {} -> {})",
             diff_step,
             diff_step + 1
         );
         diff_step += 1;
+
+        // (3) Try pair coordinate improvement
+        if diff_step == max_diff_step + 1 {
+            for d in 1..=max_pair_perturb {
+                if let Some((new_program, new_score)) =
+                    optimize_coord_two(&best_program, initial_canvas, image, d)
+                {
+                    if new_score < best_score {
+                        eprintln!("Improvement - Pair coord: {} -> {}", best_score, new_score);
+                        best_program = new_program;
+                        best_score = new_score;
+                        diff_step = 1;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     // TODO: 時間かかるならこれをループの中に入れる
