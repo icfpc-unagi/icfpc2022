@@ -1,9 +1,13 @@
 use super::{Color, Program, Submission};
-use crate::{Canvas, Move, WHITE};
+use crate::{BlockId, Canvas, Move, WHITE};
 use rayon::prelude::*;
 use std::collections::HashSet;
 
 const WIDTH: i32 = 400;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// 座標関連
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn optimize_step(
     program: Program,
@@ -25,7 +29,7 @@ pub fn optimize_step(
                         Canvas::new400().apply_all_and_score(new_program.clone(), image)
                     {
                         if new_score < original_score {
-                            eprintln!("Improve: {} -> {}", original_score, new_score);
+                            // eprintln!("Improve: {} -> {}", original_score, new_score);
                             return Some((new_program, new_score));
                         }
                     }
@@ -60,7 +64,7 @@ pub fn optimize_step_parallel(
                             Canvas::new400().apply_all_and_score(new_program.clone(), image)
                         {
                             if new_score < original_score {
-                                eprintln!("Improve: {} -> {}", original_score, new_score);
+                                //eprintln!("Improve: {} -> {}", original_score, new_score);
                                 result = Some((new_program.clone(), new_score));
 
                                 // ついでに色やる
@@ -68,10 +72,10 @@ pub fn optimize_step_parallel(
                                 if let Ok(new_score2) = Canvas::new400()
                                     .apply_all_and_score(new_program2.clone(), image)
                                 {
-                                    eprintln!(
-                                        "Improve: {} -> {} -> {}",
-                                        original_score, new_score, new_score2
-                                    );
+                                    // eprintln!(
+                                    //     "Improve: {} -> {} -> {}",
+                                    //     original_score, new_score, new_score2
+                                    // );
                                     if new_score2 < new_score {
                                         result = Some((new_program2, new_score2));
                                     }
@@ -93,52 +97,8 @@ pub fn optimize_step_parallel(
     return None;
 }
 
-pub fn optimize(
-    mut program: Program,
-    image: &Vec<Vec<Color>>,
-    max_diff_step: i32,
-    parallel: bool,
-) -> (Program, f64) {
-    let mut result = (
-        program.clone(),
-        Canvas::new400()
-            .apply_all_and_score(program.clone(), image)
-            .unwrap(),
-    );
-
-    let mut diff_step = 1;
-    while diff_step <= max_diff_step {
-        let ret = if parallel {
-            optimize_step_parallel(program.clone(), &image, &[-diff_step, diff_step])
-        } else {
-            optimize_step(program.clone(), &image, &[-diff_step, diff_step])
-        };
-
-        if let Some((improved_program, improved_score)) = ret {
-            program = improved_program.clone();
-            result = (improved_program, improved_score);
-
-            // TODO: 時間かかるならこれ
-            // icfpc2022::write_isl(
-            //     std::fs::File::create(format!(
-            //         "out/opt_{}_{:06.0}",
-            //         sub.problem_id, improved_score
-            //     ))
-            //     .unwrap(),
-            //     improved_program,
-            // )
-            // .unwrap();
-
-            diff_step = 1;
-        } else {
-            eprintln!("Step: {} -> {}", diff_step, diff_step + 1);
-            diff_step += 1;
-        }
-    }
-
-    result
-}
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// 色関連
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program {
@@ -190,9 +150,9 @@ pub fn optimize_color(mut program: Program, image: &Vec<Vec<Color>>) -> Program 
     program
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 pub fn try_removing_color_op(program: Program, image: &Vec<Vec<Color>>) -> (Program, f64) {
+    let original_score = super::canvas::score(&program, image).unwrap();
+
     let mut tmp = vec![];
     (0..program.len())
         .into_par_iter()
@@ -201,22 +161,25 @@ pub fn try_removing_color_op(program: Program, image: &Vec<Vec<Color>>) -> (Prog
                 let mut candidate_program = program.clone();
                 candidate_program.remove(i);
                 let candidate_program = optimize_color(candidate_program, image);
-                // TODO: remove unnecessary cut
                 let candidate_score = super::canvas::score(&candidate_program, image).unwrap();
-                Some((candidate_score, candidate_program))
+
+                let candidate_program2 = remove_unnecessary_operations(&candidate_program);
+                let candidate_score2 = super::canvas::score(&candidate_program2, image).unwrap();
+                assert!(candidate_score2 <= candidate_score);
+
+                Some((candidate_score2, candidate_program2))
             } else {
                 None
             }
         })
         .collect_into_vec(&mut tmp);
 
-    let original_score = super::canvas::score(&program, image).unwrap();
     if let Some((best_score, best_program)) = tmp
         .into_iter()
         .filter_map(|option| option)
         .min_by_key(|(score, _)| ordered_float::OrderedFloat(*score))
     {
-        eprintln!("Color: {} -> {}", original_score, best_score);
+        // eprintln!("Color: {} -> {}", original_score, best_score);
         if best_score < original_score {
             return (best_program, best_score);
         }
@@ -225,19 +188,96 @@ pub fn try_removing_color_op(program: Program, image: &Vec<Vec<Color>>) -> (Prog
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// 不要なMoveの削除
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// pub fn remove_unused_cuts(program: Program) -> Program {
-//     let used_block_ids = HashSet::new();
-//     let mut removable = vec![false; program.len()];
-//
-//     for mov in program.iter().enumerate().rev() {
-//         match mov {
-//             Move::LineCut(block_id, _, _) | Move::PointCut(block_id, _, _) | Move::Color(=> {}
-//         }
+/// Color, Swapより後の不要なMoveを削除する。
+/// もしremove_unnecessary_operationsがMergeを真面目にやったら不要になる。
+pub fn trim_unnecessary_operations(mut program: Program) -> Program {
+    while let Some(mov) = program.last() {
+        if !mov.may_change_bitmap() {
+            program.pop();
+        } else {
+            break;
+        }
+    }
+    program
+}
+
+// fn get_global_counter_history(program: &Program) -> Vec<u32> {
+//     let mut canvas = Canvas::new400();
+//     let mut history = vec![];
+//     for (i, mov) in program.iter().enumerate() {
+//         history[i] = canvas.counter;
+//         canvas.apply(mov);
 //     }
-//     todo!()
+//     history
 // }
 
+pub fn remove_unnecessary_operations(program: &Program) -> Program {
+    let program = trim_unnecessary_operations(program.clone());
+
+    let mut used_block_ids = HashSet::new();
+    let mut removable = vec![false; program.len()];
+    // let mut global_counter_history = get_global_counter_history(program);
+
+    for (i, mov) in program.iter().enumerate().rev() {
+        match mov {
+            Move::Color(bid, _) => {
+                // Colorは、使うんだよね
+                used_block_ids.insert(bid.clone());
+            }
+            Move::LineCut(bid, _, _) => {
+                let used = bid.cut().iter().any(|b| used_block_ids.contains(&b));
+                if used {
+                    used_block_ids.insert(bid.clone());
+                } else {
+                    removable[i] = true;
+                }
+            }
+            Move::PointCut(bid, _, _) => {
+                let used = bid.cut4().iter().any(|b| used_block_ids.contains(&b));
+                if used {
+                    used_block_ids.insert(bid.clone());
+                } else {
+                    removable[i] = true;
+                }
+            }
+            Move::Merge(bid0, bid1) => {
+                // TODO: merge消すと全体の番号がずれて結構面倒なので後で
+                //let new_bid = BlockId(vec![global_counter_history[i] + 1]);
+                //if used_block_ids.contains(&new_bid) {
+                if true {
+                    used_block_ids.insert(bid0.clone());
+                    used_block_ids.insert(bid1.clone());
+                } else {
+                    removable[i] = true;
+                }
+            }
+            Move::Swap(bid0, bid1) => {
+                // TODO: 一応、塗られた内容が同じなら不要ではある
+                used_block_ids.insert(bid0.clone());
+                used_block_ids.insert(bid1.clone());
+            }
+        }
+    }
+
+    program
+        .iter()
+        .zip(removable)
+        .filter_map(|(mov, rem)| {
+            if rem {
+                // println!("{}", mov);
+                None
+            } else {
+                Some(mov.clone())
+            }
+        })
+        .collect()
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// ユーティリティ
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn read_submission(
@@ -255,4 +295,68 @@ pub fn read_submission(
     let png = crate::read_png(&format!("problems/{}.png", sub.problem_id));
 
     Ok((sub, program, png))
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// ユーティリティ
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub fn optimize(
+    mut best_program: Program,
+    image: &Vec<Vec<Color>>,
+    max_diff_step: i32,
+    parallel: bool,
+) -> (Program, f64) {
+    let mut best_score = super::canvas::score(&best_program, image).unwrap();
+
+    let mut diff_step = 1;
+    while diff_step <= max_diff_step {
+        // Try color improvement
+        if diff_step == 1 {
+            let (new_program, new_score) = try_removing_color_op(best_program.clone(), &image);
+            if new_score < best_score {
+                eprintln!("Improvement - Color: {} -> {}", best_score, new_score);
+                best_program = new_program;
+                best_score = new_score;
+                continue;
+            }
+        }
+
+        // Try coordinate improvement
+        let ret = if parallel {
+            optimize_step_parallel(best_program.clone(), &image, &[-diff_step, diff_step])
+        } else {
+            optimize_step(best_program.clone(), &image, &[-diff_step, diff_step])
+        };
+        if let Some((new_program, new_score)) = ret {
+            if new_score < best_score {
+                eprintln!("Improvement - Coord: {} -> {}", best_score, new_score);
+                best_program = new_program;
+                best_score = new_score;
+
+                diff_step = 1;
+                continue;
+            }
+        }
+
+        eprintln!(
+            "(Improvement failed, increasing step: {} -> {})",
+            diff_step,
+            diff_step + 1
+        );
+        diff_step += 1;
+    }
+
+    // TODO: 時間かかるならこれをループの中に入れる
+    // icfpc2022::write_isl(
+    //     std::fs::File::create(format!(
+    //         "out/opt_{}_{:06.0}",
+    //         sub.problem_id, improved_score
+    //     ))
+    //     .unwrap(),
+    //     improved_program,
+    // )
+    // .unwrap();
+
+    (best_program, best_score)
 }

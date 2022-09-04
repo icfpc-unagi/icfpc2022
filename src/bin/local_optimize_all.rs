@@ -4,15 +4,21 @@ fn main() -> anyhow::Result<()> {
     let mut gain = 0.0;
 
     for (problem_id, submission) in best_submissions.iter() {
+        if *problem_id >= 26 {
+            continue;
+        }
+
         let (submission, program, image) =
             icfpc2022::local_optimization::read_submission(submission.id)?;
-        //let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
+        //println!("{}", submission.id);
+        let score = icfpc2022::canvas::score(&program, &image)?;
+        let (program, score) = icfpc2022::local_optimization::optimize(program, &image, 10, true);
 
-        let (program, score) =
-            icfpc2022::local_optimization::try_removing_color_op(program, &image);
+        // let (program, score) =
+        //     icfpc2022::local_optimization::try_removing_color_op(program.clone(), &image);
 
         //let program = icfpc2022::local_optimization::optimize_color(program.clone(), &image);
-        //let score = icfpc2022::Canvas::new400().apply_all_and_score(program.clone(), &image)?;
+        // let score = icfpc2022::Canvas::new400().apply_all_and_score(program.clone(), &image)?;
 
         println!(
             "Problem {:3}: {:7} -> {:7}",
