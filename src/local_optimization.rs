@@ -144,9 +144,6 @@ pub fn optimize_coord_two(
     modifications.shuffle(&mut rng);
 
     let bar = indicatif::ProgressBar::new(modifications.len() as u64);
-    bar.set_style(indicatif::ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({eta})")
-        .progress_chars("#>-"));
 
     let mut results = vec![];
     modifications
