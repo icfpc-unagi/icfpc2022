@@ -54,7 +54,7 @@ func Loop() error {
 		return nil
 	}
 	glog.Infof("Acquired a run: run_id=%d", resp.RunID)
-	defer glog.Info("Closing a run: run_id=%d", resp.RunID)
+	defer glog.Infof("Closing a run: run_id=%d", resp.RunID)
 
 	dir, err := os.MkdirTemp(os.TempDir(), "executor")
 	name := fmt.Sprintf("c%06d", rand.Intn(1000000))
