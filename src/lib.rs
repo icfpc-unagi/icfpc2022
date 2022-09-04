@@ -13,6 +13,7 @@ pub mod color;
 pub mod initial_json;
 pub mod local_optimization;
 pub mod rotate;
+pub mod submissions;
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
 pub mod wata;
