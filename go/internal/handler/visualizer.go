@@ -64,29 +64,31 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(buf, `</select></div>`)
 	fmt.Fprintf(buf, `
       <div>
-        <textarea class="lined" id="output" rows="20" data-gramm_editor="false" onchange="updateOutput()" placeholder="ISL コード">%s</textarea>
+        <textarea class="lined" id="output" rows="20" data-gramm_editor="false" onchange="onCodeUpdate()" onkeyup="onCodeUpdate()" placeholder="ISL コード">%s</textarea>
       </div>
-    <p style="display:flex;">
-      <input type="button" id="play" value="▶" style="width:32px;height:32px;bottom:5px;position:relative;">&ensp;
+<table style="table-layout: fixed; width:100%%"><tr><td valign="bottom">
+<div id="score"></div>
+<table style="width:100%%; margin: 1ex 0 0 0"><tr><td nowrap>ターン:&nbsp</td><td style="width:100%%"><input type="number" id="turn" value="0" min="0" max="0" style="width:100%%;text-align:right;font-family:monospace" onchange="update_t(this.value)"/></td></tr></table>
+</td><td style="text-align:center">
+<input type="button" id="first" value="◀◀" style="width:48px;height:48px;bottom:5px;position:relative;border-radius:64px;font-family: monospace;">
+<input type="button" id="back" value="|◀" style="width:48px;height:48px;bottom:5px;position:relative;border-radius:64px;font-family: monospace;">
+<input type="button" id="play" value="▶" style="width:64px;height:64px;font-size:200%%;bottom:5px;position:relative;border-radius:64px;font-family: monospace;">
+<input type="button" id="next" value="▶|" style="width:48px;height:48px;bottom:5px;position:relative;border-radius:64px;font-family: monospace;">
+<input type="button" id="last" value="▶▶" style="width:48px;height:48px;bottom:5px;position:relative;border-radius:64px;font-family: monospace;">
+</td><td>
       <label>
-        slow
-        <input type="range" id="speed" min="1" max="60" value="30" style="width:200px;">
-        fast&emsp;
+<table style="width:100%%; margin-bottom: 1ex"><tr><td align="right"">遅</td><td><input type="range" id="speed" min="1" max="60" value="30" style="width:100%%;"></td><td align="left">速</td></tr></table>
       </label>
-      <label>
-        turn:
-        <input type="number" id="turn" value="0" min="0" max="0" style="width:70px;text-align:right;" onchange="update_t(this.value)"/>
-      </label>
-    </p>
-    <p>
-      <input type="checkbox" id="show_blocks" onchange="visualize()"><label for="show_blocks">ブロック境界表示</label>&emsp;
-      <input type="checkbox" id="show_diff" onchange="visualize()"><label for="show_diff">画像差分表示</label>
-    </p>
-    <p>
-      <input type="range" id="t_bar" min="0" max="0" value="0" style="width:780px;" onchange="update_t(this.value)" oninput="update_t(this.value)">
-    </p>
-    <hr>
-    <p id="score"></p>
+<div>
+      <nobr><input type="checkbox" id="show_blocks" onchange="visualize()"><label for="show_blocks">ブロック境界表示</label>&emsp;</nobr>
+      <nobr><input type="checkbox" id="show_diff" onchange="visualize()"><label for="show_diff">画像差分表示</label>&emsp;</nobr>
+      <nobr><input type="checkbox" id="show_final" onchange="visualize()" checked><label for="show_diff">変更時は最後を表示</label></nobr>
+</div>
+</td></tr></table>
+    <div style="text-align: center">
+      <input type="range" id="t_bar" min="0" max="0" value="0" style="width: calc(var(--main-right) - var(--main-left) - var(--padding) * 10);" onchange="update_t(this.value)" oninput="update_t(this.value)">
+    </div>
+
     <div id="result">
     </div>
     <script src='/web/web.js'></script>
@@ -159,6 +161,18 @@ $(function() {
         }
       }
 
+lastValue = document.getElementById("output").value;
+
+function onCodeUpdate() {
+	var value = document.getElementById("output").value;
+	if (lastValue == value) return;
+	lastValue = value;
+	if (document.getElementById("show_final").checked) {
+		update_t(1000000);
+	}
+	updateOutput();
+}
+
       play.onclick = event => {
         if (play.value == "■") {
           play.value = "▶";
@@ -166,6 +180,22 @@ $(function() {
           start_autoplay();
         }
       }
+
+back.onclick = event => {
+	update_t(document.getElementById("turn").value - 1);
+}
+
+next.onclick = event => {
+	update_t(document.getElementById("turn").value - 0 + 1);
+}
+
+first.onclick = event => {
+	update_t(0);
+}
+
+last.onclick = event => {
+	update_t(1000000);
+}
 
       function autoplay() {
         if (play.value == "■") {
