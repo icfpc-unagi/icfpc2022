@@ -1,14 +1,19 @@
 use std::collections::HashMap;
 
 use crate::color::*;
+use crate::wata::*;
 use crate::*;
 //use std::collections::HashMap;
 
 pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>) -> (f64, Program) {
+    return monte_solve2(png, &Canvas::new(png[0].len(), png.len()));
+}
+
+pub fn monte_solve2(png: &mut Vec<Vec<[u8; 4]>>, init_canvas: &Canvas) -> (f64, Program) {
     let mut map: HashMap<i64, usize> = HashMap::new();
     let mut list = vec![];
     let mut best = 999999999.0;
-    for i in 0..100000 {
+    for i in 0..10000 {
         let ret = search(0, 400, 0, 400, &mut map, &mut list, &png);
         if best > ret {
             best = ret;
@@ -18,8 +23,9 @@ pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>) -> (f64, Program) {
     }
     eprintln!("score:{}    node:{}", best, list.len());
 
-    let mut moves = vec![];
-    let mut blocks = vec![BlockId(vec![0])];
+    let (start_id, mv) = all_merge(&init_canvas);
+    let mut moves = mv.clone();
+    let mut blocks = vec![BlockId(vec![start_id])];
 
     let _ = search2(
         0,
@@ -31,7 +37,7 @@ pub fn monte_solve(png: &mut Vec<Vec<[u8; 4]>>) -> (f64, Program) {
         &png,
         &mut moves,
         &mut blocks,
-        0,
+        start_id as usize,
     );
 
     return (0.0, moves);
@@ -340,6 +346,7 @@ fn search(
     return list[now].best;
 }
 
+/*
 fn bit_count(a: usize) -> usize {
     if a % 2 == 0 {
         return 0;
@@ -347,6 +354,7 @@ fn bit_count(a: usize) -> usize {
         return bit_count(a / 2) + 1;
     }
 }
+*/
 
 #[derive(Clone, Debug)]
 struct Node {
