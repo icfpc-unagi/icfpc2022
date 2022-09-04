@@ -361,8 +361,11 @@ pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<Str
     for line in r.lines() {
         let line = line?;
         let line = line.trim_start();
-        if line.is_empty() || line.starts_with('#') {
-            comments.push(line[1..].into());
+        if line.starts_with('#') {
+            comments.push(line[1..].trim().into());
+            continue;
+        }
+        if line.is_empty() {
             continue;
         }
         program.push(line.parse().unwrap());
