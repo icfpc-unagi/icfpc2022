@@ -75,7 +75,7 @@ jobs:
         with:
           context: ./
           file: ./docker/server.Dockerfile
-          build-args: [ "UNAGI_PASSWORD=${{ secrets.UNAGI_PASSWORD }}" ]
+          build-args: UNAGI_PASSWORD=${{ secrets.UNAGI_PASSWORD }}
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           tags: ${{ env.TAGS }}
@@ -124,7 +124,6 @@ jobs:
         with:
           context: ./
           file: ./docker/builder.Dockerfile
-          build-args: UNAGI_PASSWORD=${{ secrets.UNAGI_PASSWORD }}
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           tags: ${{ env.TAGS }}
