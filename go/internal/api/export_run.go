@@ -24,6 +24,7 @@ type ExportResponse struct {
 func init() {
 	http.HandleFunc("/"+PATH_PREFIX+"/export/json", exportJSONHandler)
 	http.HandleFunc("/"+PATH_PREFIX+"/export/isl", exportISLHandler)
+	http.HandleFunc("/"+PATH_PREFIX+"/export/ids", exportIDsHandler)
 }
 
 func exportJSONHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,4 +82,25 @@ NATURAL LEFT JOIN submissions NATURAL LEFT JOIN solutions WHERE run_id = ?`, run
 		return nil, errors.Wrapf(err, "failed to get a run")
 	}
 	return resp, nil
+}
+
+func exportIDsHandler(w http.ResponseWriter, r *http.Request) {
+	resp := make([]struct {
+		RunID int `db:"run_id"`
+	}, 0)
+	if err := db.Select(context.Background(), &resp, `
+SELECT
+    run_id
+FROM
+    runs
+WHERE run_score IS NOT NULL
+ORDER BY run_id`); err != nil {
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "Failed to get run IDs: %+v", err)
+		return
+	}
+
+	for _, r := range resp {
+		fmt.Fprintf(w, "%d\n", r.RunID)
+	}
 }
