@@ -10,7 +10,7 @@ macro_rules! log {
     }
 }
 
-const PNG: [&'static [u8]; 30] = [
+const PNG: [&'static [u8]; 35] = [
     include_bytes!("../../problems/1.png"),
     include_bytes!("../../problems/2.png"),
     include_bytes!("../../problems/3.png"),
@@ -41,9 +41,14 @@ const PNG: [&'static [u8]; 30] = [
     include_bytes!("../../problems/28.png"),
     include_bytes!("../../problems/29.png"),
     include_bytes!("../../problems/30.png"),
+    include_bytes!("../../problems/31.png"),
+    include_bytes!("../../problems/32.png"),
+    include_bytes!("../../problems/33.png"),
+    include_bytes!("../../problems/34.png"),
+    include_bytes!("../../problems/35.png"),
 ];
 
-const INIT_CANVAS: [Option<&'static [u8]>; 30] = [
+const INIT_CANVAS: [Option<&'static [u8]>; 35] = [
     None,
     None,
     None,
@@ -74,6 +79,11 @@ const INIT_CANVAS: [Option<&'static [u8]>; 30] = [
     Some(include_bytes!("../../problems/28.initial.json")),
     Some(include_bytes!("../../problems/29.initial.json")),
     Some(include_bytes!("../../problems/30.initial.json")),
+    Some(include_bytes!("../../problems/31.initial.json")),
+    Some(include_bytes!("../../problems/32.initial.json")),
+    Some(include_bytes!("../../problems/33.initial.json")),
+    Some(include_bytes!("../../problems/34.initial.json")),
+    Some(include_bytes!("../../problems/35.initial.json")),
 ];
 
 #[wasm_bindgen]
