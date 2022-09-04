@@ -52,7 +52,7 @@ func exportHandler(w http.ResponseWriter, r *http.Request, isJSON bool) {
 
 	if resp.RunID == 0 {
 		w.WriteHeader(404)
-		fmt.Fprintf(w, "No such run ID: %d")
+		fmt.Fprintf(w, "No such run ID: %d", resp.RunID)
 	}
 
 	if isJSON {
