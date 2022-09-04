@@ -13,6 +13,7 @@ pub mod chokudai_dev2;
 pub mod color;
 pub mod initial_json;
 pub mod local_optimization;
+pub mod optmerge;
 pub mod rotate;
 pub mod submissions;
 #[cfg(target_arch = "wasm32")]
