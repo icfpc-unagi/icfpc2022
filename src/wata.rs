@@ -1454,3 +1454,17 @@ fn rec2(
         _ => unreachable!(),
     }
 }
+
+pub fn merge_solution(init_canvas: &Canvas, s1: &Program, s2: &Program) -> Program {
+    let mut out = s1.clone();
+    let mut canvas = init_canvas.clone();
+    canvas.apply_all(s1.clone());
+    assert_eq!(canvas.blocks.len(), 1);
+    let id = canvas.counter;
+    for p in s2 {
+        let mut p = p.clone();
+        p.inc_id(id);
+        out.push(p);
+    }
+    out
+}
