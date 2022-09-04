@@ -77,7 +77,7 @@ LIMIT 1
 	fmt.Fprintf(buf, `</select></div>`)
 	fmt.Fprintf(buf, `
       <div>
-        <textarea class="lined" id="output" rows="20" data-gramm_editor="false" onchange="updateOutput()" placeholder="ISLコード">%s</textarea>
+        <textarea class="lined" id="output" rows="20" data-gramm_editor="false" onchange="updateOutput()" placeholder="ISL コード">%s</textarea>
       </div>
     <p style="display:flex;">
       <input type="button" id="play" value="▶" style="width:32px;height:32px;bottom:5px;position:relative;">&ensp;
