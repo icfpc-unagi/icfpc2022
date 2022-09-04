@@ -1,6 +1,6 @@
 use icfpc2022::{
     submissions::find_best_score,
-    wata::{MAX_AREA, MAX_WIDTH},
+    wata::{MAX_AREA, MAX_CANDIDATES, MAX_WIDTH},
     *,
 };
 use once_cell::sync::Lazy;
@@ -41,7 +41,7 @@ fn main() {
     for _ in 0..2 {
         for _ in 0..2 {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
-                let out = wata::solve4(&png, &init_canvas);
+                let out = wata::solve5(&png, &init_canvas);
                 if best.0.setmin(out.0) {
                     eprintln!("{}", best.0);
                     best.1 = out.1;
@@ -78,8 +78,8 @@ fn main() {
         );
     }
     println!(
-        "# wata4 FLIP_ROTATE={} FLIP_ROTATE_BEST_ONLY={} MAX_WIDTH={} MAX_AREA={}",
-        *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_AREA
+        "# wata5 FLIP_ROTATE={} FLIP_ROTATE_BEST_ONLY={} MAX_WIDTH={} MAX_CANDIDATES={}",
+        *FLIP_ROTATE, *FLIP_ROTATE_BEST_ONLY, *MAX_WIDTH, *MAX_CANDIDATES
     );
     for p in best.1 {
         println!("{}", p);
