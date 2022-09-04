@@ -21,17 +21,17 @@ func Template(w http.ResponseWriter, body []byte) {
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes">
 	<link rel="stylesheet" type="text/css" href="/static/style.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 </header>
 <body>
 <nav>
 <a href="/"></a>
 <ul>
-<li><a href="/">Standings</a></li>
-<li><a href="/scoreboard">Scoreboard</a></li>
-<li><a href="/problems">Problems</a></li>
-<li><a href="/programs">Programs</a></li>
+<li><a href="/scoreboard">順位表</a></li>
+<li><a href="/problems">問題</a></li>
+<li><a href="/programs">ソルバー</a></li>
 <li><a href="/submit">Submit</a></li>
-<li><a href="/visualizer">Visualizer</a></li>
+<li><a href="/visualizer">可視化</a></li>
 </ul>
 </nav>
 <main>

@@ -2,9 +2,16 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"html"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/icfpc-unagi/icfpc2022/go/internal/util"
+
+	"github.com/icfpc-unagi/icfpc2022/go/pkg/db"
 
 	"github.com/icfpc-unagi/icfpc2022/go/internal/auth"
 )
@@ -28,21 +35,50 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
 	buf := &bytes.Buffer{}
 	defer func() { Template(w, buf.Bytes()) }()
 
+	params := struct {
+		ProblemID int
+		Solution  string
+	}{}
+
 	fmt.Fprintf(buf, "<h1>ビジュアライザ</h1>")
 
+	if id, _ := strconv.Atoi(r.URL.Query().Get("submission_id")); id != 0 {
+		row := struct {
+			ProblemID          int    `db:"problem_id"`
+			SubmissionSolution string `db:"submission_solution"`
+		}{}
+		if err := db.Row(context.Background(), &row, `
+SELECT
+	problem_id,
+	submission_solution
+FROM
+    submissions
+WHERE
+	submission_id = ?
+LIMIT 1
+	`, id); err != nil {
+			fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
+				html.EscapeString(fmt.Sprintf("%+v", err)))
+		} else {
+			params.ProblemID = row.ProblemID
+			params.Solution = row.SubmissionSolution
+		}
+	}
+
+	fmt.Fprintf(buf, `<div><select name="problem_id" id="problem_id" onchange="updateOutput()" style="margin-left: 0">`)
+	for _, p := range util.Problems() {
+		selected := ""
+		if params.ProblemID == p.ID {
+			selected = " selected"
+		}
+		fmt.Fprintf(buf, `<option value="%d"%s>問題 %d: %s</option>`,
+			p.ID, selected, p.ID, p.Name)
+	}
+	fmt.Fprintf(buf, `</select></div>`)
 	fmt.Fprintf(buf, `
-    <p>
-      <label>
-        Problem ID:
-        <input type="number" id="problem_id" value="1" min="1" max="18446744073709551615" onchange="updateOutput()"/>
-      </label>
-    </p>
-    <p>
-      <label>
-        Output:<br>
-        <textarea id="output" rows="4" data-gramm_editor="false" onchange="updateOutput()"></textarea>
-      </label>
-    </p>
+      <div>
+        <textarea id="output" rows="4" data-gramm_editor="false" onchange="updateOutput()" placeholder="ISLコード">%s</textarea>
+      </div>
     <p style="display:flex;">
       <input type="button" id="play" value="▶" style="width:32px;height:32px;bottom:5px;position:relative;">&ensp;
       <label>
@@ -72,6 +108,7 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
       async function run() {
         await wasm_bindgen('./web_bg.wasm');
         visualize();
+		updateOutput();
       }
       run();
 
@@ -151,6 +188,8 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
         requestAnimationFrame(autoplay);
       }
       autoplay();
+
+      $(updateOutput);
     </script>
-`)
+`, html.EscapeString(params.Solution))
 }
