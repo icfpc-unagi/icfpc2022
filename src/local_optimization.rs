@@ -1,5 +1,5 @@
 use super::{Color, Program};
-use crate::{score, Canvas, Move, WHITE};
+use crate::{score, BlockId, Canvas, Move, WHITE};
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -88,11 +88,23 @@ pub fn optimize_step_parallel(
         })
         .collect_into_vec(&mut tmp);
 
-    for result in tmp {
-        if result.is_some() {
-            return result;
+    // for result in tmp {
+    //     if result.is_some() {
+    //         return result;
+    //     }
+    // }
+
+    if let Some((best_program, best_score)) = tmp
+        .into_iter()
+        .filter_map(|option| option)
+        .min_by_key(|(_, score)| ordered_float::OrderedFloat(*score))
+    {
+        // eprintln!("Color: {} -> {}", original_score, best_score);
+        if best_score < original_score {
+            return Some((best_program, best_score));
         }
     }
+
     return None;
 }
 
@@ -209,22 +221,58 @@ pub fn trim_unnecessary_operations(mut program: Program) -> Program {
     program
 }
 
-// fn get_global_counter_history(program: &Program) -> Vec<u32> {
-//     let mut canvas = Canvas::new400();
-//     let mut history = vec![];
-//     for (i, mov) in program.iter().enumerate() {
-//         history[i] = canvas.counter;
-//         canvas.apply(mov);
-//     }
-//     history
-// }
+fn get_global_counter_history(program: &Program) -> Vec<u32> {
+    let mut canvas = Canvas::new400();
+    let mut history = vec![0; program.len()];
+    for (i, mov) in program.iter().enumerate() {
+        history[i] = canvas.counter;
+        canvas.apply(mov);
+    }
+    history
+}
+
+/// merge専用。高々1個しか削除しないので、
+pub fn remove_unnecessary_merge(program: &Program) -> Option<Program> {
+    let mut used_block_ids = HashSet::new();
+    let global_counter_history = get_global_counter_history(program);
+
+    let mut step_to_remove = None;
+    for (i, mov) in program.iter().enumerate().rev() {
+        match mov {
+            Move::Color(bid, _) | Move::LineCut(bid, _, _) | Move::PointCut(bid, _, _) => {
+                used_block_ids.insert(bid.clone());
+            }
+            Move::Swap(bid0, bid1) => {
+                used_block_ids.insert(bid0.clone());
+                used_block_ids.insert(bid1.clone());
+            }
+            Move::Merge(bid0, bid1) => {
+                used_block_ids.insert(bid0.clone());
+                used_block_ids.insert(bid1.clone());
+
+                let new_bid = BlockId(vec![global_counter_history[i] + 1]);
+                if !used_block_ids.contains(&new_bid) {
+                    step_to_remove = Some(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    if step_to_remove.is_none() {
+        return None;
+    }
+    let step_to_remove = step_to_remove.unwrap();
+    dbg!(&step_to_remove);
+
+    todo!()
+}
 
 pub fn remove_unnecessary_operations(program: &Program) -> Program {
     let program = trim_unnecessary_operations(program.clone());
 
     let mut used_block_ids = HashSet::new();
     let mut removable = vec![false; program.len()];
-    // let mut global_counter_history = get_global_counter_history(program);
 
     for (i, mov) in program.iter().enumerate().rev() {
         match mov {
@@ -267,7 +315,7 @@ pub fn remove_unnecessary_operations(program: &Program) -> Program {
         }
     }
 
-    program
+    let program = program
         .iter()
         .zip(removable)
         .filter_map(|(mov, rem)| {
@@ -278,7 +326,12 @@ pub fn remove_unnecessary_operations(program: &Program) -> Program {
                 Some(mov.clone())
             }
         })
-        .collect()
+        .collect();
+
+    // 余興
+    // remove_unnecessary_merge(&program);
+
+    program
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

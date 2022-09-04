@@ -1,6 +1,5 @@
 use clap::Parser;
 use icfpc2022::*;
-use std::collections::HashSet;
 use std::io::Write;
 
 #[derive(Parser, Debug)]
