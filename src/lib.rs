@@ -20,6 +20,7 @@ pub mod submissions;
 pub mod wasm;
 pub mod wata;
 
+use anyhow::Context;
 pub use canvas::*;
 pub use initial_json::InitialJson;
 #[cfg(target_arch = "wasm32")]
@@ -232,18 +233,6 @@ pub enum Move {
 }
 
 impl Move {
-    // Use Canvas::base_cost()
-    #[deprecated]
-    pub fn base_cost(&self) -> f64 {
-        match self {
-            Move::LineCut(_, _, _) => 7.0,
-            Move::PointCut(_, _, _) => 10.0,
-            Move::Color(_, _) => 5.0,
-            Move::Swap(_, _) => 3.0,
-            Move::Merge(_, _) => 1.0,
-        }
-    }
-
     pub fn may_change_bitmap(&self) -> bool {
         matches!(self, Move::Color(_, _) | Move::Swap(_, _))
     }
@@ -287,52 +276,42 @@ fn consume_brackets(s: &str) -> Option<(&str, &str)> {
     s.trim_start().strip_prefix('[')?.split_once(']')
 }
 
-fn parse_numbers<T: FromStr>(s: &str) -> Vec<T>
-where
-    <T as FromStr>::Err: std::fmt::Debug,
-{
-    s.split(',').map(|t| t.trim().parse().unwrap()).collect()
-}
-
-fn parse_color(s: &str) -> Color {
-    let v = parse_numbers(s);
-    assert_eq!(v.len(), 4);
-    return [v[0], v[1], v[2], v[3]];
-}
-
 impl FromStr for Move {
-    type Err = ();
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
         let s = s.trim_start();
         let mv = if let Some(s) = s.strip_prefix("cut") {
-            let (a1, s) = consume_brackets(s).ok_or(())?;
-            let (a2, s) = consume_brackets(s).ok_or(())?;
+            let (a1, s) = consume_brackets(s).with_context(|| "missing arg1")?;
+            let (a2, s) = consume_brackets(s).with_context(|| "missing arg2")?;
             if a2.starts_with(|c: char| c.is_ascii_digit()) {
-                let p = parse_numbers(a2); // TODO: don't panic
-                Move::PointCut(a1.parse().map_err(|_| ())?, p[0], p[1])
+                let (x, y) = a2.split_once(',').with_context(|| "bad arg2")?;
+                Move::PointCut(a1.parse()?, x.trim().parse()?, y.trim().parse()?)
             } else {
-                let (a3, _) = consume_brackets(s).ok_or(())?;
-                Move::LineCut(
-                    a1.parse().map_err(|_| ())?,
-                    a2.chars().nth(0).ok_or(())?,
-                    a3.parse().map_err(|_| ())?,
-                )
+                let (a3, _) = consume_brackets(s).with_context(|| "missing arg3")?;
+                Move::LineCut(a1.parse()?, a2.parse()?, a3.parse()?)
             }
         } else if let Some(s) = s.strip_prefix("color") {
-            let (a1, s) = consume_brackets(s).ok_or(())?;
-            let (a2, _) = consume_brackets(s).ok_or(())?;
-            Move::Color(a1.parse().map_err(|_| ())?, parse_color(a2)) // TODO: don't panic
+            let (a1, s) = consume_brackets(s).with_context(|| "missing arg1")?;
+            let (a2, _) = consume_brackets(s).with_context(|| "missing arg2")?;
+            let c = a2
+                .splitn(4, ',')
+                .map(|x| x.trim().parse())
+                .collect::<Result<Vec<_>, _>>()?;
+            if c.len() != 4 {
+                anyhow::bail!("bad arg2");
+            }
+            Move::Color(a1.parse()?, [c[0], c[1], c[2], c[3]])
         } else if let Some(s) = s.strip_prefix("merge") {
-            let (a1, s) = consume_brackets(s).ok_or(())?;
-            let (a2, _) = consume_brackets(s).ok_or(())?;
-            Move::Merge(a1.parse().map_err(|_| ())?, a2.parse().map_err(|_| ())?)
+            let (a1, s) = consume_brackets(s).with_context(|| "missing arg1")?;
+            let (a2, _) = consume_brackets(s).with_context(|| "missing arg2")?;
+            Move::Merge(a1.parse()?, a2.parse()?)
         } else if let Some(s) = s.strip_prefix("swap") {
-            let (a1, s) = consume_brackets(s).ok_or(())?;
-            let (a2, _) = consume_brackets(s).ok_or(())?;
-            Move::Swap(a1.parse().map_err(|_| ())?, a2.parse().map_err(|_| ())?)
+            let (a1, s) = consume_brackets(s).with_context(|| "missing arg1")?;
+            let (a2, _) = consume_brackets(s).with_context(|| "missing arg2")?;
+            Move::Swap(a1.parse()?, a2.parse()?)
         } else {
-            return Err(());
+            anyhow::bail!("bad op");
         };
         Ok(mv)
     }
@@ -352,8 +331,8 @@ pub fn read_isl_with_comments<R: io::Read>(r: R) -> io::Result<(Program, Vec<Str
     for line in r.lines() {
         let line = line?;
         let line = line.trim_start();
-        if line.starts_with('#') {
-            comments.push(line[1..].trim().into());
+        if let Some(line) = line.strip_prefix('#') {
+            comments.push(line.trim().into());
             continue;
         }
         if line.is_empty() {
