@@ -1,4 +1,37 @@
 use crate::{Canvas, Move, Program, Submission};
+use std::collections::HashSet;
+
+pub fn find_all_submission_ids() -> anyhow::Result<Vec<u32>> {
+    let paths = glob::glob("submissions/*.json")?;
+    let paths = paths
+        .map(|path| path.map_err(anyhow::Error::from))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    let mut submission_ids = paths
+        .into_iter()
+        .map(|path| {
+            path.to_str()
+                .unwrap()
+                .split('/')
+                .nth(1)
+                .unwrap()
+                .split('.')
+                .nth(0)
+                .unwrap()
+                .parse::<u32>()
+                .map_err(anyhow::Error::from)
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    submission_ids.sort();
+    Ok(submission_ids)
+}
+
+pub fn estimate_program_name(comment: &Vec<String>) -> String {
+    if comment.len() == 0 {
+        return "".to_owned();
+    } else {
+        return comment[0].split_whitespace().nth(0).unwrap().to_owned();
+    }
+}
 
 pub fn read_submission(submission_id: u32) -> anyhow::Result<Submission> {
     let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
@@ -9,6 +42,17 @@ pub fn read_submission(submission_id: u32) -> anyhow::Result<Submission> {
         anyhow::bail!("Submission status si not SUCCEEDED {:?}", &sub);
     }
     anyhow::Ok(sub)
+}
+
+pub fn read_all_submissions_and_programs() -> anyhow::Result<Vec<(Submission, Program, Vec<String>)>>
+{
+    let mut submission_ids = find_all_submission_ids()?;
+    submission_ids.sort();
+    submission_ids.reverse();
+    submission_ids
+        .into_iter()
+        .map(|submission_id| read_submission_program(submission_id))
+        .collect::<anyhow::Result<Vec<_>>>()
 }
 
 pub fn find_best_submissions() -> anyhow::Result<std::collections::BTreeMap<u32, Submission>> {
@@ -81,7 +125,23 @@ pub fn find_best_score(problem_id: u32) -> u32 {
     }
 }
 
-pub fn read_solution(
+pub fn read_submission_program(
+    submission_id: u32,
+) -> anyhow::Result<(Submission, Program, Vec<String>)> {
+    let submission: Submission = serde_json::from_reader(std::fs::File::open(format!(
+        "submissions/{}.json",
+        submission_id
+    ))?)?;
+    assert_eq!(submission.status, "SUCCEEDED");
+    let (program, comments) = crate::read_isl_with_comments(std::fs::File::open(format!(
+        "submissions/{}.isl",
+        submission_id
+    ))?)?;
+
+    Ok((submission, program, comments))
+}
+
+pub fn read_submission_program_problem(
     submission_id: u32,
 ) -> anyhow::Result<(
     Submission,
@@ -90,17 +150,96 @@ pub fn read_solution(
     Canvas,
     Vec<Vec<crate::Color>>,
 )> {
-    let sub: Submission = serde_json::from_reader(std::fs::File::open(format!(
-        "submissions/{}.json",
-        submission_id
-    ))?)?;
-    assert_eq!(sub.status, "SUCCEEDED");
+    let (submission, program, comments) = read_submission_program(submission_id)?;
+    let (initial_canvas, image) = crate::load_problem(submission.problem_id);
+    Ok((submission, program, comments, initial_canvas, image))
+}
 
-    let (initial_canvas, image) = crate::load_problem(sub.problem_id);
-    let (program, comments) = crate::read_isl_with_comments(std::fs::File::open(format!(
-        "submissions/{}.isl",
-        submission_id
-    ))?)?;
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    Ok((sub, program, comments, initial_canvas, image))
+/// CLIでいろんな条件でsubmissionを指定したくなってきているので、そのためのユーティリティ
+pub fn query_submission_ids(
+    latest: Option<usize>,
+    problem_ids: Option<String>,
+    submission_ids: Option<String>,
+    submission_id_min: Option<u32>,
+    program_name: Option<String>,
+    allow_not_best: bool,
+) -> anyhow::Result<Vec<(Submission, Program, Vec<String>)>> {
+    let mut spcs = read_all_submissions_and_programs()?;
+    eprintln!("All submissions: {}", spcs.len());
+
+    if let Some(latest) = latest {
+        spcs.truncate(latest)
+    }
+
+    if let Some(problem_ids_str) = problem_ids {
+        let problem_ids = problem_ids_str
+            .split_whitespace()
+            .map(|id_str: &str| id_str.trim().parse::<u32>().map_err(anyhow::Error::from))
+            .collect::<anyhow::Result<HashSet<_>>>()?;
+
+        spcs = spcs
+            .into_iter()
+            .filter(|(s, _, _)| problem_ids.contains(&s.problem_id))
+            .collect();
+
+        eprintln!("Submissions fitlered by problem IDs: {}", spcs.len());
+    }
+
+    if let Some(submission_ids_str) = submission_ids {
+        let submission_ids = submission_ids_str
+            .split_whitespace()
+            .map(|id_str: &str| id_str.trim().parse::<u32>().map_err(anyhow::Error::from))
+            .collect::<anyhow::Result<HashSet<_>>>()?;
+
+        spcs = spcs
+            .into_iter()
+            .filter(|(s, _, _)| submission_ids.contains(&s.id))
+            .collect();
+
+        eprintln!("Submissions filtered by submission IDs: {}", spcs.len());
+    }
+
+    if let Some(submission_id_min) = submission_id_min {
+        spcs = spcs
+            .into_iter()
+            .filter(|(submission, _, _)| submission.id >= submission_id_min)
+            .collect();
+
+        eprintln!("Submissions filtered by submission ID min: {}", spcs.len());
+    }
+
+    if let Some(program_name) = program_name {
+        spcs = spcs
+            .into_iter()
+            .filter(|(_, _, c)| estimate_program_name(&c) == program_name)
+            .collect();
+        eprintln!("Submissions filtered by program name: {}", spcs.len());
+    }
+
+    if !allow_not_best {
+        let mut old_spcs = vec![];
+        std::mem::swap(&mut spcs, &mut old_spcs);
+        let mut best_submissions =
+            std::collections::BTreeMap::<u32, (Submission, Program, Vec<String>)>::new();
+        for spc in old_spcs {
+            best_submissions
+                .entry(spc.0.problem_id)
+                .and_modify(|best_spc| {
+                    if best_spc.0.cost > spc.0.cost {
+                        *best_spc = spc.clone()
+                    }
+                })
+                .or_insert(spc);
+        }
+        spcs = best_submissions.into_values().collect();
+
+        eprintln!("Submissions filtered by best per problem: {}", spcs.len());
+    }
+
+    // let submissions: Vec<_> = best_submissions.into_values().collect();
+    // println!("Applying to {} submissions", submissions.len());
+
+    Ok(spcs)
 }

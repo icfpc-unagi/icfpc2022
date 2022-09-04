@@ -1,11 +1,14 @@
-use std::io::Write;
-
 use clap::Parser;
 use icfpc2022::*;
+use std::collections::HashSet;
+use std::io::Write;
 
 #[derive(Parser, Debug)]
 #[clap(author, version)]
 struct Args {
+    #[clap(short, long)]
+    latest: Option<usize>,
+
     #[clap(short, long)]
     problem_ids: Option<String>,
 
@@ -13,98 +16,65 @@ struct Args {
     submission_ids: Option<String>,
 
     #[clap(short, long)]
-    latest: Option<usize>,
+    submission_id_min: Option<u32>,
+
+    #[clap(short, long)]
+    program_name: Option<String>,
+
+    #[clap(short, long)]
+    allow_not_best: bool,
+
+    #[clap(short, long)]
+    dryrun: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    let submissions: Vec<_>;
-    if let Some(submission_ids) = args.submission_ids {
-        if args.problem_ids.is_some() {
-            anyhow::bail!("Do not specify `--problem-ids` and `--submission-ids` at the same time")
-        }
-        submissions = submission_ids
-            .split_whitespace()
-            .map(|id_str: &str| {
-                id_str
-                    .trim()
-                    .parse::<u32>()
-                    .map_err(anyhow::Error::from)
-                    .and_then(|id_u32| submissions::read_submission(id_u32))
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?;
-    } else if let Some(problem_ids) = args.problem_ids {
-        submissions = problem_ids
-            .split_whitespace()
-            .map(|id_str: &str| {
-                id_str
-                    .trim()
-                    .parse::<u32>()
-                    .map_err(anyhow::Error::from)
-                    .and_then(|id_u32| submissions::find_best_submission(id_u32))
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?;
-    } else if let Some(latest) = args.latest {
-        let paths = glob::glob("submissions/*.json")?;
-        let mut paths = paths
-            .map(|path| path.map_err(anyhow::Error::from))
-            .collect::<anyhow::Result<Vec<_>>>()?;
-        let mut submission_ids = paths
-            .into_iter()
-            .map(|path| {
-                path.to_str()
-                    .unwrap()
-                    .split('/')
-                    .nth(1)
-                    .unwrap()
-                    .split('.')
-                    .nth(0)
-                    .unwrap()
-                    .parse::<u32>()
-                    .map_err(anyhow::Error::from)
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?;
-        submission_ids.sort();
-        submission_ids.reverse();
-        dbg!(&submission_ids[0..latest]);
-        submissions = submission_ids[0..latest]
-            .into_iter()
-            .map(|id| submissions::read_submission(*id))
-            .collect::<anyhow::Result<Vec<_>>>()?;
-    } else {
-        submissions = submissions::find_best_submissions()?
-            .into_values()
-            .collect();
-    }
-    println!("Applying to {} submissions", submissions.len());
+    let spcs = submissions::query_submission_ids(
+        args.latest,
+        args.problem_ids,
+        args.submission_ids,
+        args.submission_id_min,
+        args.program_name,
+        args.allow_not_best,
+    )?;
+    println!("Applying to {} submissions", spcs.len());
 
     let mut gain = 0.0;
-    for submission in submissions {
+    println!("ID     Problem Program              Old    New    +-");
+    println!("------ ------- -------------------- ------ ------ ------");
+    for (submission, _, _) in spcs {
         let (submission, program, comments, initial_canvas, image) =
-            submissions::read_solution(submission.id)?;
+            submissions::read_submission_program_problem(submission.id)?;
 
-        let (program, score) =
-            local_optimization::optimize(program, &initial_canvas, &image, 10, true);
-
-        // let (program, score) =
-        //     icfpc2022::local_optimization::try_removing_color_op(program.clone(), &image);
-
-        //let program = icfpc2022::local_optimization::optimize_color(program.clone(), &image);
-        // let score = icfpc2022::Canvas::new400().apply_all_and_score(program.clone(), &image)?;
+        let (new_program, new_score) = if args.dryrun {
+            (program.clone(), submission.cost as f64)
+        } else {
+            local_optimization::optimize(program, &initial_canvas, &image, 10, true)
+        };
 
         println!(
-            "Problem {:3}: {:7} -> {:7}",
-            submission.problem_id, submission.cost, score
+            "{:6} {:7} {:20} {:6} {:6} {:6}",
+            submission.id,
+            submission.problem_id,
+            submissions::estimate_program_name(&comments),
+            submission.cost,
+            new_score,
+            submission.cost as f64 - new_score,
         );
-        gain += submission.cost as f64 - score;
 
-        let mut w =
-            std::fs::File::create(format!("out/opt_{}_{:06.0}", submission.problem_id, score))?;
+        gain += submission.cost as f64 - new_score;
+
+        let mut w = std::fs::File::create(format!(
+            "out/opt_{}_{:06.0}",
+            submission.problem_id, new_score
+        ))?;
         w.write_fmt(format_args!("# optimize\n"))?;
-        write_isl_with_comments(w, program, &comments)?;
+        write_isl_with_comments(w, new_program, &comments)?;
     }
 
     println!("Total gain: {}", gain);
+
     anyhow::Ok(())
 }
