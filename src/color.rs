@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::pixel_distance;
+use crate::{pixel_distance, Color};
 
 #[deprecated]
 pub fn best_color(
@@ -308,6 +308,157 @@ pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
     x
 }
 
+const Z: usize = 256;
+
+struct MedianSelector {
+    /// [0, y) * [0, x) * [0, z) の和を保持
+    sum_cnt: Vec<Vec<[u32; Z + 1]>>,
+    sum_val: Vec<Vec<[u32; Z + 1]>>,
+}
+
+impl MedianSelector {
+    fn new(image: &Vec<Vec<Color>>, channel: usize) -> Self {
+        let h = image.len();
+        let w = image[0].len();
+
+        let mut sum_count = vec![vec![[0; Z + 1]; w + 1]; h + 1];
+        let mut sum_value = vec![vec![[0; Z + 1]; w + 1]; h + 1];
+        for y in 0..h {
+            for x in 0..w {
+                let z = image[y][x][channel] as usize;
+                sum_count[y + 1][x + 1][z + 1] += 1;
+                sum_value[y + 1][x + 1][z + 1] += z as u32;
+            }
+        }
+
+        for y in 0..=h {
+            for x in 0..=w {
+                for z in 1..=Z {
+                    sum_count[y][x][z] += sum_count[y][x][z - 1];
+                    sum_value[y][x][z] += sum_value[y][x][z - 1];
+                }
+            }
+        }
+        for y in 0..=h {
+            for z in 0..=Z {
+                for x in 1..=w {
+                    sum_count[y][x][z] += sum_count[y][x - 1][z];
+                    sum_value[y][x][z] += sum_value[y][x - 1][z];
+                }
+            }
+        }
+        for x in 0..=w {
+            for z in 0..=Z {
+                for y in 1..=h {
+                    sum_count[y][x][z] += sum_count[y - 1][x][z];
+                    sum_value[y][x][z] += sum_value[y - 1][x][z];
+                }
+            }
+        }
+
+        Self {
+            sum_cnt: sum_count,
+            sum_val: sum_value,
+        }
+    }
+
+    /// [lx, rx) * [ly, ry) * [0, z)
+    fn sum_count_rectangle(&self, lx: usize, rx: usize, ly: usize, ry: usize, z: usize) -> u32 {
+        self.sum_cnt[ry][rx][z] + self.sum_cnt[ly][lx][z]
+            - self.sum_cnt[ry][lx][z]
+            - self.sum_cnt[ly][rx][z]
+    }
+
+    /// [lx, rx) * [ly, ry) * [0, z)
+    fn sum_value_rectangle(&self, lx: usize, rx: usize, ly: usize, ry: usize, z: usize) -> u32 {
+        self.sum_val[ry][rx][z] + self.sum_val[ly][lx][z]
+            - self.sum_val[ry][lx][z]
+            - self.sum_val[ly][rx][z]
+    }
+
+    /// [lx, rx) * [ly, ry) のk番目
+    fn kth_rectangle(&self, lx: usize, rx: usize, ly: usize, ry: usize, mut k: usize) -> u8 {
+        let mut z = 0;
+        for lev in (0..8).rev() {
+            let b = 1 << lev;
+            let s = self.sum_count_rectangle(lx, rx, ly, ry, z | b) as usize;
+            if s <= k {
+                z |= b;
+            }
+        }
+
+        z as u8
+    }
+
+    fn l1_rectangle(&self, lx: usize, rx: usize, ly: usize, ry: usize, z: usize) -> u32 {
+        let cnt_below = self.sum_count_rectangle(lx, rx, ly, ry, z);
+        let cnt_above = self.sum_count_rectangle(lx, rx, ly, ry, 256) - cnt_below;
+        let sum_below = self.sum_value_rectangle(lx, rx, ly, ry, z);
+        let sum_above = self.sum_value_rectangle(lx, rx, ly, ry, 256) - sum_below;
+        // dbg!(
+        //     cnt_below,
+        //     cnt_above,
+        //     sum_below,
+        //     sum_above,
+        //     cnt_below * (z as u32) - sum_below,
+        //     (sum_above - cnt_above * (z as u32))
+        // );
+        (cnt_below * (z as u32) - sum_below) + (sum_above - cnt_above * (z as u32))
+    }
+}
+
+pub struct MedianColorSelector {
+    selectors: [MedianSelector; 4],
+}
+
+impl MedianColorSelector {
+    pub fn new(image: &Vec<Vec<Color>>) -> Self {
+        Self {
+            selectors: [
+                MedianSelector::new(&image, 0),
+                MedianSelector::new(&image, 1),
+                MedianSelector::new(&image, 2),
+                MedianSelector::new(&image, 3),
+            ],
+        }
+    }
+
+    pub fn query(&self, lx: usize, rx: usize, ly: usize, ry: usize) -> (Color, u32) {
+        let area = (rx - lx) * (ry - ly);
+        assert!(area >= 1);
+        let k = (area - 1) / 2;
+
+        let mut color = [0; 4];
+        let mut cost = 0;
+        for (i, selector) in self.selectors.iter().enumerate() {
+            color[i] = selector.kth_rectangle(lx, rx, ly, ry, k);
+            cost += selector.l1_rectangle(lx, rx, ly, ry, color[i] as usize);
+        }
+
+        (color, cost)
+    }
+}
+
+pub fn l1_naive(
+    image: &Vec<Vec<Color>>,
+    color: &Color,
+    lx: usize,
+    rx: usize,
+    ly: usize,
+    ry: usize,
+) -> u32 {
+    let mut sum = 0;
+    for y in ly..ry {
+        for x in lx..rx {
+            for c in 0..4 {
+                sum += ((image[y][x][c] as i64) - (color[c] as i64)).abs()
+            }
+        }
+    }
+    assert!(sum >= 0);
+    sum as u32
+}
+
 #[cfg(test)]
 mod tests {
     use rand::Rng;
@@ -400,7 +551,6 @@ mod tests {
         let image = crate::read_png("problems/16.png");
         let h = image.len();
         let w = image[0].len();
-
         let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
 
         for _ in 0..100 {
@@ -415,4 +565,26 @@ mod tests {
             assert_eq!(c1, c2);
         }
     }
+    //
+    // #[test]
+    // fn test_median_color_selector() {
+    //     let image = crate::read_png("problems/16.png");
+    //     let h = image.len();
+    //     let w = image[0].len();
+    //     let mut rng: rand::rngs::StdRng = rand::SeedableRng::from_seed([13; 32]);
+    //     let selector = MedianColorSelector::new(&image);
+    //
+    //     for _ in 0..100 {
+    //         let (lx, rx) = minmax(rng.gen::<usize>() % w, rng.gen::<usize>() % w);
+    //         let rx = rx + 1;
+    //
+    //         let (ly, ry) = minmax(rng.gen::<usize>() % h, rng.gen::<usize>() % h);
+    //         let ry = ry + 1;
+    //
+    //         let (col1, _) = median_color(&image, lx, rx, ly, ry);
+    //         let l1 = l1_naive(&image, &color_ans, );
+    //         let c2 = median_color_by_sort(&image, lx, rx, ly, ry);
+    //         assert_eq!(c1, c2);
+    //     }
+    // }
 }
