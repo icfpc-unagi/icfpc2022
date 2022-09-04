@@ -2,9 +2,8 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead},
-    iter::empty,
+    num::ParseIntError,
     ops::{Add, Sub},
-    panic,
     str::FromStr,
 };
 
@@ -198,10 +197,12 @@ impl BlockId {
 }
 
 impl FromStr for BlockId {
-    type Err = ();
+    type Err = ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(BlockId(s.split(".").map(|x| x.parse().unwrap()).collect()))
+        Ok(BlockId(
+            s.split(".").map(|x| x.parse()).collect::<Result<_, _>>()?,
+        ))
     }
 }
 
@@ -231,6 +232,7 @@ pub enum Move {
 }
 
 impl Move {
+    #[deprecated]
     pub fn base_cost(&self) -> f64 {
         match self {
             Move::LineCut(_, _, _) => 7.0,
@@ -269,38 +271,16 @@ impl fmt::Display for Move {
     }
 }
 
-fn remove_spaces_inside_brackets(s: &str) -> String {
-    let mut chars = vec![];
-    let mut lev: i32 = 0;
-    for c in s.chars() {
-        if c == '[' {
-            lev += 1;
-        }
-        if c == ']' {
-            lev -= 1;
-        }
-        if c.is_whitespace() && lev > 0 {
-            continue;
-        }
-        chars.push(c);
-    }
-    return chars.into_iter().collect();
-}
-
-fn unwrap_brackets(s: &str) -> &str {
-    assert!(s.len() >= 2);
-    assert_eq!(s.chars().nth(0).unwrap(), '[');
-    assert_eq!(s.chars().last().unwrap(), ']');
-    //assert_eq!(s[0 as usize], '[');
-    //assert_eq!(s[s.len() - 1], ']');
-    &s[1..s.len() - 1]
+// returns (contents, remaining)
+fn consume_brackets(s: &str) -> Option<(&str, &str)> {
+    s.trim_start().strip_prefix('[')?.split_once(']')
 }
 
 fn parse_numbers<T: FromStr>(s: &str) -> Vec<T>
 where
     <T as FromStr>::Err: std::fmt::Debug,
 {
-    s.split(',').map(|t| t.parse().unwrap()).collect()
+    s.split(',').map(|t| t.trim().parse().unwrap()).collect()
 }
 
 fn parse_color(s: &str) -> Color {
@@ -312,40 +292,38 @@ fn parse_color(s: &str) -> Color {
 impl FromStr for Move {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = remove_spaces_inside_brackets(s.trim());
-        let tokens: Vec<_> = s.split(" ").collect();
-        assert!(tokens.len() >= 1);
-
-        let op = tokens[0];
-        let args: Vec<_> = tokens[1..].iter().map(|s| unwrap_brackets(s)).collect();
-
-        let mv;
-        match &*op {
-            "cut" => {
-                if args.len() == 2 {
-                    let p = parse_numbers::<i32>(args[1]);
-                    assert_eq!(p.len(), 2);
-                    mv = Move::PointCut(args[0].parse().unwrap(), p[0], p[1]);
-                } else if args.len() == 3 {
-                    assert_eq!(args[1].len(), 1);
-                    mv = Move::LineCut(
-                        args[0].parse().unwrap(),
-                        args[1].chars().nth(0).unwrap(),
-                        args[2].parse().unwrap(),
-                    );
-                } else {
-                    panic!();
-                }
+    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+        let s = s.trim_start();
+        let mv = if let Some(s) = s.strip_prefix("cut") {
+            let (a1, s) = consume_brackets(s).ok_or(())?;
+            let (a2, s) = consume_brackets(s).ok_or(())?;
+            if a2.starts_with(|c: char| c.is_ascii_digit()) {
+                let p = parse_numbers(a2); // TODO: don't panic
+                Move::PointCut(a1.parse().map_err(|_| ())?, p[0], p[1])
+            } else {
+                let (a3, _) = consume_brackets(s).ok_or(())?;
+                Move::LineCut(
+                    a1.parse().map_err(|_| ())?,
+                    a2.chars().nth(0).ok_or(())?,
+                    a3.parse().map_err(|_| ())?,
+                )
             }
-            "color" => mv = Move::Color(args[0].parse().unwrap(), parse_color(args[1])),
-            "merge" => mv = Move::Merge(args[0].parse().unwrap(), args[1].parse().unwrap()),
-            "swap" => mv = Move::Swap(args[0].parse().unwrap(), args[1].parse().unwrap()),
-            _ => {
-                panic!("Unknown instruction: {:?}", &tokens)
-            }
-        }
-        return Ok(mv);
+        } else if let Some(s) = s.strip_prefix("color") {
+            let (a1, s) = consume_brackets(s).ok_or(())?;
+            let (a2, _) = consume_brackets(s).ok_or(())?;
+            Move::Color(a1.parse().map_err(|_| ())?, parse_color(a2)) // TODO: don't panic
+        } else if let Some(s) = s.strip_prefix("merge") {
+            let (a1, s) = consume_brackets(s).ok_or(())?;
+            let (a2, _) = consume_brackets(s).ok_or(())?;
+            Move::Merge(a1.parse().map_err(|_| ())?, a2.parse().map_err(|_| ())?)
+        } else if let Some(s) = s.strip_prefix("swap") {
+            let (a1, s) = consume_brackets(s).ok_or(())?;
+            let (a2, _) = consume_brackets(s).ok_or(())?;
+            Move::Swap(a1.parse().map_err(|_| ())?, a2.parse().map_err(|_| ())?)
+        } else {
+            return Err(());
+        };
+        Ok(mv)
     }
 }
 
