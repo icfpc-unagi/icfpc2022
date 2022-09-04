@@ -293,6 +293,9 @@ pub fn optimize(
     parallel: bool,
 ) -> (Program, f64) {
     let mut best_score = super::canvas::score(&best_program, initial_canvas, image).unwrap();
+    if best_program.is_empty() {
+        return (best_program, best_score);
+    }
 
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
