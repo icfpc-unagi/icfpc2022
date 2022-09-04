@@ -97,7 +97,7 @@ func Loop() error {
 	cmd = exec.CommandContext(ctx,
 		"gsutil", "-m", "cp",
 		path.Join(dir, "stdout"), path.Join(dir, "stderr"),
-		"gs://icfpc2022/logs/"+logID+"/")
+		"gs://icfpc2022/log/"+logID+"/")
 	cmd.Dir = dir
 	cmd.Run()
 
