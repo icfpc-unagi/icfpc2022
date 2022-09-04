@@ -54,7 +54,7 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
     };
     let mut actual_cost = 0.0;
     let mut push = |mov: Move| {
-        eprintln!("{:?}", &mov);
+        // eprintln!("{:?}", &mov);
         actual_cost += canvas.apply(&mov);
         moves.push(mov);
     };
@@ -63,11 +63,13 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
 
     let mut r_prev = -1;
     for (a, b, r) in path {
-        eprintln!("{:?}", (a, b, r));
+        // eprintln!("{:?}", (a, b, r));
         match r {
             0 => {
                 let mut id_tmp = if b == 0 {
                     block_ids[a][0].take().unwrap()
+                } else if a == h - 1 {
+                    id_b.clone()
                 } else if r_prev == r || a == 0 {
                     let [id0, id1] = id_b.cut();
                     push(cut_a(id_b.clone(), a + 1));
@@ -106,6 +108,8 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
             1 => {
                 let mut id_tmp = if a == 0 {
                     block_ids[0][b].take().unwrap()
+                } else if b == w - 1 {
+                    id_a.clone()
                 } else if r_prev == r || b == 0 {
                     let [id0, id1] = id_a.cut();
                     push(cut_b(id_a.clone(), b + 1));
@@ -142,14 +146,13 @@ fn merge_all_safe(canvas: &mut Canvas) -> anyhow::Result<Vec<Move>> {
                 }
             }
             _ => {
-                todo!()
+                break;
             }
         }
         r_prev = r;
     }
-    // for ((a0, b0, r), (a1, b1, _)) in path.into_iter().tuple_windows() {
-
-    // }
+    assert_eq!(canvas.blocks.len(), 1);
+    assert_eq!(actual_cost as i32, cost);
     Ok(moves)
 }
 
@@ -187,7 +190,7 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
                 c += cost0[a + 1][b].0;
                 c
             };
-            if b == 0 {
+            if b == 0 || a == h - 1 {
                 cost0[a][b].setmin((common_cost, rep));
             } else {
                 cost0[a][b].setmin((common_cost + cut_cost(h - a, b), rep));
@@ -208,7 +211,7 @@ fn merge_all_internal(h: usize, w: usize) -> (i32, Vec<(usize, usize, i8)>) {
                 c += cost1[a][b + 1].0;
                 c
             };
-            if a == 0 {
+            if a == 0 || b == w - 1 {
                 cost1[a][b].setmin((common_cost, rep));
             } else {
                 cost1[a][b].setmin((common_cost + cut_cost(a, w - b), rep));
