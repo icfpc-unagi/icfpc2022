@@ -240,7 +240,7 @@ func displayScoreboardByClass(buf *bytes.Buffer, records []*scoreboardRecord) {
 		IsInternal bool
 	}
 
-	thresholds := []int{35, 30, 25, 20}
+	thresholds := []int{40, 35, 30, 25, 20}
 	thresholdRanks := make([][]*rankingRecord, 0)
 	for _, t := range thresholds {
 		teams := map[string]*rankingRecord{}
