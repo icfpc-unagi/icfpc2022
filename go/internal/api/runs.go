@@ -298,7 +298,7 @@ INSERT runs
 SET
 	problem_id = ?,
 	program_id = ?,
-	run_pipeline = ?
+	run_pipeline = ?,
 	run_name = ?,
 	run_command = ?,
 	run_locked = CURRENT_TIMESTAMP() - INTERVAL (1 + RAND()) * 3600 * 24 SECOND
