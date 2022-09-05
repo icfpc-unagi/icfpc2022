@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"time"
 
 	"github.com/icfpc-unagi/icfpc2022/go/internal/api"
 
@@ -66,4 +67,80 @@ func programsHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(buf, `<li>プログラム番号 %d: %s<pre>%s</pre></li>`, p.ProgramID, html.EscapeString(p.ProgramName), html.EscapeString(p.ProgramCode))
 	}
 	fmt.Fprintf(buf, "</ul>")
+
+	fmt.Fprintf(buf, `<h2>最新ジョブ一覧</h2>`)
+	listRuns(buf, "WHERE program_id > 0 ORDER BY run_id DESC LIMIT 100")
+}
+
+/*
+SELECT
+    run_id,
+    program_id,
+    program_name,
+    problem_id,
+    run_score,
+    run_locked,
+    run_created
+FROM
+    runs
+NATURAL JOIN programs WHERE program_id > 0
+ORDER BY
+    run_id
+DESC
+LIMIT 100;
+*/
+
+func listRuns(buf *bytes.Buffer, where string) {
+	records := make([]struct {
+		RunID       int     `db:"run_id"`
+		ProgramID   int     `db:"program_id"`
+		ProgramName string  `db:"program_name"`
+		ProblemID   int     `db:"problem_id"`
+		RunScore    *int64  `db:"run_score"`
+		RunLocked   *string `db:"run_locked"`
+		RunCreated  string  `db:"run_created"`
+	}, 0)
+	if err := db.Select(context.Background(), &records, `
+SELECT
+    run_id,
+    program_id,
+    program_name,
+    problem_id,
+    run_score,
+    run_locked,
+    run_created
+FROM
+    runs
+NATURAL JOIN programs
+`+where); err != nil {
+		fmt.Fprintf(buf, `<pre class="alert-danger">%s</pre>`,
+			html.EscapeString(fmt.Sprintf("%+v", err)))
+	}
+
+	fmt.Fprintf(buf, `<table style="width:100%%; table-layout: fixed; "">`)
+	now := time.Now().UTC().Format("2006-01-02 15:04:05")
+	for _, r := range records {
+		scoreInfo := ""
+		if r.RunScore != nil {
+			scoreInfo = fmt.Sprintf(
+				`<a href="/visualizer?run_id=%d" target="_blank">%d</a>`,
+				r.RunID, *r.RunScore)
+		} else if r.RunLocked != nil {
+			if *r.RunLocked < now {
+				scoreInfo = "実行待ち"
+			} else {
+				scoreInfo = "実行中"
+			}
+		} else {
+			scoreInfo = "-"
+		}
+		fmt.Fprintf(buf, `<tr><td style="width: 12ex">ジョブ %d</td><td style="width: 8ex">問題%d</td><td>%s</td><td style="width: 10ex; text-align: right">%s</td><td style="width:22ex; text-align: right">%s</td></tr>`,
+			r.RunID,
+			r.ProblemID,
+			html.EscapeString(r.ProgramName),
+			scoreInfo,
+			r.RunCreated,
+		)
+	}
+	fmt.Fprintf(buf, "</table>")
 }
