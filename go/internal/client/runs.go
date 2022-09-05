@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -15,8 +16,9 @@ import (
 
 var apiHost = flag.String("host", "https://icfpc.sx9.jp/"+api.PATH_PREFIX, "")
 
-func RunAcquire(ctx context.Context) (*api.RunAcquireResponse, error) {
-	req, err := http.NewRequest("POST", *apiHost+"/run/acquire", nil)
+func RunAcquire(ctx context.Context, pipelineID int) (*api.RunAcquireResponse, error) {
+	req, err := http.NewRequest("POST",
+		fmt.Sprintf("%s/run/acquire?pipeline=%d", *apiHost, pipelineID), nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create a request")
 	}

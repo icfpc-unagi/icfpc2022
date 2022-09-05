@@ -23,6 +23,8 @@ import (
 
 const CONTAINER_IMAGE = "asia-docker.pkg.dev/icfpc-primary/asia/runner"
 
+var pipelineID = flag.Int("pipeline", 0, "Pipeline ID")
+
 func main() {
 	flag.Parse()
 	glog.Info("Pulling a container image...")
@@ -46,7 +48,7 @@ func Loop() error {
 	ctx := context.Background()
 
 	glog.Info("Acquiring a new run...")
-	resp, err := client.RunAcquire(ctx)
+	resp, err := client.RunAcquire(ctx, *pipelineID)
 	if err != nil {
 		return err
 	}

@@ -13,8 +13,9 @@ import (
 )
 
 type InsertProgramRequest struct {
-	ProgramName string `json:"program_id"`
-	ProgramCode string `json:"program_code"`
+	ProgramName     string `json:"program_id"`
+	ProgramCode     string `json:"program_code"`
+	ProgramPipeline int    `json:"program_pipeline"`
 }
 
 type InsertProgramResponse struct {
@@ -31,9 +32,9 @@ func InsertProgram(req *InsertProgramRequest) (*InsertProgramResponse, error) {
 	}
 
 	result, err := db.Execute(context.Background(), `
-INSERT INTO programs SET program_name = ?, program_code = ?
+INSERT INTO programs SET program_name = ?, program_code = ?, program_pipeline = ?
 `,
-		req.ProgramName, req.ProgramCode)
+		req.ProgramName, req.ProgramCode, req.ProgramPipeline)
 	if err != nil {
 		return nil, errors.Errorf("failed to insert a task: %+v", err)
 	}
@@ -52,9 +53,10 @@ INSERT INTO programs SET program_name = ?, program_code = ?
 			code, "{{PROBLEM_ID}}", fmt.Sprintf("%d", p.ID))
 		for i := 0; i < 3; i++ {
 			runResp, err := RunAdd(context.Background(), &RunAddRequest{
-				ProblemID:  p.ID,
-				ProgramID:  resp.ProgramID,
-				RunCommand: code,
+				ProblemID:   p.ID,
+				ProgramID:   resp.ProgramID,
+				RunPipeline: req.ProgramPipeline,
+				RunCommand:  code,
 			})
 			if err != nil {
 				glog.Errorf("Failed to insert a task: %+v", err)
