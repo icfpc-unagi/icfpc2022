@@ -307,7 +307,7 @@ pub fn find_optimization_result(
         let header = &comment[0];
         if header
             == &format!(
-                "optimize SUBMISSION_ID={} MAX_PAIR_PERTURB={}",
+                "optimizeV2 SUBMISSION_ID={} MAX_PAIR_PERTURB={}",
                 submission_id, max_pair_perturb
             )
         {

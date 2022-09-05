@@ -111,7 +111,7 @@ fn main() -> anyhow::Result<()> {
             //w.write_fmt(format_args!("# optimize\n"))?;
             write!(
                 &mut w,
-                "# optimize SUBMISSION_ID={} MAX_PAIR_PERTURB={}\n",
+                "# optimizeV2 SUBMISSION_ID={} MAX_PAIR_PERTURB={}\n",
                 submission.id, args.max_pair_perturb
             )?;
             write_isl_with_comments(w, new_program, &comments)?;

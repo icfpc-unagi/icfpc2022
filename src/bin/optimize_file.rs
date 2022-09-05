@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
     let mut w = std::fs::File::create(args.out)?;
     write!(
         &mut w,
-        "# optimize FROM_FILE MAX_PAIR_PERTURB={}\n",
+        "# optimizeV2 FROM_FILE MAX_PAIR_PERTURB={}\n",
         args.max_pair_perturb
     )?;
     write_isl_with_comments(w, new_program, &comments)?;
