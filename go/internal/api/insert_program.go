@@ -49,7 +49,7 @@ INSERT INTO programs SET program_name = ?, program_code = ?
 	for _, p := range util.Problems() {
 		code := req.ProgramCode
 		code = strings.ReplaceAll(
-			code, "{{PROBLEM_ID}}", fmt.Sprintf("%s", p.ID))
+			code, "{{PROBLEM_ID}}", fmt.Sprintf("%d", p.ID))
 		for i := 0; i < 3; i++ {
 			runResp, err := RunAdd(context.Background(), &RunAddRequest{
 				ProblemID:  p.ID,
