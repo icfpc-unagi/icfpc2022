@@ -572,18 +572,33 @@ fn two_merge_cost(left: i32, right: i32, first: i32, second: i32) -> f64 {
     .sum()
 }
 
-pub fn fix_cut_merge_all(mut program: Program, canvas: &Canvas, image: &Vec<Vec<Color>>) -> (Program, f64) {
-    let mut score = canvas.clone().apply_all_and_score(program.clone(), image).unwrap();
-    while let Some(new_program) =
-        fix_cut_merge(program.clone(), canvas.clone())
-    {
-        program = new_program;
-        let new_score = canvas.clone().apply_all_and_score(program.clone(), image).unwrap();
-        eprintln!("***** {score} -> {new_score}");
-        assert!(new_score <= score);
-        score = new_score;
+pub fn fix_cut_merge_all(
+    mut program: Program,
+    canvas: &Canvas,
+    image: &Vec<Vec<Color>>,
+) -> (Program, f64) {
+    let mut score = canvas
+        .clone()
+        .apply_all_and_score(program.clone(), image)
+        .unwrap();
+    while let Some(new_program) = fix_cut_merge(program.clone(), canvas.clone()) {
+        if let Ok(new_score) = canvas
+            .clone()
+            .apply_all_and_score(new_program.clone(), image)
+        {
+            eprintln!("***** {score} -> {new_score}");
+            if new_score > score {
+                eprintln!("error: unexpected bad score. reverts to the previous program.");
+                break;
+            }
+            program = new_program;
+            score = new_score;
+        } else {
+            eprintln!("error: wrong program. reverts to the previous program.");
+            break;
+        }
     }
-    return (program, score);
+    (program, score)
 }
 
 pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program> {
@@ -655,8 +670,10 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                     if ori == parentori.to_ascii_lowercase() {
                         let parent_block = all_blocks[&parent_bid];
                         let k = *bid.0.last().unwrap();
-                        let other_bid = parent_bid.extended([1-k]);
-                        if clean_blocks.contains_key(&other_bid) && canvas.blocks.contains_key(&other_bid) {
+                        let other_bid = parent_bid.extended([1 - k]);
+                        if clean_blocks.contains_key(&other_bid)
+                            && canvas.blocks.contains_key(&other_bid)
+                        {
                             let (v0, v1) = ori_of_block(parent_block, ori);
                             // 端に近い方を先に切るべき
                             if (val - v0).min(v1 - val) < (parent_val - v0).min(v1 - parent_val) {
@@ -781,10 +798,11 @@ pub fn optimize(
     if best_program.is_empty() {
         return (best_program, best_score);
     }
-    // return fix_cut_merge_all(best_program, initial_canvas, image);
 
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
+        (best_program, best_score) = fix_cut_merge_all(best_program, initial_canvas, image);
+
         // (1) Try color improvement
         if diff_step == 1 {
             let (new_program, new_score) =
