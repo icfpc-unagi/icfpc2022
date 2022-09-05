@@ -147,6 +147,10 @@ impl ManagedCanvas {
         // } else {
         //     Canvas::new(png[0].len(), png.len())
         // };
+        // if swap_input {
+        //     canvas.bitmap = png.clone();
+        // }
+        let png = wata::get_swapped_png(png, &program[t as usize..], &dummy_canvas);
         // match canvas.apply_all_safe(program[0..t as usize].iter().cloned()) {
         //     Ok(s) => cost = s.round() as i64,
         //     Err(e) => {
@@ -185,6 +189,7 @@ impl ManagedCanvas {
                 .set("y", 0)
                 .set("width", w)
                 .set("height", h)
+                .set("style", "opacity:0.5")
                 .set(
                     "xlink:href",
                     format!("data:image/png;base64,{}", base64(&png)),
