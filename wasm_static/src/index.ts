@@ -19,6 +19,9 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   const initial_png = document.getElementById('initial_png') as HTMLImageElement
   const target_png = document.getElementById('target_png') as HTMLImageElement
 
+  // wasm 側に持たせているもの
+  // TODO: target_png, initial_config, initial_png を渡す
+  let managed: icfpc2022.ManagedCanvas = new icfpc2022.ManagedCanvas(canvas1)
 
   // 新しい問題の読み込み
   async function loadProblem(problemId: string | number) {
@@ -103,19 +106,28 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   container1.addEventListener('click', e => {
     let x = e.offsetX;
     let y = 400 - e.offsetY;
-    let block_id = findBlockId(e.target as Element) ?? '0'
+    let rect = findRect(e.target as Element)
+    let block_id = rect?.getAttribute('block-id') ?? '0'
     let shift = e.getModifierState('Shift')
     let ctrl = e.getModifierState('Control') || e.getModifierState('Meta')
-    if (shift) {
+    if (shift && ctrl) {
+      let color = '0,0,0,255'
+      // たぶんバグっている。正しい値が得られない。
+      // if (rect) {
+      //   let bb = rect.getBBox()
+      //   console.debug(bb)
+      //   let median = managed.geometric_median_4d_on_rect(bb.x, 400 - bb.y - bb.height, bb.x + bb.width, 400 - bb.y)
+      //   console.debug(median)
+      //   color = median.join(',')
+      // }
+      append(`color [${block_id}.0] [${color}]`)
+    } else if (shift) {
       append(`cut [${block_id}] [y] [${y}]`)
     } else if (ctrl) {
       append(`cut [${block_id}] [x] [${x}]`)
     } else {
       append(`cut [${block_id}] [${x},${y}]`)
     }
-
-    // TODO: pick a median color for the block?
-    // append(`color [${block_id}.0] [0,0,0,255]`)
 
     // 操作が難しそうだからとりあえず手入力で
     // append(`swap [${block_id}] [${block_id2}]`)
@@ -125,21 +137,21 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
 
   // Update Canvas
   function update() {
-    // TODO: target_png, initial_config, initial_png を渡す
-    let managed = new icfpc2022.ManagedCanvas(canvas1)
     try {
+      managed.clear()
       managed.apply(isl1.value)
       let svgDoc = managed.svg()
       let holder = document.createElement('div')
       holder.innerHTML = svgDoc
       svg1.innerHTML = holder.firstElementChild!.innerHTML
       error1.innerText = ''
+      cost1.innerText = managed.cost().toString()
+      // TODO: similarity
     } catch (e) {
       console.error(e)
       error1.innerText = e.toString()
+      managed = new icfpc2022.ManagedCanvas(canvas1);
     }
-    cost1.innerText = managed.cost().toString()
-    // TODO: similarity
   }
   isl1.addEventListener('input', _ => update())
   update()
@@ -160,10 +172,9 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     isl1.value += (isl1.value && !isl1.value.endsWith('\n') ? '\n' : '') + s + '\n'
   }
 
-  function findBlockId(e: Element | null): string | null {
+  function findRect(e: Element | null): SVGRectElement | null {
     while (e) {
-      let id = e.getAttribute('block-id')
-      if (id) return id
+      if (e.tagName == 'rect') return e as SVGRectElement
       e = e.parentElement
     }
     return null

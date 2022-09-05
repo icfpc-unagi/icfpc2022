@@ -1,5 +1,5 @@
 // NOTE: To enable completion, add vscode settings "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
-use crate::*;
+use crate::{color::geometric_median_4d, *};
 use svg::node::{
     element::{Group, Image, Rectangle, Title},
     Text,
@@ -81,9 +81,32 @@ impl ManagedCanvas {
         Ok(self.cost)
     }
 
+    pub fn geometric_median_4d_on_rect(
+        &self,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+    ) -> Result<Vec<f64>, JsValue> {
+        if x0 >= x1 || y0 >= y1 {
+            return Err(JsValue::from_str(&format!(
+                "invalid range {x0},{y0},{x1},{y1}"
+            )));
+        }
+        let points: Vec<_> = (y0..y1)
+            .flat_map(|y| {
+                (x0..x1).map(move |x| self.model.bitmap[y as usize][x as usize].map(|c| c as f64))
+            })
+            .collect();
+        Ok(geometric_median_4d(&points)
+            .map(|c| c.round().clamp(0.0, 255.0))
+            .into())
+    }
+
     pub fn svg(&self) -> Result<String, JsValue> {
         // とりあえず通るように
         let w = 400;
+
         let h = 400;
         let program = &self.isl;
         let t = program.len();
@@ -178,19 +201,17 @@ impl ManagedCanvas {
                 //cost
             );
             doc = doc.add(
-                Group::new()
-                    .add(Title::new().add(Text::new(&title)))
-                    .add(
-                        Rectangle::new()
-                            .set("x", block.0 .0)
-                            .set("y", h as i32 - block.1 .1)
-                            .set("width", block.1 .0 - block.0 .0)
-                            .set("height", block.1 .1 - block.0 .1)
-                            .set("fill", "#0000")
-                            .set("stroke-width", 2)
-                            .set("stroke", stroke),
-                    )
-                    .set("block-id", id.to_string()),
+                Group::new().add(Title::new().add(Text::new(&title))).add(
+                    Rectangle::new()
+                        .set("x", block.0 .0)
+                        .set("y", h as i32 - block.1 .1)
+                        .set("width", block.1 .0 - block.0 .0)
+                        .set("height", block.1 .1 - block.0 .1)
+                        .set("fill", "#0000")
+                        .set("stroke-width", 2)
+                        .set("stroke", stroke)
+                        .set("block-id", id.to_string()),
+                ),
             );
             // doc = doc.add(
             //     Group::new().add(Title::new().add(Text::new(&title))).add(
