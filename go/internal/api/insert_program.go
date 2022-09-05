@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/icfpc-unagi/icfpc2022/go/internal/util"
@@ -45,11 +47,14 @@ INSERT INTO programs SET program_name = ?, program_code = ?
 
 	failure := 0
 	for _, p := range util.Problems() {
+		code := req.ProgramCode
+		code = strings.ReplaceAll(
+			code, "{{PROBLEM_ID}}", fmt.Sprintf("%s", p.ID))
 		for i := 0; i < 3; i++ {
 			runResp, err := RunAdd(context.Background(), &RunAddRequest{
 				ProblemID:  p.ID,
 				ProgramID:  resp.ProgramID,
-				RunCommand: req.ProgramCode,
+				RunCommand: code,
 			})
 			if err != nil {
 				glog.Errorf("Failed to insert a task: %+v", err)
