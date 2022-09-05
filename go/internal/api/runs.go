@@ -370,7 +370,7 @@ func handleRunEvaluate(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := RunEvaluate(ctx, &req)
 	if err != nil {
-		glog.Errorf("Failed to extend the lock: %+v", err)
+		glog.Errorf("Failed to evaluate: %+v", err)
 		w.WriteHeader(500)
 		return
 	}
@@ -400,6 +400,10 @@ LIMIT 1
 `, req.RunID); err != nil {
 		return nil, errors.Wrapf(err, "failed to fetch a solution")
 	}
+	if record.ProblemID == 0 {
+		return nil, errors.Errorf("no solution: run_id=%d", req.RunID)
+	}
+
 	resp, err := Evaluate(&EvaluateRequest{
 		ProblemID: record.ProblemID,
 		ISL:       record.SolutionISL,
@@ -407,5 +411,20 @@ LIMIT 1
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to evaluate")
 	}
-	return &RunEvaluateResponse{RunScore: resp.Cost + resp.Similarity}, nil
+
+	score := resp.Cost + resp.Similarity
+	if score == 0 {
+		glog.Errorf("Score is 0: run_id=%d", req.RunID)
+	} else {
+		if result, err := db.Execute(ctx, `
+UPDATE runs SET run_score = ? WHERE run_id = ? LIMIT 1`, score, req.RunID); err != nil {
+			return nil, errors.Errorf("failed to update score: %+v", err)
+		} else if n, err := result.RowsAffected(); err != nil {
+			return nil, errors.Errorf("failed to update score: %+v", err)
+		} else if n != 1 {
+			return nil, errors.Errorf("failed to update score: %+v", err)
+		}
+	}
+
+	return &RunEvaluateResponse{RunScore: score}, nil
 }
