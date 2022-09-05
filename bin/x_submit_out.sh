@@ -3,7 +3,7 @@
 function submit() {
   echo
   echo "Submitting $2"
-  curl -s -X POST --data-urlencode isl@$2 -d problem_id=$1 https://icfpc.sx9.jp/scvzcaae/internal_submit
+  curl -s -X POST --data-urlencode isl@$2 -d problem_id=$1 https://icfpc.sx9.jp/scvzcaae/submit
   rm "$2"
 }
 
