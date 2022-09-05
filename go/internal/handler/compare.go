@@ -20,6 +20,9 @@ func compareTemplate(w http.ResponseWriter, r *http.Request) {
 		myBest := int64(100000000)
 		othersBest := int64(100000000)
 		for _, r := range records {
+			if r.ProblemID != p.ID {
+				continue
+			}
 			isMine := r.IsInternal || r.UserName == "Unagi"
 			if isMine && r.Score < myBest {
 				myBest = r.Score
@@ -27,6 +30,7 @@ func compareTemplate(w http.ResponseWriter, r *http.Request) {
 				othersBest = r.Score
 			}
 		}
-		fmt.Fprintf(buf, "<tr><td>%d</td><td>%d</td><td>%d</td></table>", p.ID, myBest, othersBest)
+		fmt.Fprintf(buf, "<tr><td>%d</td><td>%d</td><td>%d</td></tr>", p.ID, myBest, othersBest)
 	}
+	fmt.Fprintf(buf, "</table>")
 }
