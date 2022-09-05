@@ -572,6 +572,20 @@ fn two_merge_cost(left: i32, right: i32, first: i32, second: i32) -> f64 {
     .sum()
 }
 
+pub fn fix_cut_merge_all(mut program: Program, canvas: &Canvas, image: &Vec<Vec<Color>>) -> (Program, f64) {
+    let mut score = canvas.clone().apply_all_and_score(program.clone(), image).unwrap();
+    while let Some(new_program) =
+        fix_cut_merge(program.clone(), canvas.clone())
+    {
+        program = new_program;
+        let new_score = canvas.clone().apply_all_and_score(program.clone(), image).unwrap();
+        eprintln!("***** {score} -> {new_score}");
+        assert!(new_score <= score);
+        score = new_score;
+    }
+    return (program, score);
+}
+
 pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program> {
     // let mut dirty_block_ids = HashSet::new();
     // let mut created_time = HashMap::new();
@@ -607,7 +621,11 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
             });
         }
         let info = (t, mov.clone());
-        canvas.apply(&mov);
+        if !matches!(mov, Move::Color(..)) {
+            // 高速化。色は関係ないので。
+            // swapはidが変わるのでやる。
+            canvas.apply(&mov);
+        }
         match mov {
             Move::Color(bid, _) => {
                 // 重複removeしてもOK
@@ -636,36 +654,39 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                 {
                     if ori == parentori.to_ascii_lowercase() {
                         let parent_block = all_blocks[&parent_bid];
-                        let (v0, v1) = ori_of_block(parent_block, ori);
-                        // 端に近い方を先に切るべき
-                        if (val - v0).min(v1 - val) < (parent_val - v0).min(v1 - parent_val) {
-                            eprintln!("[{s}, {t}] cut-cut {ori}");
-                            // let root_id = parent_bid.0.clone();
-                            let k = *bid.0.last().unwrap();
+                        let k = *bid.0.last().unwrap();
+                        let other_bid = parent_bid.extended([1-k]);
+                        if clean_blocks.contains_key(&other_bid) && canvas.blocks.contains_key(&other_bid) {
+                            let (v0, v1) = ori_of_block(parent_block, ori);
+                            // 端に近い方を先に切るべき
+                            if (val - v0).min(v1 - val) < (parent_val - v0).min(v1 - parent_val) {
+                                eprintln!("[{s}, {t}] cut-cut {ori}");
+                                // let root_id = parent_bid.0.clone();
 
-                            let tmp0 = parent_bid.extended([k]).0;
-                            let tmp00 = parent_bid.extended([k, k]).0;
-                            let tmp01 = parent_bid.extended([k, 1 - k]).0;
-                            let tmp1 = parent_bid.extended([1 - k]).0;
-                            let tmp10 = parent_bid.extended([1 - k, k]).0;
-                            let tmp11 = parent_bid.extended([1 - k, 1 - k]).0;
-                            // swap val and parent_val
-                            program[s] = Move::LineCut(parent_bid.clone(), ori, val);
-                            program[t] = Move::LineCut(BlockId(tmp1.clone()), ori, parent_val);
+                                let tmp0 = parent_bid.extended([k]).0;
+                                let tmp00 = parent_bid.extended([k, k]).0;
+                                let tmp01 = parent_bid.extended([k, 1 - k]).0;
+                                let tmp1 = parent_bid.extended([1 - k]).0;
+                                let tmp10 = parent_bid.extended([1 - k, k]).0;
+                                let tmp11 = parent_bid.extended([1 - k, 1 - k]).0;
+                                // swap val and parent_val
+                                program[s] = Move::LineCut(parent_bid.clone(), ori, val);
+                                program[t] = Move::LineCut(BlockId(tmp1.clone()), ori, parent_val);
 
-                            let from_to = [(tmp00, tmp0), (tmp01, tmp10), (tmp1, tmp11)];
-                            let rename = |b: &mut Vec<u32>| {
-                                for (from, to) in from_to.iter() {
-                                    if b.starts_with(from) {
-                                        b.splice(..from.len(), to.clone());
-                                        break;
+                                let from_to = [(tmp00, tmp0), (tmp01, tmp10), (tmp1, tmp11)];
+                                let rename = |b: &mut Vec<u32>| {
+                                    for (from, to) in from_to.iter() {
+                                        if b.starts_with(from) {
+                                            b.splice(..from.len(), to.clone());
+                                            break;
+                                        }
                                     }
+                                };
+                                for i in t + 1..program.len() {
+                                    program[i].edit_id(rename);
                                 }
-                            };
-                            for i in t + 1..program.len() {
-                                program[i].edit_id(rename);
+                                return Some(program);
                             }
-                            return Some(program);
                         }
                     }
                 }
@@ -760,6 +781,7 @@ pub fn optimize(
     if best_program.is_empty() {
         return (best_program, best_score);
     }
+    // return fix_cut_merge_all(best_program, initial_canvas, image);
 
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
