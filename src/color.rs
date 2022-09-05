@@ -292,6 +292,7 @@ pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
         let step_size = grad.iter().map(|g| g.powi(2)).sum::<f64>().sqrt();
         if step_size < eps {
             if eps < 1e-2 {
+                // u8に戻すときに16通り調べるのでearly returnの目標はそのオーダー
                 // eprintln!("early return: {iter}");
                 break;
             }
