@@ -1603,8 +1603,11 @@ pub fn get_reversed_program(program: &Program) -> Program {
                 Move::Merge(b1, b2)
             }
             Move::Merge(b1, b2) => {
-                let b1 = canvas.blocks[&b1];
-                let b2 = canvas.blocks[&b2];
+                let mut b1 = canvas.blocks[&b1];
+                let mut b2 = canvas.blocks[&b2];
+                if b1 > b2 {
+                    std::mem::swap(&mut b1, &mut b2);
+                }
                 let b = rcanvas.find_block(b1.0, b2.1).unwrap();
                 if b1.0 .0 == b2.0 .0 {
                     Move::LineCut(b, 'y', b2.0 .1)
