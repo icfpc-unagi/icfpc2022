@@ -114,16 +114,12 @@ impl ManagedCanvas {
         x1: i32,
         y1: i32,
     ) -> Result<Vec<f64>, JsValue> {
-        if x0 >= x1 || y0 >= y1 {
-            return Err(JsValue::from_str(&format!(
-                "invalid range {x0},{y0},{x1},{y1}"
-            )));
-        }
         let points: Vec<_> = (y0..y1)
             .flat_map(|y| {
                 (x0..x1).map(move |x| self.model.bitmap[y as usize][x as usize].map(|c| c as f64))
             })
             .collect();
+        assert_ne!(points.len(), 0);
         Ok(geometric_median_4d(&points)
             .map(|c| c.round().clamp(0.0, 255.0))
             .into())

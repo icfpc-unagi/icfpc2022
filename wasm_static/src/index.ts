@@ -30,7 +30,6 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   async function loadProblem(problemId: string | number) {
     let resp = await fetch(`${base1}${problemId}.json`)
     let json = await resp.json()
-    console.debug(json)
     let target_png_p = fetch(json.target_link.replace(base0, base1))
       .then(resp => resp.blob())
       .then(blob => {
@@ -62,9 +61,6 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     target_png = await target_png_p
     init_config = await init_config_p ?? init_config
     init_png = await init_png_p ?? init_png
-    console.debug(`target_png: ${target_png}`)
-    console.debug(`init_config: ${init_config}`)
-    console.debug(`init_png: ${init_png}`)
     if (target_png) {
       managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png)
     }
@@ -130,20 +126,21 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     let x = e.offsetX;
     let y = 400 - e.offsetY;
     let rect = findRect(e.target as Element)
+    console.debug(`rect: ${rect}`)
     let block_id = rect?.getAttribute('block-id') ?? '0'
+    console.debug(`block_id: ${block_id}`)
     let shift = e.getModifierState('Shift')
     let ctrl = e.getModifierState('Control') || e.getModifierState('Meta')
     if (shift && ctrl) {
       let color = '0,0,0,255'
-      // たぶんバグっている。正しい値が得られない。
-      // if (rect) {
-      //   let bb = rect.getBBox()
-      //   console.debug(bb)
-      //   let median = managed.geometric_median_4d_on_rect(bb.x, 400 - bb.y - bb.height, bb.x + bb.width, 400 - bb.y)
-      //   console.debug(median)
-      //   color = median.join(',')
-      // }
-      append(`color [${block_id}.0] [${color}]`)
+      if (rect) {
+        let bb = rect.getBBox()
+        console.debug(bb)
+        let median = managed.geometric_median_4d_on_rect(bb.x, 400 - bb.y - bb.height, bb.x + bb.width, 400 - bb.y)
+        console.debug(median)
+        color = median.join(',')
+      }
+      append(`color [${block_id}] [${color}]`)
     } else if (shift) {
       append(`cut [${block_id}] [y] [${y}]`)
     } else if (ctrl) {
