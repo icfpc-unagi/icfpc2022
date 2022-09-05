@@ -61,7 +61,7 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(buf, `<option value="%d"%s>問題 %d: %s</option>`,
 			p.ID, selected, p.ID, p.Name)
 	}
-	fmt.Fprintf(buf, `</select></div>`)
+	fmt.Fprintf(buf, `</select>→<a href="https://icfpc.sx9.jp/static/dist/">→エディタ</a></div>`)
 	fmt.Fprintf(buf, `
       <div>
         <textarea class="lined" id="output" rows="20" data-gramm_editor="false" onchange="onCodeUpdate()" onkeyup="onCodeUpdate()" placeholder="ISL コード">%s</textarea>
