@@ -15,37 +15,55 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   const similarity1 = document.getElementById('similarity1') as HTMLSpanElement
   const error1 = document.getElementById('error1') as HTMLDivElement
   const score1 = document.getElementById('score1') as HTMLSpanElement
-  const initial_config = document.getElementById('initial_config') as HTMLTextAreaElement
-  const initial_png = document.getElementById('initial_png') as HTMLImageElement
-  const target_png = document.getElementById('target_png') as HTMLImageElement
+  const initial_config1 = document.getElementById('initial_config1') as HTMLTextAreaElement
+  const initial_png1 = document.getElementById('initial_png1') as HTMLImageElement
+  const target_png1 = document.getElementById('target_png1') as HTMLImageElement
 
   // wasm 側に持たせているもの
   // TODO: target_png, initial_config, initial_png を渡す
-  let managed: icfpc2022.ManagedCanvas = new icfpc2022.ManagedCanvas(canvas1)
+  var managed: icfpc2022.ManagedCanvas
+  var target_png = new Uint8Array()
+  var init_config = ''
+  var init_png = new Uint8Array()
 
   // 新しい問題の読み込み
   async function loadProblem(problemId: string | number) {
     let resp = await fetch(`${base1}${problemId}.json`)
     let json = await resp.json()
+    let target_png_p = fetch(json.target_link.replace(base0, base1))
+      .then(resp => resp.blob())
+      .then(blob => {
+        target_png1.src = URL.createObjectURL(blob)
+        return blob.arrayBuffer()
+      }).then(buffer => new Uint8Array(buffer))
+    let init_png_p;
+    let init_config_p;
     if (json.canvas_link && json.canvas_link.trim()) { // can be " "
-      initial_png.style.display = 'default'
-      fetch(json.canvas_link.replace(base0, base1))
+      initial_png1.style.display = 'default'
+      init_png_p = fetch(json.canvas_link.replace(base0, base1))
         .then(resp => resp.blob())
-        .then(blob => initial_png.src = URL.createObjectURL(blob))
+        .then(blob => {
+          initial_png1.src = URL.createObjectURL(blob)
+          return blob.arrayBuffer()
+        }).then(buffer => new Uint8Array(buffer))
     } else {
-      initial_png.style.display = 'none'
+      initial_png1.style.display = 'none'
     }
     if (json.initial_config_link && json.initial_config_link.trim()) {
       console.log(json.initial_config_link)
-      fetch(json.initial_config_link.replace(base0, base1))
+      init_config_p = fetch(json.initial_config_link.replace(base0, base1))
         .then(resp => resp.text())
-        .then(text => initial_config.value = text)
+        .then(text => {
+          initial_config1.value = text
+          return text
+        })
     }
-    if (json.target_link) {
-      fetch(json.target_link.replace(base0, base1))
-        .then(resp => resp.blob())
-        .then(blob => target_png.src = URL.createObjectURL(blob))
-    }
+
+    target_png = await target_png_p ?? target_png
+    init_config = await init_config_p ?? init_config
+    init_png = await init_png_p ?? init_png
+    managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png)
+    update()
   }
   problem_id1.addEventListener('input', e => loadProblem((e.target as HTMLInputElement).value))
   loadProblem(problem_id1.value)
@@ -137,6 +155,7 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
 
   // Update Canvas
   function update() {
+    if (!managed) return;
     try {
       managed.clear()
       managed.apply(isl1.value)
@@ -150,7 +169,7 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     } catch (e) {
       console.error(e)
       error1.innerText = e.toString()
-      managed = new icfpc2022.ManagedCanvas(canvas1);
+      managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png);
     }
   }
   isl1.addEventListener('input', _ => update())

@@ -246,8 +246,8 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
                 Image::new()
                     .set("x", 0)
                     .set("y", 0)
-                    .set("width", w * 2)
-                    .set("height", h * 2)
+                    .set("width", w)
+                    .set("height", h)
                     .set(
                         "xlink:href",
                         format!("data:image/png;base64,{}", base64(&canvas.bitmap)),
