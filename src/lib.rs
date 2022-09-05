@@ -58,7 +58,10 @@ macro_rules! mat {
 }
 
 pub fn read_png<P: AsRef<std::path::Path>>(path: P) -> Vec<Vec<[u8; 4]>> {
-    let decoder = png::Decoder::new(File::open(path).unwrap());
+    read_png_r(File::open(path).unwrap())
+}
+pub fn read_png_r<R: io::Read>(r: R) -> Vec<Vec<[u8; 4]>> {
+    let decoder = png::Decoder::new(r);
     let mut reader = decoder.read_info().unwrap();
     let mut buf = vec![0; reader.output_buffer_size()];
     let info = reader.next_frame(&mut buf).unwrap();
