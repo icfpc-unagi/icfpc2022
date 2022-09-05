@@ -771,12 +771,12 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                                     continue;
                                 };
                                 let mut bids = [id0, id1, last_id.clone()];
-                                dbg!(&bids);
+                                // dbg!(&bids);
                                 bids.sort_by_key(|b| {
                                     let b = all_blocks[b];
                                     b.0 + b.1
                                 });
-                                dbg!(&bids);
+                                // dbg!(&bids);
                                 program[s] = Move::Merge(last_id.clone(), bids[1].clone());
                                 let tmp = bids.iter().position(|b| b == &last_id).unwrap();
                                 program[t] =
@@ -825,7 +825,7 @@ pub fn optimize(
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
         (best_program, best_score) = fix_cut_merge_all(best_program, initial_canvas, image);
-
+        // break;
         // (1) Try color improvement
         if diff_step == 1 {
             let (new_program, new_score) =
