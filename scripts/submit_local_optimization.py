@@ -31,7 +31,7 @@ def find_local_best_solution(problem_id):
     return path, get_score(path)
 
 
-def main(force_submit_best=False):
+def main(force_submit_best=False, dryrun=False):
     best_submissions = find_best_submissions()
 
     for problem_id, best_submission in sorted(best_submissions.items()):
@@ -50,12 +50,14 @@ def main(force_submit_best=False):
                 print(f"Problem {problem_id:3d}: Local solution not better ({best_submission_score} <= {new_score})")
                 continue
 
-        print(f"Problem {problem_id:3d}: Submitting! ({best_submission_score} > {new_score})")
+        # print(f"Problem {problem_id:3d}: Submitting! ({best_submission_score} > {new_score})")
+        print(f"Problem {problem_id:3d}: {new_score:10}")
 
         cmd = f'curl -X POST --data-urlencode isl@{new_path} -d problem_id={problem_id} "https://icfpc.sx9.jp/scvzcaae/submit"'
-        print(cmd)
-        subprocess.run(cmd, shell=True)
-        time.sleep(3)
+        if not dryrun:
+            print(cmd)
+            subprocess.run(cmd, shell=True)
+            time.sleep(3)
 
 
 

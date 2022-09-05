@@ -246,6 +246,32 @@ pub fn query_submission_ids(
     }
 
     if true {
+        let program_name_not = "optimizeV2";
+        spcs = spcs
+            .into_iter()
+            .filter(|(_, _, c)| estimate_program_name(&c) != program_name_not)
+            .collect();
+        eprintln!(
+            "Submissions filtered by program name ({}): {}",
+            program_name_not,
+            spcs.len()
+        );
+    }
+
+    if true {
+        let program_name_not = "optimize";
+        spcs = spcs
+            .into_iter()
+            .filter(|(_, _, c)| estimate_program_name(&c) != program_name_not)
+            .collect();
+        eprintln!(
+            "Submissions filtered by program name ({}): {}",
+            program_name_not,
+            spcs.len()
+        );
+    }
+
+    if true {
         let program_name_not = "chokudai3";
         spcs = spcs
             .into_iter()
