@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -67,7 +68,7 @@ func Loop() error {
 	stdout, err := os.Create(path.Join(dir, "stdout"))
 	cmd.Stdout = stdout
 	stderr, err := os.Create(path.Join(dir, "stderr"))
-	cmd.Stderr = stderr
+	cmd.Stderr = io.MultiWriter(stderr, os.Stderr)
 	cmd.Start()
 
 	glog.Infof("Start running run_id=%d...", resp.RunID)
