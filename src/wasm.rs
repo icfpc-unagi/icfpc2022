@@ -20,7 +20,7 @@ pub fn main() -> Result<(), JsValue> {
     for i in 0..canvases.length() {
         let el_canvas: HtmlCanvasElement = JsValue::from(canvases.get(i)).into();
         let isl = el_canvas.get_attribute("isl").unwrap();
-        let mut managed = ManagedCanvas::new(&el_canvas);
+        let mut managed = ManagedCanvas::new(&el_canvas, &[], "", &[]);
         managed.apply(&isl)?;
     }
 
@@ -32,6 +32,7 @@ pub fn main() -> Result<(), JsValue> {
 pub struct ManagedCanvas {
     ctx: CanvasRenderingContext2d,
     model: Canvas,
+    target: Vec<Vec<Color>>,
     cost: f64,
     isl: Vec<Move>,
 }
@@ -39,10 +40,21 @@ pub struct ManagedCanvas {
 #[wasm_bindgen]
 impl ManagedCanvas {
     #[wasm_bindgen(constructor)]
-    pub fn new(el_canvas: &HtmlCanvasElement) -> Self {
+    pub fn new(
+        el_canvas: &HtmlCanvasElement,
+        target_png: &[u8],
+        init_config: &str, // len() == 0 if absent
+        init_png: &[u8],   // len() == 0 if absent
+    ) -> Self {
         Self {
             ctx: JsValue::from(el_canvas.get_context("2d").unwrap()).into(),
-            model: Canvas::new400(),
+            // TODO: use init_config as InitialJson
+            model: if init_png.len() > 0 {
+                Canvas::from(read_png_r(init_png))
+            } else {
+                Canvas::new400()
+            },
+            target: read_png_r(target_png),
             cost: Default::default(),
             isl: Default::default(),
         }
@@ -106,12 +118,12 @@ impl ManagedCanvas {
     pub fn svg(&self) -> Result<String, JsValue> {
         // とりあえず通るように
         let w = 400;
-
         let h = 400;
         let program = &self.isl;
         let t = program.len();
         let canvas = &self.model;
         let show_blocks = true;
+        let png = &self.target;
         // let cost = self.cost;
         // web/src/lib.rs から丸コピ, png なし, 座標を x1 scale に, init もなし
         let mut doc = svg::Document::new()
@@ -135,6 +147,10 @@ impl ManagedCanvas {
         // } else {
         //     Canvas::new(png[0].len(), png.len())
         // };
+        // if swap_input {
+        //     canvas.bitmap = png.clone();
+        // }
+        let png = wata::get_swapped_png(png, &program[t as usize..], &dummy_canvas);
         // match canvas.apply_all_safe(program[0..t as usize].iter().cloned()) {
         //     Ok(s) => cost = s.round() as i64,
         //     Err(e) => {
@@ -146,8 +162,8 @@ impl ManagedCanvas {
         //     Image::new()
         //         .set("x", 0)
         //         .set("y", 0)
-        //         .set("width", w * 2)
-        //         .set("height", h * 2)
+        //         .set("width", w)
+        //         .set("height", h)
         //         .set(
         //             "xlink:href",
         //             format!("data:image/png;base64,{}", base64(&canvas.bitmap)),
@@ -157,27 +173,28 @@ impl ManagedCanvas {
         //     let diff = pixel_distance_bitmap(&png, &canvas.bitmap);
         //     doc = doc.add(
         //         Image::new()
-        //             .set("x", w * 2 + 50)
+        //             .set("x", 0)
         //             .set("y", 0)
-        //             .set("width", w * 2)
-        //             .set("height", h * 2)
+        //             .set("width", w)
+        //             .set("height", h)
         //             .set(
         //                 "xlink:href",
         //                 format!("data:image/png;base64,{}", base64(&diff)),
         //             ),
         //     );
         // } else {
-        //     doc = doc.add(
-        //         Image::new()
-        //             .set("x", w * 2 + 50)
-        //             .set("y", 0)
-        //             .set("width", w * 2)
-        //             .set("height", h * 2)
-        //             .set(
-        //                 "xlink:href",
-        //                 format!("data:image/png;base64,{}", base64(&png)),
-        //             ),
-        //     );
+        doc = doc.add(
+            Image::new()
+                .set("x", 0)
+                .set("y", 0)
+                .set("width", w)
+                .set("height", h)
+                .set("style", "opacity:0.5")
+                .set(
+                    "xlink:href",
+                    format!("data:image/png;base64,{}", base64(&png)),
+                ),
+        );
         // }
         let stroke = if show_blocks { "red" } else { "none" };
         for (id, block) in canvas.blocks.iter() {
@@ -246,4 +263,28 @@ fn render_bitmap(ctx: &CanvasRenderingContext2d, bitmap: &Vec<Vec<Color>>) -> Re
         bitmap.len() as u32,
     )?;
     ctx.put_image_data(&imagedata, 0.0, 0.0)
+}
+
+// from web/src/lib.rs
+fn base64(png: &Vec<Vec<[u8; 4]>>) -> String {
+    let h = png.len();
+    let w = png[0].len();
+    let mut writer = vec![];
+    let mut encoder = png::Encoder::new(&mut writer, w as u32, h as u32);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut data = vec![];
+    for y in (0..h).rev() {
+        for x in 0..w {
+            for c in 0..4 {
+                data.push(png[y][x][c]);
+            }
+        }
+    }
+    encoder
+        .write_header()
+        .unwrap()
+        .write_image_data(&data)
+        .unwrap();
+    base64::encode(writer)
 }

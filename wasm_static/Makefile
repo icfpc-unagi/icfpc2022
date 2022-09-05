@@ -16,4 +16,4 @@ test:
 	npm run test
 
 clean:
-	rm -rf dist
+	rm -rf dist .parcel-cache ../pkg

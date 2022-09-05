@@ -4,6 +4,14 @@
 <head>
   <meta charset="utf-8" />
   <title>My First Parcel App</title>
+  <style>
+    canvas,
+    img,
+    image {
+      image-rendering: pixelated;
+    }
+
+  </style>
 </head>
 
 <body>
@@ -16,15 +24,26 @@
   <form>
     <label for="problem_id1">
       Problem ID:
-      <input type="number" id="problem_id1" value="1" min="1" max="40" required>
+      <input type="number" id="problem_id1" value="1" min="1" max="40"" required>
     </label>
     <input type="submit" value="Load best submission">
   </form>
 
+  <div style="text-align: right">
+    <label for="zoom1">Zoom</label>
+    <input id="zoom1" type="range" value="1" min="1" max="10" step="0.1" style="width: 400px"
+      oninput="container1.style.zoom=this.value">
+  </div>
+  <div style="text-align: right">
+    <label for="opaque1">Target Opacity</label>
+    <input id="opacity1" type="range" value="0.5" min="0" max="1" step="0.05" style="width: 400px"
+      oninput="svg1.querySelector('image').style.opacity=this.value;">
+  </div>
+
   <textarea id="isl1" rows="20" cols="40" placeholder="ISL"></textarea>
   <div id="container1" style="position:relative;display:inline-block;height:400px;width:400px">
     <canvas id="canvas1" width="400" height="400" style="position:absolute;left:0;top:0"></canvas>
-    <img id="target_png" width="400" height="400" alt="target png" style="position:absolute;left:0;top:0;opacity:50%">
+    <img id="target_png1" width="400" height="400" alt="target png" style="position:absolute;left:0;top:0;opacity:0">
     <canvas id="canvas2" width="400" height="400" style="position:absolute;left:0;top:0"></canvas>
     <svg width="400" height="400" id="svg1" style="position:absolute;left:0;top:0"></svg>
   </div>
@@ -34,8 +53,8 @@
   <div>similarity: <span id="similarity1"></span></div>
 
   <p>
-  <textarea id="initial_config" rows="20" cols="40" placeholder="initial configuration"></textarea>
-  <img id="initial_png" width="400" height="400" alt="initial png">
+    <textarea id="initial_config1" rows="20" cols="40" placeholder="initial configuration"></textarea>
+    <img id="initial_png1" width="400" height="400" alt="initial png">
 </body>
 <script type="module" src="./index.ts"></script>
 

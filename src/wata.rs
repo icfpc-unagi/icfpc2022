@@ -1574,3 +1574,55 @@ pub fn get_swapped_png(
     }
     png2
 }
+
+pub fn get_reversed_program(program: &Program) -> Program {
+    let program = {
+        let mut program = program.clone();
+        let mut canvas = Canvas::new(400, 400);
+        canvas.apply_all(program.clone());
+        program.extend(all_merge(&canvas).1);
+        program
+    };
+    let mut out = vec![];
+    let mut rcanvas = Canvas::new(400, 400);
+    for i in (0..program.len()).rev() {
+        let mut canvas = Canvas::new(400, 400);
+        canvas.apply_all(program[..i].iter().cloned());
+        let rev = match program[i].clone() {
+            Move::LineCut(b, dir, v) => {
+                let b = canvas.blocks[&b].clone();
+                let (b1, b2) = if dir == 'x' || dir == 'X' {
+                    let b1 = rcanvas.find_block(b.0, Point(v, b.1 .1)).unwrap();
+                    let b2 = rcanvas.find_block(Point(v, b.0 .1), b.1).unwrap();
+                    (b1, b2)
+                } else {
+                    let b1 = rcanvas.find_block(b.0, Point(b.1 .0, v)).unwrap();
+                    let b2 = rcanvas.find_block(Point(b.0 .0, v), b.1).unwrap();
+                    (b1, b2)
+                };
+                Move::Merge(b1, b2)
+            }
+            Move::Merge(b1, b2) => {
+                let b1 = canvas.blocks[&b1];
+                let b2 = canvas.blocks[&b2];
+                let b = rcanvas.find_block(b1.0, b2.1).unwrap();
+                if b1.0 .0 == b2.0 .0 {
+                    Move::LineCut(b, 'y', b2.0 .1)
+                } else {
+                    Move::LineCut(b, 'x', b2.0 .0)
+                }
+            }
+            Move::Swap(b1, b2) => {
+                let b1 = canvas.blocks[&b1];
+                let b2 = canvas.blocks[&b2];
+                let b1 = rcanvas.find_block(b1.0, b1.1).unwrap();
+                let b2 = rcanvas.find_block(b2.0, b2.1).unwrap();
+                Move::Swap(b1, b2)
+            }
+            _ => panic!("cannot reverse"),
+        };
+        rcanvas.apply(&rev);
+        out.push(rev);
+    }
+    out
+}

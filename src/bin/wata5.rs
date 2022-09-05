@@ -174,6 +174,9 @@ fn main() {
     if let Some(swap) = &swap {
         best.1 = merge_solution(&init_canvas, &best.1, swap);
     }
+    while let Some(Move::Merge(_, _)) = best.1.last() {
+        best.1.pop();
+    }
     let mut canvas = init_canvas;
     let move_score = canvas.apply_all(best.1.clone());
     let diff_score = similarity(&orig_png, &canvas.bitmap);

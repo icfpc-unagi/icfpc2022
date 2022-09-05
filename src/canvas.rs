@@ -322,6 +322,15 @@ impl Canvas {
             },
         }
     }
+
+    pub fn find_block(&self, p1: Point, p2: Point) -> Option<BlockId> {
+        for (id, b) in self.blocks.iter() {
+            if b.0 == p1 && b.1 == p2 {
+                return Some(id.clone());
+            }
+        }
+        None
+    }
 }
 
 // initial canvas
