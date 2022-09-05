@@ -55,7 +55,7 @@ def main(force_submit_best=False):
         cmd = f'curl -X POST --data-urlencode isl@{new_path} -d problem_id={problem_id} "https://icfpc.sx9.jp/scvzcaae/internal_submit"'
         print(cmd)
         subprocess.run(cmd, shell=True)
-        time.sleep(3)
+        time.sleep(1)
 
 
 
