@@ -40,6 +40,20 @@ pub static SWAP: Lazy<i32> = Lazy::new(|| {
         .unwrap()
 });
 
+pub static SWAP_BORDER: Lazy<f64> = Lazy::new(|| {
+    std::env::var("SWAP_BORDER")
+        .unwrap_or("20.0".to_owned())
+        .parse()
+        .unwrap()
+});
+
+pub static SWAP_COMBO: Lazy<usize> = Lazy::new(|| {
+    std::env::var("SWAP_COMBO")
+        .unwrap_or("8".to_owned())
+        .parse()
+        .unwrap()
+});
+
 pub static SWAP_FILE: Lazy<String> =
     Lazy::new(|| std::env::var("SWAP_FILE").unwrap_or(String::new()));
 
@@ -77,26 +91,32 @@ fn main() {
     let swap = if let Some(swap) = swap {
         let mut canvas = init_canvas.clone();
         let mut start = 0;
+        let mut ok = false;
         for p in 0..swap.len() {
             if canvas.blocks.len() == 1 {
                 start = p;
             }
             if let Move::Swap(_, _) = &swap[p] {
+                ok = true;
                 break;
             }
             canvas.apply(&swap[p]);
         }
-        let mut canvas = init_canvas.clone();
-        canvas.apply_all(swap[0..start].iter().cloned());
-        let id = canvas.counter;
-        let mut swap2 = vec![];
-        for p in swap[start..].iter() {
-            let mut p = p.clone();
-            p.inc_id(!id + 1);
-            swap2.push(p);
+        if ok {
+            let mut canvas = init_canvas.clone();
+            canvas.apply_all(swap[0..start].iter().cloned());
+            let id = canvas.counter;
+            let mut swap2 = vec![];
+            for p in swap[start..].iter() {
+                let mut p = p.clone();
+                p.inc_id(!id + 1);
+                swap2.push(p);
+            }
+            png = get_swapped_png(&png, &swap2, &init_canvas);
+            Some(swap2)
+        } else {
+            None
         }
-        png = get_swapped_png(&png, &swap2, &init_canvas);
-        Some(swap2)
     } else {
         None
     };
@@ -109,8 +129,8 @@ fn main() {
                 let out = if *SWAP == 1 {
                     let out = chokudai1::solve_swap2(
                         &mut png.clone(),
-                        20.0,
-                        8,
+                        *SWAP_BORDER,
+                        *SWAP_COMBO,
                         &init_canvas,
                         &|png, init_canvas| wata::solve5(png, init_canvas, true),
                     )
