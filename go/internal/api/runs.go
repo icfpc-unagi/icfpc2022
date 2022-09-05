@@ -189,16 +189,27 @@ func handleRunFlush(w http.ResponseWriter, r *http.Request) {
 }
 
 func doRunFlush(ctx context.Context, req *RunFlushRequest) error {
-	result, err := db.Execute(ctx, `
+	solutionID, err := func() (*int, error) {
+		if req.RunCode != 0 {
+			return nil, nil
+		}
+
+		result, err := db.Execute(ctx, `
 INSERT INTO solutions
 SET solution_isl = ?`,
-		req.SolutionISL)
+			req.SolutionISL)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to insert an ISL")
+		}
+		id, err := result.LastInsertId()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get an insert ID")
+		}
+		solutionID := int(id)
+		return &solutionID, nil
+	}()
 	if err != nil {
-		return errors.Wrapf(err, "failed to insert an ISL")
-	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get an insert ID")
+		return err
 	}
 
 	var runID int
@@ -206,7 +217,7 @@ SET solution_isl = ?`,
 		return errors.Wrapf(err, "failed to get an run ID")
 	}
 
-	result, err = db.Execute(ctx, `
+	result, err := db.Execute(ctx, `
 UPDATE runs
 SET
 	run_locked = NULL,
@@ -218,7 +229,7 @@ WHERE run_signature = ?
 LIMIT 1
 `,
 		req.RunCode,
-		id,
+		solutionID,
 		req.LogID,
 		req.RunSignature)
 	if err != nil {
@@ -232,8 +243,10 @@ LIMIT 1
 		return errors.New("no run to flush")
 	}
 
-	if _, err := RunEvaluate(ctx, &RunEvaluateRequest{RunID: runID}); err != nil {
-		glog.Errorf("Failed to evaluate: %+v", err)
+	if solutionID == nil {
+		if _, err := RunEvaluate(ctx, &RunEvaluateRequest{RunID: runID}); err != nil {
+			glog.Errorf("Failed to evaluate: %+v", err)
+		}
 	}
 
 	return nil
