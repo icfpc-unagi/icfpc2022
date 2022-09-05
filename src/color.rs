@@ -247,16 +247,17 @@ pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
 
     // TODO: fix eps
     // 誤差0.5程度におさえられるくらいに調整したい
+    let mut eps = 1.0;
     for iter in 0..100 {
         // dbg_point(x);
         // let min_step_size = 10.0 * 0.01_f64.powf(iter as f64 / 29.0);
-        let eps = if iter < 10 {
-            1.0
-        } else if iter < 20 {
-            0.1
-        } else {
-            0.01
-        };
+        // let eps = if iter < 10 {
+        //     1.0
+        // } else if iter < 20 {
+        //     0.1
+        // } else {
+        //     0.01
+        // };
         // let dists = points
         //     .iter()
         //     .map(|p| (0..4).map(|i| (p[i] - x[i]).powi(2)).sum::<f64>().sqrt())
@@ -273,20 +274,30 @@ pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
         for p in points {
             let diff = [p[0] - x[0], p[1] - x[1], p[2] - x[2], p[3] - x[3]];
             let dist = diff.iter().map(|d| d.powi(2)).sum::<f64>().sqrt();
-            let w = 1.0 / (eps + dist);
+            // (huber loss)' == clip
+            let w = 1.0 / f64::max(eps, dist);
             w_sum += w;
             for i in 0..4 {
                 grad[i] += w * diff[i];
             }
         }
 
-        let lr = 1.0 / w_sum;
+        // Ostresh (1978): $\lambda \in [1, 2]$ can be used here (?)
+        let lr = 1.8 / w_sum;
         // eprintln!("iter = {}, lr = {}", iter, 1.0 / w_sum);
 
         for i in 0..4 {
             grad[i] *= lr;
         }
-        // let step_size = grad.iter().map(|g| g.powi(2)).sum::<f64>().sqrt();
+        let step_size = grad.iter().map(|g| g.powi(2)).sum::<f64>().sqrt();
+        if step_size < eps {
+            if eps < 1e-2 {
+                // eprintln!("early return: {iter}");
+                break;
+            }
+            eps *= 0.5;
+            dbg!(eps);
+        }
         // dbg!(step_size, min_step_size);
         // if step_size < min_step_size {
         //     let fix = min_step_size / (1e-6 + step_size);
@@ -512,12 +523,12 @@ mod tests {
         for r in 10..20 {
             for g in 30..35 {
                 for b in 40..43 {
-                    points.push(point_from_u8([r, g, b, 255]));
+                    points.push(point_from_u8([r, g, b, 0]));
                 }
             }
         }
-        for _ in 0..140 {
-            points.push(point_from_u8([0, 0, 0, 0]));
+        for _ in 0..149 {
+            points.push(point_from_u8([255, 255, 255, 255]));
         }
         let median = geometric_median_4d(&points);
         // 収束してなさそう・・・。
