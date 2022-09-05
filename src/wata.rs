@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
-use crate::{color::MedianColorSelector, optmerge::merge_all, *};
+use crate::{color::MedianColorSelector, *};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
 
 #[derive(Clone, Debug)]
 pub struct Median {
@@ -1580,7 +1580,7 @@ pub fn get_reversed_program(program: &Program) -> Program {
         let mut program = program.clone();
         let mut canvas = Canvas::new(400, 400);
         canvas.apply_all(program.clone());
-        program.extend(merge_all(&mut canvas));
+        program.extend(all_merge(&canvas).1);
         program
     };
     let mut out = vec![];
