@@ -2,7 +2,7 @@ use super::{Color, Program};
 use crate::{score, BlockId, Canvas, Move, WHITE};
 use rand::prelude::*;
 use rayon::prelude::*;
-use std::collections::HashSet;
+use std::{collections::{HashSet, HashMap}, ascii::AsciiExt};
 
 const WIDTH: i32 = 400;
 
@@ -543,6 +543,109 @@ pub fn remove_unnecessary_operations(program: &Program) -> Program {
     // 余興
     // remove_unnecessary_merge(&program);
 
+    program
+}
+
+
+pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
+    // let mut dirty_block_ids = HashSet::new();
+    // let mut created_time = HashMap::new();
+    // dirtyについては無効な値になっている
+    let mut clean_blocks = HashMap::new();
+
+    // for i in 0..num_start_blocks as u32 {
+    //     created_time[BlockId(vec![i])] = !0;
+    // }
+    for (bid, block) in canvas.blocks.iter() {
+        // created_time.insert(bid.clone(), !0);
+        clean_blocks.insert(bid.clone(), (!0, block.clone()));
+    }
+
+    for (t, mov) in program.iter().enumerate() {
+        canvas.apply(&mov);
+        match mov.clone() {
+            Move::Color(bid, _) => {
+                // 重複removeしてもOK
+                clean_blocks.remove(&bid);
+            }
+            Move::Swap(bid0, bid1) => {
+                // 重複removeしてもOK
+                clean_blocks.remove(&bid0);
+                clean_blocks.remove(&bid1);
+            }
+            Move::PointCut(bid, _, _) => {
+                for childid in bid.cut4() {
+                    clean_blocks.insert(childid.clone(), (t, canvas.blocks[&childid]));
+                }
+            }
+            Move::LineCut(bid, ori, _) => {
+                for childid in bid.cut() {
+                    // created_time.insert(childid.clone(), i);
+                    clean_blocks.insert(childid.clone(), (t, canvas.blocks[&childid]));
+                }
+
+                if let Some((s, block)) = clean_blocks.get(&bid) {
+                    let s = *s;
+                    if s != !0 {
+                        match program[s] {
+                            Move::LineCut(_, parentori, _) if ori.to_ascii_lowercase() == parentori.to_ascii_lowercase() => {
+                                eprintln!("[{t}] cut-cut {ori}");
+                                // todo
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            Move::Merge(bid0, bid1) => {
+                let newid = BlockId(vec![canvas.counter]);
+                clean_blocks.insert(newid.clone(), (t, canvas.blocks[&newid]));
+
+                if let (Some((s0, block0)), Some((s1, block1))) = (clean_blocks.get(&bid0), clean_blocks.get(&bid1)) {
+                    let s0 = *s0;
+                    let s1 = *s1;
+                    if s0 != !0 && s1 != !0 && s0 == s1 {
+                        match program[s0] {
+                            Move::LineCut(_, _, _) => {
+                                eprintln!("[{t}] cut-merge");
+                                // todo
+                            }
+                            // todo: PointCut?
+                            _ => {}
+                        }
+                    } else if s0 != !0 && s1 != !0 {
+                        eprintln!("[{t}] info: suspicious merge");
+                    }
+                } else if let Some((s, block)) = clean_blocks.get(&bid0) {
+                    let s = *s;
+                    if s != !0 {
+                        match program[s] {
+                            Move::Merge(_, _) => {
+                                // todo orient
+                                eprintln!("[{t}] merge-merge");
+                                // todo
+                            }
+                            // todo: PointCut?
+                            _ => {}
+                        }   
+                    }
+                } else if let Some((s, block)) = clean_blocks.get(&bid1) {
+                    let s = *s;
+                    if s != !0 {
+                        match program[s] {
+                            Move::Merge(_, _) => {
+                                // todo orient
+                                eprintln!("[{t}] merge-merge");
+                                // todo
+                            }
+                            // todo: PointCut?
+                            _ => {}
+                        }   
+                    }
+                }
+            }
+        }
+    }
     program
 }
 
