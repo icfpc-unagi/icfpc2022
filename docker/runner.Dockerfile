@@ -14,5 +14,6 @@ RUN chmod +x /usr/local/bin/exec.sh
 
 WORKDIR /work
 COPY ./problems /work/problems
+COPY ./submissions /work/submissions
 
 ENTRYPOINT ["/usr/local/bin/exec.sh"]
