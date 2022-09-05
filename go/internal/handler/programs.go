@@ -76,26 +76,8 @@ func programsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(buf, "</ul>")
 
 	fmt.Fprintf(buf, `<h2>最新ジョブ一覧</h2>`)
-	listRuns(buf, "WHERE program_id > 0 ORDER BY run_id DESC LIMIT 100")
+	listRuns(buf, "WHERE program_id > 0 ORDER BY run_id DESC LIMIT 1000")
 }
-
-/*
-SELECT
-    run_id,
-    program_id,
-    program_name,
-    problem_id,
-    run_score,
-    run_locked,
-    run_created
-FROM
-    runs
-NATURAL JOIN programs WHERE program_id > 0
-ORDER BY
-    run_id
-DESC
-LIMIT 100;
-*/
 
 func listRuns(buf *bytes.Buffer, where string) {
 	records := make([]struct {

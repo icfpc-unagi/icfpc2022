@@ -243,7 +243,7 @@ LIMIT 1
 		return errors.New("no run to flush")
 	}
 
-	if solutionID == nil {
+	if solutionID != nil {
 		if _, err := RunEvaluate(ctx, &RunEvaluateRequest{RunID: runID}); err != nil {
 			glog.Errorf("Failed to evaluate: %+v", err)
 		}
