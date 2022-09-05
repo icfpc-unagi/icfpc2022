@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/google/uuid"
@@ -33,6 +34,7 @@ type RunAddRequest struct {
 	ProblemID   int    `json:"problem_id"`
 	ProgramID   int    `json:"program_id"`
 	SolutionISL string `json:"solution_isl"`
+	RunPipeline int    `json:"run_pipeline"`
 	RunName     string `json:"run_name"`
 	RunCommand  string `json:"run_command"`
 }
@@ -60,7 +62,8 @@ func init() {
 
 func handleRunAcquire(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	resp, err := doRunAcquire(ctx)
+	pipeline, _ := strconv.Atoi(r.URL.Query().Get("pipeline"))
+	resp, err := doRunAcquire(ctx, pipeline)
 	if err != nil {
 		glog.Errorf("Failed to do run_acquire: %+v", err)
 		w.WriteHeader(500)
@@ -79,7 +82,7 @@ func handleRunAcquire(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func doRunAcquire(ctx context.Context) (*RunAcquireResponse, error) {
+func doRunAcquire(ctx context.Context, pipeline int) (*RunAcquireResponse, error) {
 	var resp RunAcquireResponse
 	signature := uuid.New().String()
 	result, err := db.Execute(ctx, `
@@ -87,9 +90,11 @@ UPDATE runs
 SET
 	run_signature = ?,
 	run_locked = CURRENT_TIMESTAMP() + INTERVAL 1 MINUTE 
-WHERE run_locked < CURRENT_TIMESTAMP()
+WHERE
+	run_locked < CURRENT_TIMESTAMP() AND
+	run_pipeline = ?
 ORDER BY run_locked LIMIT 1
-`, signature)
+`, signature, pipeline)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to run an SQL command")
 	}
@@ -280,10 +285,11 @@ INSERT runs
 SET
 	problem_id = ?,
 	program_id = ?,
+	run_pipeline = ?
 	run_name = ?,
 	run_command = ?,
 	run_locked = CURRENT_TIMESTAMP() - INTERVAL (1 + RAND()) * 3600 * 24 SECOND
-`, req.ProblemID, req.ProgramID, req.RunName, req.RunCommand)
+`, req.ProblemID, req.ProgramID, req.RunPipeline, req.RunName, req.RunCommand)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to add a run")
 	}
