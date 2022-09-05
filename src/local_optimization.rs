@@ -547,7 +547,7 @@ pub fn remove_unnecessary_operations(program: &Program) -> Program {
 }
 
 
-pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
+pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program> {
     // let mut dirty_block_ids = HashSet::new();
     // let mut created_time = HashMap::new();
     // dirtyについては無効な値になっている
@@ -563,8 +563,10 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
     //     all_blocks.insert(bid.clone(), block.clone());
     // }
 
-    for (t, mov) in program.iter().enumerate() {
-        if let Move::Merge(bid0, bid1) = mov {
+    // for (t, mov) in program.iter().enumerate() {
+    'outer: for t in 0..program.len() {
+        let mov = program[t].clone();
+        if let Move::Merge(bid0, bid1) = &mov {
             let corner0 = canvas.blocks[bid0].0;
             let corner1 = canvas.blocks[bid1].0;
             all_ori[t] = Some(if corner0.0 < corner1.0 {
@@ -578,8 +580,8 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
             });
         }
         let info = (t, mov.clone());
-        canvas.apply(mov);
-        match mov.clone() {
+        canvas.apply(&mov);
+        match mov {
             Move::Color(bid, _) => {
                 // 重複removeしてもOK
                 clean_blocks.remove(&bid);
@@ -609,7 +611,8 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
             }
             Move::Merge(bid0, bid1) => {
                 let (ori, _ori_index) = all_ori[t].unwrap();
-                let newid = BlockId(vec![canvas.counter]);
+                let newid_u32 = canvas.counter;
+                let newid = BlockId(vec![newid_u32]);
                 all_blocks.insert(newid.clone(), canvas.blocks[&newid]);
                 clean_blocks.insert(newid.clone(), info);
 
@@ -617,6 +620,22 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
                     if s0 == s1 {
                         let s = s0;
                         eprintln!("[{s}, {t}] cut-merge");
+                        let mut old_id = bid0.0.clone();
+                        old_id.pop();
+                        let rename = |b: &mut Vec<u32>| {
+                            if b[0] == newid_u32 {
+                                b.splice(..1, old_id.clone());
+                            } else if b[0] > newid_u32 {
+                                b[0] -= 1;
+                            }
+                        };
+                        for i in t+1..program.len() {
+                            program[i].edit_id(rename);
+                        }
+                        // s < t
+                        program.remove(t);
+                        program.remove(s);
+                        return Some(program);
                     }
                 }
                 if let Some(&(s, Move::Merge(..))) = clean_blocks.get(&bid0) {
@@ -632,7 +651,7 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
             }
         }
     }
-    program
+    None
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
