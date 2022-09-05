@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path"
@@ -58,7 +58,8 @@ func Loop() error {
 	defer glog.Infof("Closing a run: run_id=%d", resp.RunID)
 
 	dir, err := os.MkdirTemp(os.TempDir(), "executor")
-	name := fmt.Sprintf("c%06d", rand.Intn(1000000))
+	hash := sha1.Sum([]byte(fmt.Sprintf("%d@%d@", os.Getpid(), time.Now().UnixNano())))
+	name := fmt.Sprintf("r%x", hash[:4])
 	glog.Infof("Running command: %s", resp.RunCommand)
 	cmd := exec.CommandContext(ctx,
 		"docker", "run", "--rm", "--name", name,
