@@ -825,7 +825,7 @@ pub fn optimize(
     let mut diff_step = 1;
     while diff_step <= max_diff_step {
         (best_program, best_score) = fix_cut_merge_all(best_program, initial_canvas, image);
-        // break;
+        break;
         // (1) Try color improvement
         if diff_step == 1 {
             let (new_program, new_score) =

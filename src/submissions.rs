@@ -245,7 +245,7 @@ pub fn query_submission_ids(
         );
     }
 
-    if true {
+    if false {
         let program_name_not = "chokudai3";
         spcs = spcs
             .into_iter()
