@@ -128,9 +128,13 @@ func showProblem(buf *bytes.Buffer, problem *Problem, records []*scoreboardRecor
 			if r.ProblemRank != 1 {
 				diff = fmt.Sprintf("%+.1f%%", (float64(r.Score)/float64(records[0].Score)-1)*100)
 			}
-			fmt.Fprintf(buf, `<tr style="white-space: nowrap; %s"><td style="width:4ex;">%d位</td><td style="overflow-x:hidden; text-overflow: ellipsis; width: 50%%">%s%s</td><td style="text-align:right; width: 6ex;">%d</td><td style="text-align:right; width: 6ex;">%s</td>`,
+			field := rankStr + html.EscapeString(r.UserName)
+			if r.RunID != 0 {
+				field = fmt.Sprintf(`<a href="/visualizer?run_id=%d" target="_blank" style="%s">%s</a>`, r.RunID, style, field)
+			}
+			fmt.Fprintf(buf, `<tr style="white-space: nowrap; %s"><td style="width:4ex;">%d位</td><td style="overflow-x:hidden; text-overflow: ellipsis; width: 50%%">%s</td><td style="text-align:right; width: 6ex;">%d</td><td style="text-align:right; width: 6ex;">%s</td>`,
 				style,
-				r.ProblemRank, rankStr, html.EscapeString(r.UserName), r.Score, diff)
+				r.ProblemRank, field, r.Score, diff)
 		}
 		fmt.Fprintf(buf, `</table>`)
 	}

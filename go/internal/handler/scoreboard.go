@@ -383,8 +383,16 @@ func displayScoreboard(buf *bytes.Buffer, records []*scoreboardRecord) {
 					style = "font-weight: bold;"
 				}
 				fmt.Fprintf(buf,
-					`<td style="text-align:right;%s">%s<br>%s</td>`,
-					style, costStr, r.Updated)
+					`<td style="text-align:right;%s">`,
+					style)
+				if r.RunID != 0 {
+					fmt.Fprintf(buf, `<a href="/visualizer?run_id=%d" style="%s" target="_blank">`, r.RunID, style)
+				}
+				fmt.Fprintf(buf, `%s<br>%s`, costStr, r.Updated)
+				if r.RunID != 0 {
+					fmt.Fprintf(buf, `</a>`)
+				}
+				fmt.Fprintf(buf, `</td>`)
 			} else {
 				fmt.Fprintf(buf, "<td>-</td>")
 			}
