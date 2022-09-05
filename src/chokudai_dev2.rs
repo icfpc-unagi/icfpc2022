@@ -344,7 +344,7 @@ fn search(
         choice = list[now].cnt - 1;
         //list[now].target += 1;
     } else {
-        if list[now].cnt <= 10000000 {
+        if list[now].cnt >= 10000000 {
             choice = bit_count(list[now].cnt) % list[now].target;
         } else {
             choice = list[now].cnt % list[now].target;

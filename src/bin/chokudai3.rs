@@ -172,7 +172,7 @@ fn main() {
         );
     }
     */
-    println!("#chokudai3");
+    println!("# chokudai3");
     if let Some(swap) = swap {
         for p in swap {
             println!("# {}", p);
