@@ -178,16 +178,19 @@ impl ManagedCanvas {
                 //cost
             );
             doc = doc.add(
-                Group::new().add(Title::new().add(Text::new(&title))).add(
-                    Rectangle::new()
-                        .set("x", block.0 .0)
-                        .set("y", h as i32 - block.1 .1)
-                        .set("width", block.1 .0 - block.0 .0)
-                        .set("height", block.1 .1 - block.0 .1)
-                        .set("fill", "#0000")
-                        .set("stroke-width", 2)
-                        .set("stroke", stroke),
-                ),
+                Group::new()
+                    .add(Title::new().add(Text::new(&title)))
+                    .add(
+                        Rectangle::new()
+                            .set("x", block.0 .0)
+                            .set("y", h as i32 - block.1 .1)
+                            .set("width", block.1 .0 - block.0 .0)
+                            .set("height", block.1 .1 - block.0 .1)
+                            .set("fill", "#0000")
+                            .set("stroke-width", 2)
+                            .set("stroke", stroke),
+                    )
+                    .set("block-id", id.to_string()),
             );
             // doc = doc.add(
             //     Group::new().add(Title::new().add(Text::new(&title))).add(
