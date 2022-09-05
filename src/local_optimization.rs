@@ -1,8 +1,8 @@
 use super::{Color, Program};
-use crate::{score, BlockId, Canvas, Move, WHITE, Block};
+use crate::{score, Block, BlockId, Canvas, Move, WHITE};
 use rand::prelude::*;
 use rayon::prelude::*;
-use std::{collections::{HashSet, HashMap}};
+use std::collections::{HashMap, HashSet};
 
 const WIDTH: i32 = 400;
 
@@ -546,16 +546,11 @@ pub fn remove_unnecessary_operations(program: &Program) -> Program {
     program
 }
 
-
 // internal functions for fix_cut_merge
 fn ori_of_block(block: Block, ori: char) -> (i32, i32) {
     match ori {
-        'x' | 'X' => {
-            (block.0 .0, block.1 .0)
-        },
-        'y' | 'Y' => {
-            (block.0 .1, block.1 .1)
-        }
+        'x' | 'X' => (block.0 .0, block.1 .0),
+        'y' | 'Y' => (block.0 .1, block.1 .1),
         _ => {
             unreachable!()
         }
@@ -570,10 +565,12 @@ fn two_merge_cost(left: i32, right: i32, first: i32, second: i32) -> f64 {
         } else {
             (first - second).max(right - first)
         },
-        (second - left).max(right - second)
-    ].into_iter().map(|v| 1.0 / v as f64).sum()
+        (second - left).max(right - second),
+    ]
+    .into_iter()
+    .map(|v| 1.0 / v as f64)
+    .sum()
 }
-
 
 pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program> {
     // let mut dirty_block_ids = HashSet::new();
@@ -605,7 +602,7 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                 ('y', 0, corner1.1)
             } else if corner1.1 < corner0.1 {
                 ('y', 1, corner0.1)
-            }else{
+            } else {
                 unreachable!()
             });
         }
@@ -634,7 +631,9 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                     clean_blocks.insert(childid.clone(), info.clone());
                 }
 
-                if let Some(&(s, Move::LineCut(ref parent_bid, parentori, parent_val))) = clean_blocks.get(&bid) {
+                if let Some(&(s, Move::LineCut(ref parent_bid, parentori, parent_val))) =
+                    clean_blocks.get(&bid)
+                {
                     if ori == parentori.to_ascii_lowercase() {
                         let parent_block = all_blocks[&parent_bid];
                         let (v0, v1) = ori_of_block(parent_block, ori);
@@ -646,19 +645,15 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
 
                             let tmp0 = parent_bid.extended([k]).0;
                             let tmp00 = parent_bid.extended([k, k]).0;
-                            let tmp01 = parent_bid.extended([k, 1-k]).0;
-                            let tmp1 = parent_bid.extended([1-k]).0;
-                            let tmp10 = parent_bid.extended([1-k, k]).0;
-                            let tmp11 = parent_bid.extended([1-k, 1-k]).0;
+                            let tmp01 = parent_bid.extended([k, 1 - k]).0;
+                            let tmp1 = parent_bid.extended([1 - k]).0;
+                            let tmp10 = parent_bid.extended([1 - k, k]).0;
+                            let tmp11 = parent_bid.extended([1 - k, 1 - k]).0;
                             // swap val and parent_val
                             program[s] = Move::LineCut(parent_bid.clone(), ori, val);
                             program[t] = Move::LineCut(BlockId(tmp1.clone()), ori, parent_val);
 
-                            let from_to = [
-                                (tmp00, tmp0),
-                                (tmp01, tmp10),
-                                (tmp1, tmp11),
-                            ];
+                            let from_to = [(tmp00, tmp0), (tmp01, tmp10), (tmp1, tmp11)];
                             let rename = |b: &mut Vec<u32>| {
                                 for (from, to) in from_to.iter() {
                                     if b.starts_with(from) {
@@ -667,7 +662,7 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                                     }
                                 }
                             };
-                            for i in t+1..program.len() {
+                            for i in t + 1..program.len() {
                                 program[i].edit_id(rename);
                             }
                             return Some(program);
@@ -683,7 +678,10 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                 all_blocks.insert(newid.clone(), new_block);
                 clean_blocks.insert(newid.clone(), info);
 
-                match (clean_blocks.get(&bid0).cloned(), clean_blocks.get(&bid1).cloned()) {
+                match (
+                    clean_blocks.get(&bid0).cloned(),
+                    clean_blocks.get(&bid1).cloned(),
+                ) {
                     (Some((s0, Move::LineCut(..))), Some((s1, Move::LineCut(..)))) if s0 == s1 => {
                         let s = s0;
                         eprintln!("[{s}, {t}] cut-merge");
@@ -696,7 +694,7 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                                 b[0] -= 1;
                             }
                         };
-                        for i in t+1..program.len() {
+                        for i in t + 1..program.len() {
                             program[i].edit_id(rename);
                         }
                         // s < t
@@ -704,7 +702,8 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                         program.remove(s);
                         return Some(program);
                     }
-                    (Some((s, Move::Merge(id0, id1))), _) | (_, Some((s, Move::Merge(id0, id1)))) => {
+                    (Some((s, Move::Merge(id0, id1))), _)
+                    | (_, Some((s, Move::Merge(id0, id1)))) => {
                         let (prev_ori, _, prev_val) = all_ori[s].unwrap();
                         if prev_ori == ori {
                             let (v0, v1) = ori_of_block(new_block, ori);
@@ -716,7 +715,9 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                             // let v_second = *set0.union(&set1).copied().collect::<HashSet<i32>>().difference(&HashSet::<i32>::from([v0, v1, v_first])).next().unwrap();
                             // assert_eq!(v_first, prev_val);
                             // assert_eq!(v_second, val);
-                            if two_merge_cost(v0, v1, prev_val, val) > two_merge_cost(v0, v1, val, prev_val) {
+                            if two_merge_cost(v0, v1, prev_val, val)
+                                > two_merge_cost(v0, v1, val, prev_val)
+                            {
                                 eprintln!("[{s}, {t}] merge-merge {ori}");
                                 // dbg!((v0, v1, prev_val, val));
                                 eprintln!("auto-fix not yet implemented")

@@ -6,7 +6,9 @@ fn main() -> anyhow::Result<()> {
     let (canvas, png) = load_problem(5);
     let (mut program, comments) = read_isl_with_comments(File::open("run_id_1811.isl")?)?;
     let mut score = canvas.clone().apply_all_and_score(program.clone(), &png)?;
-    while let Some(new_program) = icfpc2022::local_optimization::fix_cut_merge(program.clone(), canvas.clone()){
+    while let Some(new_program) =
+        icfpc2022::local_optimization::fix_cut_merge(program.clone(), canvas.clone())
+    {
         program = new_program;
         let new_score = canvas.clone().apply_all_and_score(program.clone(), &png)?;
         eprintln!("***** {score} -> {new_score}");

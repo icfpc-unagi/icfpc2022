@@ -249,7 +249,9 @@ impl Move {
     }
 
     pub fn edit_id<F>(&mut self, mut f: F)
-    where F: FnMut(&mut Vec<u32>) {
+    where
+        F: FnMut(&mut Vec<u32>),
+    {
         match self {
             Move::LineCut(b, _, _) | Move::PointCut(b, _, _) | Move::Color(b, _) => {
                 f(&mut b.0);
