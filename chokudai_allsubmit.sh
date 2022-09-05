@@ -68,3 +68,12 @@ curl -X POST --data-urlencode isl@out/34.txt -d problem_id=34 "https://icfpc.sx9
 
 curl -X POST --data-urlencode isl@out/35.txt -d problem_id=35 "https://icfpc.sx9.jp/scvzcaae/submit"
 
+curl -X POST --data-urlencode isl@out/36.txt -d problem_id=36 "https://icfpc.sx9.jp/scvzcaae/submit"
+
+curl -X POST --data-urlencode isl@out/37.txt -d problem_id=37 "https://icfpc.sx9.jp/scvzcaae/submit"
+
+curl -X POST --data-urlencode isl@out/38.txt -d problem_id=38 "https://icfpc.sx9.jp/scvzcaae/submit"
+
+curl -X POST --data-urlencode isl@out/39.txt -d problem_id=39 "https://icfpc.sx9.jp/scvzcaae/submit"
+
+curl -X POST --data-urlencode isl@out/40.txt -d problem_id=40 "https://icfpc.sx9.jp/scvzcaae/submit"
