@@ -226,7 +226,11 @@ pub fn query_submission_ids(
             .into_iter()
             .filter(|(_, _, c)| estimate_program_name(&c) == program_name)
             .collect();
-        eprintln!("Submissions filtered by program name: {}", spcs.len());
+        eprintln!(
+            "Submissions filtered by program name ({}): {}",
+            program_name,
+            spcs.len()
+        );
     }
 
     if let Some(program_name_not) = program_name_not {
@@ -234,7 +238,24 @@ pub fn query_submission_ids(
             .into_iter()
             .filter(|(_, _, c)| estimate_program_name(&c) != program_name_not)
             .collect();
-        eprintln!("Submissions filtered by program name: {}", spcs.len());
+        eprintln!(
+            "Submissions filtered by program name ({}): {}",
+            program_name_not,
+            spcs.len()
+        );
+    }
+
+    if true {
+        let program_name_not = "chokudai3";
+        spcs = spcs
+            .into_iter()
+            .filter(|(_, _, c)| estimate_program_name(&c) != program_name_not)
+            .collect();
+        eprintln!(
+            "Submissions filtered by program name ({}): {}",
+            program_name_not,
+            spcs.len()
+        );
     }
 
     if !allow_not_best {

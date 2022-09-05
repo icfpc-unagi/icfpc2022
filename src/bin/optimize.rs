@@ -103,17 +103,19 @@ fn main() -> anyhow::Result<()> {
 
         gain += submission.cost as f64 - new_score;
 
-        let mut w = std::fs::File::create(format!(
-            "out/opt_{}_{:06.0}",
-            submission.problem_id, new_score
-        ))?;
-        //w.write_fmt(format_args!("# optimize\n"))?;
-        write!(
-            &mut w,
-            "# optimize SUBMISSION_ID={} MAX_PAIR_PERTURB={}\n",
-            submission.id, args.max_pair_perturb
-        )?;
-        write_isl_with_comments(w, new_program, &comments)?;
+        if !args.dryrun {
+            let mut w = std::fs::File::create(format!(
+                "out/opt_{}_{:06.0}",
+                submission.problem_id, new_score
+            ))?;
+            //w.write_fmt(format_args!("# optimize\n"))?;
+            write!(
+                &mut w,
+                "# optimize SUBMISSION_ID={} MAX_PAIR_PERTURB={}\n",
+                submission.id, args.max_pair_perturb
+            )?;
+            write_isl_with_comments(w, new_program, &comments)?;
+        }
     }
 
     println!("Total gain: {}", gain);
