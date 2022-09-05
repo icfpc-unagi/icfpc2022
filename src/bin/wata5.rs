@@ -1,5 +1,5 @@
 use icfpc2022::{
-    submissions::find_best_score,
+    submissions::{find_best_score, find_best_submission, read_submission_program},
     wata::{get_swapped_png, merge_solution, MAX_CANDIDATES, MAX_WIDTH},
     *,
 };
@@ -64,7 +64,17 @@ fn main() {
     }
 
     let swap = if SWAP_FILE.len() > 0 {
-        let swap = read_isl(std::fs::File::open(&*SWAP_FILE).unwrap()).unwrap();
+        Some(read_isl(std::fs::File::open(&*SWAP_FILE).unwrap()).unwrap())
+    } else if *SWAP == 2 {
+        let best = read_submission_program(find_best_submission(problem_id).unwrap().id)
+            .unwrap()
+            .1;
+        Some(best)
+    } else {
+        None
+    };
+
+    let swap = if let Some(swap) = swap {
         let mut canvas = init_canvas.clone();
         let mut start = 0;
         for p in 0..swap.len() {
@@ -96,7 +106,7 @@ fn main() {
     for _ in 0..2 {
         for _ in 0..2 {
             if best_flips.map_or(true, |b| b == (flip_x, flip_y)) {
-                let out = if *SWAP > 0 {
+                let out = if *SWAP == 1 {
                     let out = chokudai1::solve_swap2(
                         &mut png.clone(),
                         20.0,
