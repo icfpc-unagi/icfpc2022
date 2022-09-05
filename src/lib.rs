@@ -250,6 +250,21 @@ impl Move {
             }
         }
     }
+
+    pub fn edit_id<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Vec<u32>),
+    {
+        match self {
+            Move::LineCut(b, _, _) | Move::PointCut(b, _, _) | Move::Color(b, _) => {
+                f(&mut b.0);
+            }
+            Move::Swap(b1, b2) | Move::Merge(b1, b2) => {
+                f(&mut b1.0);
+                f(&mut b2.0);
+            }
+        }
+    }
 }
 
 impl fmt::Display for Move {
