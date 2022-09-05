@@ -15,9 +15,9 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   const similarity1 = document.getElementById('similarity1') as HTMLSpanElement
   const error1 = document.getElementById('error1') as HTMLDivElement
   const score1 = document.getElementById('score1') as HTMLSpanElement
-  const initial_config1 = document.getElementById('initial_config1') as HTMLTextAreaElement
-  const initial_png1 = document.getElementById('initial_png1') as HTMLImageElement
-  const target_png1 = document.getElementById('target_png1') as HTMLImageElement
+  // const initial_config1 = document.getElementById('initial_config1') as HTMLTextAreaElement
+  // const initial_png1 = document.getElementById('initial_png1') as HTMLImageElement
+  // const target_png1 = document.getElementById('target_png1') as HTMLImageElement
 
   // wasm 側に持たせているもの
   // TODO: target_png, initial_config, initial_png を渡す
@@ -33,7 +33,7 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     let target_png_p = fetch(json.target_link.replace(base0, base1))
       .then(resp => resp.blob())
       .then(blob => {
-        target_png1.src = URL.createObjectURL(blob)
+        // target_png1.src = URL.createObjectURL(blob)
         return blob.arrayBuffer()
       }).then(buffer => new Uint8Array(buffer))
     let init_config_p
@@ -41,21 +41,21 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
       init_config_p = fetch(json.initial_config_link.replace(base0, base1))
         .then(resp => resp.text())
         .then(text => {
-          initial_config1.value = text
+          // initial_config1.value = text
           return text
         })
     }
     let init_png_p;
     if (json.canvas_link && json.canvas_link.trim()) { // can be " "
-      initial_png1.style.display = 'default'
+      // initial_png1.style.display = 'default'
       init_png_p = fetch(json.canvas_link.replace(base0, base1))
         .then(resp => resp.blob())
         .then(blob => {
-          initial_png1.src = URL.createObjectURL(blob)
+          // initial_png1.src = URL.createObjectURL(blob)
           return blob.arrayBuffer()
         }).then(buffer => new Uint8Array(buffer))
     } else {
-      initial_png1.style.display = 'none'
+      // initial_png1.style.display = 'none'
     }
 
     target_png = await target_png_p

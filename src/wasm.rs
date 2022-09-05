@@ -1,6 +1,6 @@
 // NOTE: To enable completion, add vscode settings "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
 use crate::{color::geometric_median_4d, *};
-use std::panic;
+use std::{io::BufWriter, panic};
 use svg::node::{
     element::{Group, Image, Rectangle, Title},
     Text,
@@ -39,6 +39,7 @@ pub struct ManagedCanvas {
     target: Vec<Vec<Color>>,
     cost: f64,
     isl: Vec<Move>,
+    comments: Vec<String>,
 }
 
 #[wasm_bindgen]
@@ -71,7 +72,15 @@ impl ManagedCanvas {
             target: read_png_r(target_png),
             cost: Default::default(),
             isl: Default::default(),
+            comments: Default::default(),
         }
+    }
+
+    #[wasm_bindgen(readonly)]
+    pub fn isl(&self) -> String {
+        let mut buf = Vec::new();
+        write_isl_with_comments(&mut buf, self.isl.clone(), &self.comments).unwrap();
+        unsafe { String::from_utf8_unchecked(buf) }
     }
 
     #[wasm_bindgen(readonly)]
@@ -116,7 +125,7 @@ impl ManagedCanvas {
     ) -> Result<Vec<f64>, JsValue> {
         let points: Vec<_> = (y0..y1)
             .flat_map(|y| {
-                (x0..x1).map(move |x| self.model.bitmap[y as usize][x as usize].map(|c| c as f64))
+                (x0..x1).map(move |x| self.target[y as usize][x as usize].map(|c| c as f64))
             })
             .collect();
         assert_ne!(points.len(), 0);
