@@ -75,12 +75,11 @@ func visualizerHandler(w http.ResponseWriter, r *http.Request) {
 				p.ID, selected, p.ID, p.Name)
 		}
 		fmt.Fprintf(buf, `</select>→<a href="https://icfpc.sx9.jp/static/dist/">→エディタ</a></div>`)
-		r := regexp.MustCompile(`<label for="problem_id">[^\a]*?</label>`)
+		r := regexp.MustCompile(`<label[^\a]*?="problem_id"[^\a]*?</label>`)
 		return r.ReplaceAllString(page, buf.String())
 	}()
 
 	page = strings.ReplaceAll(page, "</textarea>", html.EscapeString(params.Solution)+"</textarea>")
 
 	fmt.Fprint(buf, page)
-	fmt.Fprint(buf, "<script>updateOutput()</script>")
 }
