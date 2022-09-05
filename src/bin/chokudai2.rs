@@ -70,6 +70,7 @@ fn main() {
                 eprintln!("realScore : {}", out.0);
                 if best.0.setmin(out.0) {
                     eprintln!("best: {}", best.0);
+                    eprintln!("move cost = {}", canvas.apply_all(best.1.clone()));
                     best.1 = out.1;
                 }
             }
