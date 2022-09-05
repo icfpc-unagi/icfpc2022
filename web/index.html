@@ -8,11 +8,11 @@
   </head>
   <body>
     <form onsubmit="loadSubmission(problem_id.value);return false">
-      <label for="problem_id">
+      <label>
         Problem ID:
         <input type="number" id="problem_id" value="1" min="1" max="18446744073709551615" onchange="updateOutput()"/>
       </label>
-      <input type="submit" value="Load best submission">
+      <input type="submit" value="Load submission">
     </form>
     <p>
       <label>
@@ -35,7 +35,9 @@
     <p>
       <input type="checkbox" id="show_blocks" onchange="visualize()"><label for="show_blocks">show blocks</label>&emsp;
       <input type="checkbox" id="show_diff" onchange="visualize()"><label for="show_diff">show diff</label>&emsp;
-      <input type="checkbox" id="show_final" onchange="visualize()" checked><label for="show_final">入力時に最終ターンを表示</label>
+      <input type="checkbox" id="show_final" onchange="visualize()" checked><label for="show_final">入力時に最終ターンを表示</label>&emsp;
+      <input type="checkbox" id="swap_input" onchange="visualize()"><label for="swap_input">目標から開始</label>&emsp;
+      <input type="button" id="reverse" value="swap">
     </p>
     <p>
       <input type="range" id="t_bar" min="0" max="0" value="0" style="width:780px;" oninput="update_t(this.value)">
@@ -46,7 +48,7 @@
     </div>
     <script src='./web.js'></script>
     <script>
-      const { gen, vis, get_max_turn } = wasm_bindgen;
+      const { gen, vis, get_max_turn, get_reversed_program } = wasm_bindgen;
       async function run() {
         await wasm_bindgen('./web_bg.wasm');
         visualize();
@@ -58,9 +60,10 @@
         const output = document.getElementById("output").value;
         const show_blocks = document.getElementById("show_blocks").checked;
         const show_diff = document.getElementById("show_diff").checked;
+        const swap_input = document.getElementById("swap_input").checked;
         const t = document.getElementById("turn").value;
         try {
-          const ret = vis(problem_id, output, t, show_blocks, show_diff);
+          const ret = vis(problem_id, output, t, show_blocks, show_diff, swap_input);
           document.getElementById("score").innerHTML = "Score = " + ret.score;
           if (ret.error != "") {
             document.getElementById("score").innerHTML += " <font color='red'>(" + ret.error + ")</font>";
@@ -139,6 +142,14 @@
         let json = await resp.json()
         document.getElementById("output").value = json.SubmissionSolution
         updateOutput()
+      }
+      
+      document.getElementById("reverse").onclick = event => {
+        const output = document.getElementById("output").value;
+        document.getElementById("output").value = get_reversed_program(output);
+        const swap_input = document.getElementById("swap_input").checked;
+        document.getElementById("swap_input").checked = !swap_input;
+        visualize();
       }
     </script>
   </body>

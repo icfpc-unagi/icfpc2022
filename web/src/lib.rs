@@ -5,6 +5,7 @@ use svg::node::{
     Text,
 };
 use wasm_bindgen::prelude::*;
+use std::fmt::Write;
 
 #[allow(unused)]
 macro_rules! log {
@@ -194,7 +195,7 @@ fn read_png(data: &[u8]) -> Vec<Vec<[u8; 4]>> {
 }
 
 #[wasm_bindgen]
-pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_diff: bool) -> Ret {
+pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_diff: bool, swap_input: bool) -> Ret {
     console_error_panic_hook::set_once();
     let problem_id = problem_id.parse::<usize>().unwrap() - 1;
     if problem_id >= PNG.len() {
@@ -219,7 +220,6 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
         Ok(program) => {
             let mut dummy_canvas = Canvas::new(w, h);
             let _ = dummy_canvas.apply_all_safe(program[0..t as usize].iter().cloned());
-            png = wata::get_swapped_png(&png, &program[t as usize..], &dummy_canvas);
             let mut canvas = if let Some(json) = INIT_CANVAS[problem_id] {
                 let mut json: InitialJson = serde_json::from_reader(json).unwrap();
                 if problem_id >= 35 {
@@ -235,6 +235,10 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
             } else {
                 Canvas::new(png[0].len(), png.len())
             };
+            if swap_input {
+                canvas.bitmap = png.clone();
+            }
+            png = wata::get_swapped_png(&png, &program[t as usize..], &dummy_canvas);
             match canvas.apply_all_safe(program[0..t as usize].iter().cloned()) {
                 Ok(s) => cost = s.round() as i64,
                 Err(e) => {
@@ -352,4 +356,22 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
 pub fn get_max_turn(output: String) -> i32 {
     console_error_panic_hook::set_once();
     read_isl(output.into_bytes().as_slice()).unwrap().len() as i32
+}
+
+#[wasm_bindgen]
+pub fn get_reversed_program(output: String) -> String {
+    console_error_panic_hook::set_once();
+    match read_isl(output.clone().into_bytes().as_slice()) {
+        Ok(program) => {
+            let program = icfpc2022::wata::get_reversed_program(&program);
+            let mut out = String::new();
+            for p in program {
+                let _ = writeln!(out, "{}", p);
+            }
+            out
+        },
+        Err(_) => {
+            output
+        }
+    }
 }
