@@ -67,6 +67,7 @@ mod tests {
             height: 2,
             blocks: vec![],
             source_png_p_n_g: Some("foo/40.source.png".to_string()),
+            source_png_raw: None,
         };
         println!("{:?}", serde_json::to_string_pretty(&j).unwrap());
     }
