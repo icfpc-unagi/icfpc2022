@@ -5,6 +5,8 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
 
   const base1 = 'https://icfpc.sx9.jp/problems/'
   const base0 = 'https://cdn.robovinci.xyz/imageframes/'
+  // const zoom1 = document.getElementById('zoom1') as HTMLInputElement
+  const opacity1 = document.getElementById('opacity1') as HTMLInputElement
   const problem_id1 = document.getElementById('problem_id1') as HTMLInputElement
   const isl1 = document.getElementById('isl1') as HTMLTextAreaElement
   const container1 = document.getElementById('container1') as HTMLDivElement
@@ -12,9 +14,9 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   const canvas2 = document.getElementById('canvas2') as HTMLCanvasElement
   const svg1 = document.getElementById('svg1') as unknown as SVGSVGElement
   const cost1 = document.getElementById('cost1') as HTMLSpanElement
-  const similarity1 = document.getElementById('similarity1') as HTMLSpanElement
+  // const similarity1 = document.getElementById('similarity1') as HTMLSpanElement
   const error1 = document.getElementById('error1') as HTMLDivElement
-  const score1 = document.getElementById('score1') as HTMLSpanElement
+  // const score1 = document.getElementById('score1') as HTMLSpanElement
   // const initial_config1 = document.getElementById('initial_config1') as HTMLTextAreaElement
   // const initial_png1 = document.getElementById('initial_png1') as HTMLImageElement
   // const target_png1 = document.getElementById('target_png1') as HTMLImageElement
@@ -126,18 +128,14 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     let x = e.offsetX;
     let y = 400 - e.offsetY;
     let rect = findRect(e.target as Element)
-    console.debug(`rect: ${rect}`)
     let block_id = rect?.getAttribute('block-id') ?? '0'
-    console.debug(`block_id: ${block_id}`)
     let shift = e.getModifierState('Shift')
     let ctrl = e.getModifierState('Control') || e.getModifierState('Meta')
     if (shift && ctrl) {
       let color = '0,0,0,255'
       if (rect) {
         let bb = rect.getBBox()
-        console.debug(bb)
         let median = managed.geometric_median_4d_on_rect(bb.x, 400 - bb.y - bb.height, bb.x + bb.width, 400 - bb.y)
-        console.debug(median)
         color = median.join(',')
       }
       append(`color [${block_id}] [${color}]`)
@@ -165,6 +163,8 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
       let holder = document.createElement('div')
       holder.innerHTML = svgDoc
       svg1.innerHTML = holder.firstElementChild!.innerHTML
+      holder.remove()
+      if (opacity1.oninput) opacity1.oninput(new InputEvent('input'))
       error1.innerText = ''
       cost1.innerText = managed.cost().toString()
       // TODO: similarity
