@@ -2,7 +2,7 @@ use super::{Color, Program};
 use crate::{score, BlockId, Canvas, Move, WHITE};
 use rand::prelude::*;
 use rayon::prelude::*;
-use std::{collections::{HashSet, HashMap}, ascii::AsciiExt};
+use std::{collections::{HashSet, HashMap}};
 
 const WIDTH: i32 = 400;
 
@@ -551,18 +551,34 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
     // let mut dirty_block_ids = HashSet::new();
     // let mut created_time = HashMap::new();
     // dirtyについては無効な値になっている
+    let mut all_blocks = canvas.blocks.clone();
     let mut clean_blocks = HashMap::new();
+    let mut all_ori = vec![None; program.len()];
 
     // for i in 0..num_start_blocks as u32 {
     //     created_time[BlockId(vec![i])] = !0;
     // }
-    for (bid, block) in canvas.blocks.iter() {
-        // created_time.insert(bid.clone(), !0);
-        clean_blocks.insert(bid.clone(), (!0, block.clone()));
-    }
+
+    // for (bid, block) in canvas.blocks.iter() {
+    //     all_blocks.insert(bid.clone(), block.clone());
+    // }
 
     for (t, mov) in program.iter().enumerate() {
-        canvas.apply(&mov);
+        if let Move::Merge(bid0, bid1) = mov {
+            let corner0 = canvas.blocks[bid0].0;
+            let corner1 = canvas.blocks[bid1].0;
+            all_ori[t] = Some(if corner0.0 < corner1.0 {
+                ('x', 0)
+            } else if corner0.0 > corner1.0 {
+                ('x', 1)
+            } else if corner0.1 < corner1.1 {
+                ('y', 0)
+            } else {
+                ('y', 1)
+            });
+        }
+        let info = (t, mov.clone());
+        canvas.apply(mov);
         match mov.clone() {
             Move::Color(bid, _) => {
                 // 重複removeしてもOK
@@ -575,72 +591,42 @@ pub fn fix_cut_merge(program: Program, mut canvas: Canvas) -> Program {
             }
             Move::PointCut(bid, _, _) => {
                 for childid in bid.cut4() {
-                    clean_blocks.insert(childid.clone(), (t, canvas.blocks[&childid]));
+                    all_blocks.insert(childid.clone(), canvas.blocks[&childid]);
+                    clean_blocks.insert(childid.clone(), info.clone());
                 }
             }
             Move::LineCut(bid, ori, _) => {
                 for childid in bid.cut() {
-                    // created_time.insert(childid.clone(), i);
-                    clean_blocks.insert(childid.clone(), (t, canvas.blocks[&childid]));
+                    all_blocks.insert(childid.clone(), canvas.blocks[&childid]);
+                    clean_blocks.insert(childid.clone(), info.clone());
                 }
 
-                if let Some((s, block)) = clean_blocks.get(&bid) {
-                    let s = *s;
-                    if s != !0 {
-                        match program[s] {
-                            Move::LineCut(_, parentori, _) if ori.to_ascii_lowercase() == parentori.to_ascii_lowercase() => {
-                                eprintln!("[{t}] cut-cut {ori}");
-                                // todo
-                            }
-                            _ => {}
-                        }
+                if let Some(&(s, Move::LineCut(_, parentori, _))) = clean_blocks.get(&bid) {
+                    if ori.to_ascii_lowercase() == parentori.to_ascii_lowercase() {
+                        eprintln!("[{s}, {t}] cut-cut {ori}");
                     }
                 }
             }
             Move::Merge(bid0, bid1) => {
+                let (ori, _ori_index) = all_ori[t].unwrap();
                 let newid = BlockId(vec![canvas.counter]);
-                clean_blocks.insert(newid.clone(), (t, canvas.blocks[&newid]));
+                all_blocks.insert(newid.clone(), canvas.blocks[&newid]);
+                clean_blocks.insert(newid.clone(), info);
 
-                if let (Some((s0, block0)), Some((s1, block1))) = (clean_blocks.get(&bid0), clean_blocks.get(&bid1)) {
-                    let s0 = *s0;
-                    let s1 = *s1;
-                    if s0 != !0 && s1 != !0 && s0 == s1 {
-                        match program[s0] {
-                            Move::LineCut(_, _, _) => {
-                                eprintln!("[{t}] cut-merge");
-                                // todo
-                            }
-                            // todo: PointCut?
-                            _ => {}
-                        }
-                    } else if s0 != !0 && s1 != !0 {
-                        eprintln!("[{t}] info: suspicious merge");
+                if let (Some(&(s0, Move::LineCut(..))), Some(&(s1, Move::LineCut(..)))) = (clean_blocks.get(&bid0), clean_blocks.get(&bid1)) {
+                    if s0 == s1 {
+                        let s = s0;
+                        eprintln!("[{s}, {t}] cut-merge");
                     }
-                } else if let Some((s, block)) = clean_blocks.get(&bid0) {
-                    let s = *s;
-                    if s != !0 {
-                        match program[s] {
-                            Move::Merge(_, _) => {
-                                // todo orient
-                                eprintln!("[{t}] merge-merge");
-                                // todo
-                            }
-                            // todo: PointCut?
-                            _ => {}
-                        }   
+                }
+                if let Some(&(s, Move::Merge(..))) = clean_blocks.get(&bid0) {
+                    if all_ori[s].unwrap().0 == ori {
+                        eprintln!("[{s}, {t}] merge-merge {ori}");
                     }
-                } else if let Some((s, block)) = clean_blocks.get(&bid1) {
-                    let s = *s;
-                    if s != !0 {
-                        match program[s] {
-                            Move::Merge(_, _) => {
-                                // todo orient
-                                eprintln!("[{t}] merge-merge");
-                                // todo
-                            }
-                            // todo: PointCut?
-                            _ => {}
-                        }   
+                }
+                if let Some(&(s, Move::Merge(..))) = clean_blocks.get(&bid1) {
+                    if all_ori[s].unwrap().0 == ori {
+                        eprintln!("[{s}, {t}] merge-merge {ori}");
                     }
                 }
             }
