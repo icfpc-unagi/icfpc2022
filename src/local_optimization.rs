@@ -564,7 +564,7 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
     // }
 
     // for (t, mov) in program.iter().enumerate() {
-    'outer: for t in 0..program.len() {
+    for t in 0..program.len() {
         let mov = program[t].clone();
         if let Move::Merge(bid0, bid1) = &mov {
             let corner0 = canvas.blocks[bid0].0;
@@ -597,15 +597,61 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                     clean_blocks.insert(childid.clone(), info.clone());
                 }
             }
-            Move::LineCut(bid, ori, _) => {
+            Move::LineCut(bid, ori, val) => {
+                let ori = ori.to_ascii_lowercase();
                 for childid in bid.cut() {
                     all_blocks.insert(childid.clone(), canvas.blocks[&childid]);
                     clean_blocks.insert(childid.clone(), info.clone());
                 }
 
-                if let Some(&(s, Move::LineCut(_, parentori, _))) = clean_blocks.get(&bid) {
-                    if ori.to_ascii_lowercase() == parentori.to_ascii_lowercase() {
-                        eprintln!("[{s}, {t}] cut-cut {ori}");
+                if let Some(&(s, Move::LineCut(ref parent_bid, parentori, parent_val))) = clean_blocks.get(&bid) {
+                    if ori == parentori.to_ascii_lowercase() {
+                        let parent_block = all_blocks[&parent_bid];
+                        let (v0, v1) = match ori {
+                            'x' => {
+                                (parent_block.0 .0, parent_block.1 .0)
+                            },
+                            'y' => {
+                                (parent_block.0 .1, parent_block.1 .1)
+                            }
+                            _ => {
+                                unreachable!()
+                            }
+                        };
+                        // 端に近い方を先に切るべき
+                        if (val - v0).min(v1 - val) < (parent_val - v0).min(v1 - parent_val) {
+                            eprintln!("[{s}, {t}] cut-cut {ori}");
+                            let root_id = parent_bid.0.clone();
+                            let k = *bid.0.last().unwrap();
+
+                            let mut tmp0 = parent_bid.extended([k]).0;
+                            let mut tmp00 = parent_bid.extended([k, k]).0;
+                            let mut tmp01 = parent_bid.extended([k, 1-k]).0;
+                            let mut tmp1 = parent_bid.extended([1-k]).0;
+                            let mut tmp10 = parent_bid.extended([1-k, k]).0;
+                            let mut tmp11 = parent_bid.extended([1-k, 1-k]).0;
+                            // swap val and parent_val
+                            program[s] = Move::LineCut(parent_bid.clone(), ori, val);
+                            program[t] = Move::LineCut(BlockId(tmp1.clone()), ori, parent_val);
+
+                            let from_to = [
+                                (tmp00, tmp0),
+                                (tmp01, tmp10),
+                                (tmp1, tmp11),
+                            ];
+                            let mut rename = |b: &mut Vec<u32>| {
+                                for (from, to) in from_to.iter() {
+                                    if b.starts_with(from) {
+                                        b.splice(..from.len(), to.clone());
+                                        break;
+                                    }
+                                }
+                            };
+                            for i in t+1..program.len() {
+                                program[i].edit_id(rename);
+                            }
+                            return Some(program);
+                        }
                     }
                 }
             }
