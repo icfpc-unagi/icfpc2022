@@ -250,8 +250,8 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
                 Image::new()
                     .set("x", 0)
                     .set("y", 0)
-                    .set("width", w)
-                    .set("height", h)
+                    .set("width", w * 2)
+                    .set("height", h * 2)
                     .set(
                         "xlink:href",
                         format!("data:image/png;base64,{}", base64(&canvas.bitmap)),
@@ -296,8 +296,8 @@ pub fn vis(problem_id: String, output: String, t: i32, show_blocks: bool, show_d
                 }
                 cost = (cost * 0.005).round();
                 let title = format!(
-                    "block [{}]\n({}, {}) - ({}, {})\ndiff = {}",
-                    id, block.0 .0, block.0 .1, block.1 .0, block.1 .1, cost
+                    "block [{}]\n({}, {}) - ({}, {})\nw: {}, h: {}\ndiff = {}",
+                    id, block.0 .0, block.0 .1, block.1 .0, block.1 .1, block.1.0 - block.0.0, block.1.1 - block.0.1, cost
                 );
                 doc = doc.add(
                     Group::new().add(Title::new().add(Text::new(&title))).add(
