@@ -7,82 +7,34 @@
 </head>
 
 <body>
+  <p style="border:1px solid #000;border-radius:5px;padding:2px">
+    ※突貫で作った座標打ち込めるだけのエディタ。クリックで PointCut が出るだけ (BlockID は 0 固定)。入力した ISL は反映される。
+  </p>
+
   <form>
     <label for="problem_id1">
       Problem ID:
-      <input type="number" id="problem_id1" value="1" min="1" max="40" required/>
+      <input type="number" id="problem_id1" value="1" min="1" max="40" required>
     </label>
     <input type="submit" value="Load best submission">
   </form>
-  <textarea id="isl1" rows="20" cols="40"></textarea>
-  <canvas id="canvas1" width="400" height="400"></canvas>
+
+  <textarea id="isl1" rows="20" cols="40" placeholder="ISL"></textarea>
+  <div id="container1" style="position:relative;display:inline-block;height:400px;width:400px">
+    <canvas id="canvas1" width="400" height="400" style="position:absolute;left:0;top:0"></canvas>
+    <img id="target_png" width="400" height="400" alt="target png" style="position:absolute;left:0;top:0;opacity:50%">
+    <svg width="400" height="400" id="svg1" style="position:absolute;left:0;top:0"></svg>
+    <canvas id="canvas2" width="400" height="400" style="position:absolute;left:0;top:0"></canvas>
+  </div>
+  <div id="error1" style="background-color:#ff0;color:red;font-weight:bold;font-family:monospace"></div>
   <div>score: <span id="score1"></span></div>
   <div>cost: <span id="cost1"></span></div>
   <div>similarity: <span id="similarity1"></span></div>
 
-  <textarea id="initial_config" rows="20" cols="40"></textarea>
+  <p>
+  <textarea id="initial_config" rows="20" cols="40" placeholder="initial configuration"></textarea>
   <img id="initial_png" width="400" height="400" alt="initial png">
-  <img id="target_png" width="400" height="400" alt="target png">
 </body>
-<script type="module">
-  import init, * as icfpc2022 from "../../pkg/icfpc2022.js?4"
-  (async () => {
-    await init()
-    window.icfpc2022 = icfpc2022
-
-    const base1 = 'https://icfpc.sx9.jp/problems/'
-    const base0 = 'https://cdn.robovinci.xyz/imageframes/'
-    const problem_id1 = document.getElementById('problem_id1')
-    const isl1 = document.getElementById('isl1')
-    const canvas1 = document.getElementById('canvas1')
-    const cost1 = document.getElementById('cost1')
-    const similarity1 = document.getElementById('similarity1')
-    const score1 = document.getElementById('score1')
-    const initial_config = document.getElementById('initial_config')
-    const initial_png = document.getElementById('initial_png')
-    const target_png = document.getElementById('target_png')
-
-    async function loadProblem(problemId) {
-      let resp = await fetch(`${base1}${problemId}.json`)
-      let json = await resp.json()
-      if (json.canvas_link) {
-        fetch(json.canvas_link.replace(base0, base1))
-          .then(resp => resp.blob())
-          .then(blob => initial_png = URL.createObjectURL(blob))
-      }
-      if (json.initial_config_link) {
-        fetch(json.initial_config_link.replace(base0, base1))
-          .then(resp => resp.text())
-          .then(text => initial_config.value = text)
-      }
-      if (json.target_link) {
-        fetch(json.target_link.replace(base0, base1))
-          .then(resp => resp.blob())
-          .then(blob => target_png.src = URL.createObjectURL(blob))
-      }
-    }
-    problem_id1.addEventListener('value', e => loadProblem(e.target.value))
-    loadProblem(problem_id1.value)
-
-    async function loadSubmission(problemId) {
-      let resp = await fetch(`https://icfpc.sx9.jp/scvzcaae/submission?problem_id=${problemId}`)
-      let json = await resp.json()
-      isl1.value = json.SubmissionSolution
-    }
-    problem_id1.form.addEventListener('submit', e => {
-      loadSubmission(problem_id1.value)
-      update()
-      e.preventDefault()
-    });
-    loadSubmission(problem_id1.value)
-
-    function update() {
-      let managed = new icfpc2022.ManagedCanvas(canvas1)
-      managed.apply(isl1.value)
-      cost1.innerText = managed.cost()
-    }
-    isl1.addEventListener('input', e => update())
-  })()
-</script>
+<script type="module" src="./index.ts"></script>
 
 </html>
