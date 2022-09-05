@@ -1,9 +1,8 @@
 {
   "source": "src/index.html",
   "scripts": {
-    "start": "wasm-pack build --target web && parcel",
-    "build": "wasm-pack build --target web && parcel build",
-    "build:release": "wasm-pack build --release --target web && parcel build",
+    "start": "parcel",
+    "build": "parcel build",
     "lint": "eslint"
   },
   "devDependencies": {

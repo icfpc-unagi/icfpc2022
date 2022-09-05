@@ -1,17 +1,19 @@
-.PHONY: all release run test clean
+.PHONY: all wasm-pack build run test clean
 
-all:
+all: wasm-pack build run
+
+wasm-pack:
+	wasm-pack build --target web
+
+build:
 	npm install
 	npm run build
 
-release:
-	npm run build:release
+run:
+	npm run start
 
 test:
 	npm run test
-
-run:
-	npm run start
 
 clean:
 	rm -rf dist

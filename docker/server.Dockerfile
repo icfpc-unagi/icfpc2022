@@ -31,6 +31,13 @@ COPY problems/ /work/problems/
 RUN cd /work/web \
     && wasm-pack build --target no-modules
 
+FROM node AS node-builder
+RUN mkdir -p /work/pkg /work/wasm_static
+WORKDIR /work
+COPY --from=rust-builder /work/pkg /work/pkg
+COPY wasm_static/ /work/wasm_static/
+RUN cd /work/wasm_static && npm install && npx parcel build --public-url .
+
 FROM golang AS tini
 RUN wget -O /tini \
     https://github.com/krallin/tini/releases/download/v0.18.0/tini \
@@ -51,6 +58,8 @@ COPY --from=rust-builder /work/target/release/evaluate /usr/local/bin/evaluate
 COPY --from=rust-builder /work/pkg /work/static/pkg
 COPY --from=rust-builder /work/web/index.html /work/web/index.html
 COPY --from=rust-builder /work/web/pkg/*.js /work/web/pkg/*.wasm /work/web/
+# どこに配置するのがいいのかわからないからとりあえず static
+COPY --from=node-builder /work/wasm_static/dist /work/static/dist
 COPY ./static /work/static
 COPY ./problems /work/problems
 COPY ./secrets/login.json /work/secrets/login.json
