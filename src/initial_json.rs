@@ -9,6 +9,8 @@ pub struct InitialJson {
     pub height: usize,
     pub blocks: Vec<Block>,
     pub source_png_p_n_g: Option<String>,
+    #[serde(skip)]
+    pub source_png_raw: Option<Vec<u8>>,
 }
 
 impl InitialJson {

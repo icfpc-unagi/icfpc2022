@@ -22,7 +22,7 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   // wasm 側に持たせているもの
   // TODO: target_png, initial_config, initial_png を渡す
   var managed: icfpc2022.ManagedCanvas
-  var target_png = new Uint8Array()
+  var target_png
   var init_config = ''
   var init_png = new Uint8Array()
 
@@ -30,14 +30,23 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   async function loadProblem(problemId: string | number) {
     let resp = await fetch(`${base1}${problemId}.json`)
     let json = await resp.json()
+    console.debug(json)
     let target_png_p = fetch(json.target_link.replace(base0, base1))
       .then(resp => resp.blob())
       .then(blob => {
         target_png1.src = URL.createObjectURL(blob)
         return blob.arrayBuffer()
       }).then(buffer => new Uint8Array(buffer))
+    let init_config_p
+    if (json.initial_config_link && json.initial_config_link.trim()) { // can be " "
+      init_config_p = fetch(json.initial_config_link.replace(base0, base1))
+        .then(resp => resp.text())
+        .then(text => {
+          initial_config1.value = text
+          return text
+        })
+    }
     let init_png_p;
-    let init_config_p;
     if (json.canvas_link && json.canvas_link.trim()) { // can be " "
       initial_png1.style.display = 'default'
       init_png_p = fetch(json.canvas_link.replace(base0, base1))
@@ -49,20 +58,16 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     } else {
       initial_png1.style.display = 'none'
     }
-    if (json.initial_config_link && json.initial_config_link.trim()) {
-      console.log(json.initial_config_link)
-      init_config_p = fetch(json.initial_config_link.replace(base0, base1))
-        .then(resp => resp.text())
-        .then(text => {
-          initial_config1.value = text
-          return text
-        })
-    }
 
-    target_png = await target_png_p ?? target_png
+    target_png = await target_png_p
     init_config = await init_config_p ?? init_config
     init_png = await init_png_p ?? init_png
-    managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png)
+    console.debug(`target_png: ${target_png}`)
+    console.debug(`init_config: ${init_config}`)
+    console.debug(`init_png: ${init_png}`)
+    if (target_png) {
+      managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png)
+    }
     update()
   }
   problem_id1.addEventListener('input', e => loadProblem((e.target as HTMLInputElement).value))
@@ -157,7 +162,7 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
   function update() {
     if (!managed) return;
     try {
-      managed.clear()
+      managed.reset()
       managed.apply(isl1.value)
       let svgDoc = managed.svg()
       let holder = document.createElement('div')
@@ -169,7 +174,9 @@ import init, * as icfpc2022 from "../../pkg/icfpc2022.js"
     } catch (e) {
       console.error(e)
       error1.innerText = e.toString()
-      managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png);
+      if (target_png) {
+        managed = new icfpc2022.ManagedCanvas(canvas1, target_png, init_config, init_png)
+      }
     }
   }
   isl1.addEventListener('input', _ => update())

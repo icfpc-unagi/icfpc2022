@@ -1,11 +1,13 @@
 // NOTE: To enable completion, add vscode settings "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
 use crate::{color::geometric_median_4d, *};
+use std::panic;
 use svg::node::{
     element::{Group, Image, Rectangle, Title},
     Text,
 };
 use wasm_bindgen::{prelude::*, *};
 use web_sys::*;
+extern crate console_error_panic_hook;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -13,6 +15,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
     let window = window().unwrap();
     let document = window.document().unwrap();
 
@@ -32,6 +35,7 @@ pub fn main() -> Result<(), JsValue> {
 pub struct ManagedCanvas {
     ctx: CanvasRenderingContext2d,
     model: Canvas,
+    init: Canvas,
     target: Vec<Vec<Color>>,
     cost: f64,
     isl: Vec<Move>,
@@ -46,14 +50,24 @@ impl ManagedCanvas {
         init_config: &str, // len() == 0 if absent
         init_png: &[u8],   // len() == 0 if absent
     ) -> Self {
+        let canvas: Canvas = if init_config.is_empty() {
+            Canvas::new400()
+        } else {
+            let mut init_json =
+                serde_json::from_reader::<_, InitialJson>(init_config.as_bytes()).unwrap();
+            // inject source_png_raw to avoid file io
+            init_json.source_png_raw = if init_png.is_empty() {
+                None
+            } else {
+                Some(init_png.to_vec())
+            };
+            init_json.source_png_p_n_g = None;
+            init_json.try_into().unwrap()
+        };
         Self {
             ctx: JsValue::from(el_canvas.get_context("2d").unwrap()).into(),
-            // TODO: use init_config as InitialJson
-            model: if init_png.len() > 0 {
-                Canvas::from(read_png_r(init_png))
-            } else {
-                Canvas::new400()
-            },
+            model: canvas.clone(),
+            init: canvas,
             target: read_png_r(target_png),
             cost: Default::default(),
             isl: Default::default(),
@@ -85,8 +99,8 @@ impl ManagedCanvas {
         Ok(self.cost)
     }
 
-    pub fn clear(&mut self) -> Result<f64, JsValue> {
-        self.model = Canvas::new400();
+    pub fn reset(&mut self) -> Result<f64, JsValue> {
+        self.model = self.init.clone();
         self.cost = Default::default();
         self.isl.clear();
         self.render()?;
@@ -225,7 +239,7 @@ impl ManagedCanvas {
                         .set("width", block.1 .0 - block.0 .0)
                         .set("height", block.1 .1 - block.0 .1)
                         .set("fill", "#0000")
-                        .set("stroke-width", 2)
+                        .set("stroke-width", 1)
                         .set("stroke", stroke)
                         .set("block-id", id.to_string()),
                 ),
