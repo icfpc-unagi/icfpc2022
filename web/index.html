@@ -51,6 +51,7 @@
       const { gen, vis, get_max_turn, get_reversed_program } = wasm_bindgen;
       async function run() {
         await wasm_bindgen('./web_bg.wasm');
+        updateOutput();
         visualize();
       }
       run();

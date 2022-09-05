@@ -26,10 +26,11 @@ COPY src/ /work/src/
 RUN find /work/src -print -exec touch "{}" \; \
     && cargo build --release --bins \
     && wasm-pack build --release --target web
-COPY web/ /work/web/
 COPY problems/ /work/problems/
-RUN cd /work/web \
-    && wasm-pack build --target no-modules
+COPY web/src/ /work/web/src/
+COPY web/Cargo.lock web/Cargo.toml /work/web/
+RUN cd /work/web && wasm-pack build --target no-modules
+COPY web/index.html /work/web/index.html
 
 FROM node AS node-builder
 RUN mkdir -p /work/pkg /work/wasm_static
@@ -62,5 +63,6 @@ COPY --from=rust-builder /work/web/pkg/*.js /work/web/pkg/*.wasm /work/web/
 COPY --from=node-builder /work/wasm_static/dist /work/static/dist
 COPY ./static /work/static
 COPY ./problems /work/problems
+COPY ./web /work/web
 COPY ./secrets/login.json /work/secrets/login.json
 ENTRYPOINT /tini -- /usr/local/bin/server --logtostderr
