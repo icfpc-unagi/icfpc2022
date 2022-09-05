@@ -621,15 +621,15 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                         // 端に近い方を先に切るべき
                         if (val - v0).min(v1 - val) < (parent_val - v0).min(v1 - parent_val) {
                             eprintln!("[{s}, {t}] cut-cut {ori}");
-                            let root_id = parent_bid.0.clone();
+                            // let root_id = parent_bid.0.clone();
                             let k = *bid.0.last().unwrap();
 
-                            let mut tmp0 = parent_bid.extended([k]).0;
-                            let mut tmp00 = parent_bid.extended([k, k]).0;
-                            let mut tmp01 = parent_bid.extended([k, 1-k]).0;
-                            let mut tmp1 = parent_bid.extended([1-k]).0;
-                            let mut tmp10 = parent_bid.extended([1-k, k]).0;
-                            let mut tmp11 = parent_bid.extended([1-k, 1-k]).0;
+                            let tmp0 = parent_bid.extended([k]).0;
+                            let tmp00 = parent_bid.extended([k, k]).0;
+                            let tmp01 = parent_bid.extended([k, 1-k]).0;
+                            let tmp1 = parent_bid.extended([1-k]).0;
+                            let tmp10 = parent_bid.extended([1-k, k]).0;
+                            let tmp11 = parent_bid.extended([1-k, 1-k]).0;
                             // swap val and parent_val
                             program[s] = Move::LineCut(parent_bid.clone(), ori, val);
                             program[t] = Move::LineCut(BlockId(tmp1.clone()), ori, parent_val);
@@ -639,7 +639,7 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                                 (tmp01, tmp10),
                                 (tmp1, tmp11),
                             ];
-                            let mut rename = |b: &mut Vec<u32>| {
+                            let rename = |b: &mut Vec<u32>| {
                                 for (from, to) in from_to.iter() {
                                     if b.starts_with(from) {
                                         b.splice(..from.len(), to.clone());
