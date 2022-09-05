@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use crate::color::*;
-use crate::wata::*;
+//use crate::optmerge::merge_all;
+//use crate::wata::all_merge;
+use crate::{color::*, wata::merge_solution};
+//use crate::wata::*;
 use crate::*;
 use std::time::{Duration, Instant};
 
@@ -18,6 +20,11 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
     let mcs = MedianColorSelector::new(png);
     let mut xdp = vec![vec![0.0; 401]; 400];
     let mut ydp = vec![vec![0.0; 401]; 400];
+    let mut cut_cost = 7.0;
+    if init_canvas.cost_type == CostType::V2 {
+        cut_cost = 2.0;
+    }
+
     for i in 1..400 {
         for j in 0..400 {
             ydp[i][j + 1] = color_dist(png[i][j], png[i - 1][j]);
@@ -37,7 +44,9 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
         if end >= Duration::from_secs(sec as u64) {
             break;
         }
-        let ret = search(0, 400, 0, 400, &mut map, &mut list, &png, &mcs, &ydp, &xdp);
+        let ret = search(
+            0, 400, 0, 400, &mut map, &mut list, &png, &mcs, &ydp, &xdp, cut_cost,
+        );
         let ret_score = ret.0;
         if best > ret_score {
             best = ret_score;
@@ -52,9 +61,26 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
     }
     eprintln!("score:{}    node:{}", best, list.len());
 
-    let (start_id, mv) = all_merge(&init_canvas);
-    let mut moves = mv.clone();
-    let mut blocks = vec![BlockId(vec![start_id])];
+    let mut canvas2 = init_canvas.clone();
+    let mut start_id = 0;
+    //let mv = all_merge(&mut canvas2).1;
+    //let mv = merge_all(&mut canvas2);
+    // let mv = merge_all(&mut canvas2);
+    let mut moves = vec![];
+
+    /*
+    for m in &moves {
+        match m {
+            Move::Merge(_, _) => start_id += 1,
+            _ => {}
+        }
+        //eprintln!("{}", m);
+    }
+    */
+
+    //eprintln!("start : {}", start_id);
+
+    let mut blocks = vec![BlockId(vec![0])];
 
     eprintln!("check");
 
@@ -74,9 +100,6 @@ pub fn monte_solve2(png: &Vec<Vec<[u8; 4]>>, sec: i32, init_canvas: &Canvas) -> 
     eprintln!("ok");
 
     return (0.0, moves);
-    //for s in moves {
-    //    println!("{}", s);
-    //}
 }
 
 fn color_dist(a: [u8; 4], b: [u8; 4]) -> f64 {
@@ -177,6 +200,7 @@ fn search(
     mcs: &MedianColorSelector,
     ydp: &Vec<Vec<f64>>,
     xdp: &Vec<Vec<f64>>,
+    cut_cost: f64,
 ) -> (f64, bool) {
     let hash = (((ly * 65536 + ry) as i64) << 31) + (lx * 65536 + rx) as i64;
     if !map.contains_key(&hash) {
@@ -219,42 +243,14 @@ fn search(
         let mut div_pos = vec![]; // (score, XorY, pos)
 
         let p = 0;
-        let minimum_cost = 18.0 * 400.0 * 400.0 / (400.00001 - ly as f64) / (400.00001 - lx as f64);
+        let minimum_cost = (2.0 * cut_cost + 8.0) * 400.0 * 400.0
+            / (400.00001 - ly as f64)
+            / (400.00001 - lx as f64);
 
         if minimum_cost < list[now].def {
             if dx >= (1 << p) * 2 {
                 for i in lx + (1 << p)..rx - (1 << p) + 1 {
-                    let mut score = xdp[i][ry] - xdp[i][ly]; //0.00001;
-                                                             /*
-                                                             for j in ly..ry {
-                                                                 let mut over = [0.0, 0.0, 0.0, 0.0];
-                                                                 let mut under = [0.0, 0.0, 0.0, 0.0];
-                                                                 let mut q = 1;
-                                                                 for k in 0..(1 << p) {
-                                                                     for c in 0..4 {
-                                                                         over[c] += png[j][i + k][c] as f64;
-                                                                         under[c] += png[j][i - 1 - k][c] as f64;
-                                                                     }
-                                                                     if k == q - 1 {
-                                                                         let mut tmp = 0.0;
-                                                                         for c in 0..4 {
-                                                                             tmp += (over[c] - under[c]) * (over[c] - under[c]);
-                                                                         }
-                                                                         if k == 0 {
-                                                                             tmp *= 25.0;
-                                                                         }
-                                                                         q *= 2;
-                                                                         score += tmp.sqrt();
-                                                                     }
-                                                                 }
-                                                             }
-                                                             */
-                    //if rx - i < i - lx {
-                    //    score *= (rx - i) as f64;
-                    //} else {
-                    //    score *= (i - lx) as f64;
-                    //}
-
+                    let mut score = xdp[i][ry] - xdp[i][ly];
                     score *= dx as f64;
 
                     div_pos.push((score, 'X', i));
@@ -262,37 +258,7 @@ fn search(
             }
             if dy >= (1 << p) * 2 {
                 for i in ly + (1 << p)..ry - (1 << p) + 1 {
-                    let mut score = ydp[i][rx] - xdp[i][lx];
-                    /*
-                    for j in lx..rx {
-                        let mut over = [0.0, 0.0, 0.0, 0.0];
-                        let mut under = [0.0, 0.0, 0.0, 0.0];
-
-                        let mut q = 1;
-                        for k in 0..(1 << p) {
-                            for c in 0..4 {
-                                over[c] += png[i + k][j][c] as f64;
-                                under[c] += png[i - 1 - k][j][c] as f64;
-                            }
-                            if k == q - 1 {
-                                let mut tmp = 0.0;
-                                for c in 0..4 {
-                                    tmp += (over[c] - under[c]) * (over[c] - under[c]);
-                                }
-                                if k == 0 {
-                                    tmp *= 25.0;
-                                }
-                                q *= 2;
-                                score += tmp.sqrt();
-                            }
-                        }
-                    }
-                    */
-                    //if ry - i < i - ly {
-                    //    score *= (ry - i) as f64;
-                    //} else {
-                    //    score *= (i - ly) as f64;
-                    //}
+                    let mut score = ydp[i][rx] - ydp[i][lx];
                     score *= dy as f64;
 
                     div_pos.push((score, 'Y', i));
@@ -302,11 +268,8 @@ fn search(
 
         div_pos.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-        list[now].target = 64;
-        //list[now].target = 3;
-        //while list[now].target * list[now].target < dx * dy / 50 {
-        //    list[now].target += 1;
-        //}
+        list[now].target = 32;
+
         if list[now].target > div_pos.len() {
             list[now].target = div_pos.len();
         }
@@ -328,12 +291,6 @@ fn search(
     }
 
     if list[now].next.len() == 0 {
-        /*
-        eprintln!(
-            "?? cnt:{} ({},{})-({},{}):{}",
-            list[now].cnt, ly, lx, ry, rx, list[now].best
-        );
-        */
         list[now].used = true;
         return (list[now].best, list[now].used);
     }
@@ -344,7 +301,7 @@ fn search(
         choice = list[now].cnt - 1;
         //list[now].target += 1;
     } else {
-        if list[now].cnt >= 10000000 {
+        if list[now].cnt <= 10000000 {
             choice = bit_count(list[now].cnt) % list[now].target;
         } else {
             choice = list[now].cnt % list[now].target;
@@ -361,10 +318,10 @@ fn search(
     let right = list[now].next[choice].2;
 
     let leftret = search(
-        left.1[0], left.1[1], left.1[2], left.1[3], map, list, png, mcs, ydp, xdp,
+        left.1[0], left.1[1], left.1[2], left.1[3], map, list, png, mcs, ydp, xdp, cut_cost,
     );
     let rightret = search(
-        right.1[0], right.1[1], right.1[2], right.1[3], map, list, png, mcs, ydp, xdp,
+        right.1[0], right.1[1], right.1[2], right.1[3], map, list, png, mcs, ydp, xdp, cut_cost,
     );
     let leftret_score = leftret.0;
     let rightret_score = rightret.0;
@@ -392,7 +349,7 @@ fn search(
     let ret = leftret_score
         + rightret_score
         + (400.0 * 400.0 / s) * 1.0
-        + (400.0 * 400.0 / ((400.00001 - lx as f64) * (400.00001 - ly as f64))) * 7.0;
+        + (400.0 * 400.0 / ((400.00001 - lx as f64) * (400.00001 - ly as f64))) * cut_cost;
 
     if list[now].next[choice].0 .0 > ret {
         list[now].next[choice].0 .0 = ret;

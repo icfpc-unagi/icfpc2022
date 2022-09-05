@@ -31,6 +31,9 @@ struct Args {
 
     #[clap(long, default_value_t = 0)]
     max_pair_perturb: i32,
+
+    #[clap(long)]
+    skip_existing: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -54,6 +57,25 @@ fn main() -> anyhow::Result<()> {
         let (submission, program, comments, initial_canvas, image) =
             submissions::read_submission_program_problem(submission.id)?;
 
+        if args.skip_existing {
+            if let Some(previous_score) = submissions::find_optimization_result(
+                submission.problem_id,
+                submission.id,
+                args.max_pair_perturb,
+            )? {
+                println!(
+                    "{:6} {:7} {:20} {:6} {:6} (skip)",
+                    submission.id,
+                    submission.problem_id,
+                    submissions::estimate_program_name(&comments),
+                    submission.cost,
+                    previous_score,
+                );
+                gain += submission.cost as f64 - previous_score as f64;
+                continue;
+            }
+        }
+
         // dbg!(program.len());
 
         let (new_program, new_score) = if args.dryrun {
@@ -68,9 +90,6 @@ fn main() -> anyhow::Result<()> {
                 args.max_pair_perturb,
             )
         };
-
-        // local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 1, 0);
-        // local_optimization::optimize_coord_two(&new_program, &initial_canvas, &image, 2, 0);
 
         println!(
             "{:6} {:7} {:20} {:6} {:6} {:6}",
@@ -88,7 +107,12 @@ fn main() -> anyhow::Result<()> {
             "out/opt_{}_{:06.0}",
             submission.problem_id, new_score
         ))?;
-        w.write_fmt(format_args!("# optimize\n"))?;
+        //w.write_fmt(format_args!("# optimize\n"))?;
+        write!(
+            &mut w,
+            "# optimize SUBMISSION_ID={} MAX_PAIR_PERTURB={}\n",
+            submission.id, args.max_pair_perturb
+        )?;
         write_isl_with_comments(w, new_program, &comments)?;
     }
 

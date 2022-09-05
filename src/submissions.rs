@@ -1,4 +1,4 @@
-use crate::{Canvas, Move, Program, Submission};
+use crate::{read_isl_with_comments, Canvas, Move, Program, Submission};
 use anyhow::Context;
 use once_cell::sync::Lazy;
 use std::collections::HashSet;
@@ -261,4 +261,47 @@ pub fn query_submission_ids(
     // println!("Applying to {} submissions", submissions.len());
 
     Ok(spcs)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub fn find_optimization_result(
+    problem_id: u32,
+    submission_id: u32,
+    max_pair_perturb: i32,
+) -> anyhow::Result<Option<u32>> {
+    let paths = glob::glob(&format!("out/opt_{}_*", problem_id))?;
+    let mut paths = paths
+        .into_iter()
+        .map(|p| p.map_err(anyhow::Error::from))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    paths.sort();
+
+    for path in paths {
+        let (_, comment) = read_isl_with_comments(std::fs::File::open(&path)?)?;
+
+        if comment.len() == 0 {
+            continue;
+        }
+        let header = &comment[0];
+        if header
+            == &format!(
+                "optimize SUBMISSION_ID={} MAX_PAIR_PERTURB={}",
+                submission_id, max_pair_perturb
+            )
+        {
+            let score = path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .split("_")
+                .nth(2)
+                .unwrap()
+                .parse()?;
+            return Ok(Some(score));
+        }
+    }
+
+    Ok(None)
 }

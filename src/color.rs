@@ -297,7 +297,7 @@ pub fn geometric_median_4d(points: &[[f64; 4]]) -> [f64; 4] {
                 break;
             }
             eps *= 0.5;
-            dbg!(eps);
+            // dbg!(eps);
         }
         // dbg!(step_size, min_step_size);
         // if step_size < min_step_size {
