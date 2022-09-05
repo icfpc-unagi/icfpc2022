@@ -650,6 +650,8 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                 // 重複removeしてもOK
                 clean_blocks.remove(&bid0);
                 clean_blocks.remove(&bid1);
+                all_blocks.insert(bid0.clone(), canvas.blocks[&bid0]);
+                all_blocks.insert(bid1.clone(), canvas.blocks[&bid1]);
             }
             Move::PointCut(bid, _, _) => {
                 for childid in bid.cut4() {
@@ -742,7 +744,7 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                     }
                     (Some((s, Move::Merge(id0, id1))), _)
                     | (_, Some((s, Move::Merge(id0, id1)))) => {
-                        let (prev_ori, _, prev_val) = all_ori[s].unwrap();
+                        let (prev_ori, _prev_ori_index, prev_val) = all_ori[s].unwrap();
                         if prev_ori == ori {
                             let (v0, v1) = ori_of_block(new_block, ori);
                             // let (v00, v01) = ori_of_block(all_blocks[&id0], ori);
@@ -753,12 +755,33 @@ pub fn fix_cut_merge(mut program: Program, mut canvas: Canvas) -> Option<Program
                             // let v_second = *set0.union(&set1).copied().collect::<HashSet<i32>>().difference(&HashSet::<i32>::from([v0, v1, v_first])).next().unwrap();
                             // assert_eq!(v_first, prev_val);
                             // assert_eq!(v_second, val);
-                            if two_merge_cost(v0, v1, prev_val, val)
-                                > two_merge_cost(v0, v1, val, prev_val)
+                            if s + 1 == t
+                                && two_merge_cost(v0, v1, prev_val, val) - 1e-6
+                                    > two_merge_cost(v0, v1, val, prev_val)
                             {
                                 eprintln!("[{s}, {t}] merge-merge {ori}");
                                 // dbg!((v0, v1, prev_val, val));
-                                eprintln!("auto-fix not yet implemented")
+                                let previd_u32 = newid_u32 - 1;
+                                let last_id = if bid0 == BlockId(vec![previd_u32]) {
+                                    bid1
+                                } else if bid1 == BlockId(vec![previd_u32]) {
+                                    bid0
+                                } else {
+                                    eprintln!("error: orz");
+                                    continue;
+                                };
+                                let mut bids = [id0, id1, last_id.clone()];
+                                dbg!(&bids);
+                                bids.sort_by_key(|b| {
+                                    let b = all_blocks[b];
+                                    b.0 + b.1
+                                });
+                                dbg!(&bids);
+                                program[s] = Move::Merge(last_id.clone(), bids[1].clone());
+                                let tmp = bids.iter().position(|b| b == &last_id).unwrap();
+                                program[t] =
+                                    Move::Merge(BlockId(vec![previd_u32]), bids[2 - tmp].clone());
+                                return Some(program);
                             }
                         }
                     }
